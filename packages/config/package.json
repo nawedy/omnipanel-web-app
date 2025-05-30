@@ -1,0 +1,27 @@
+{
+  "name": "@omnipanel/config",
+  "version": "1.0.0",
+  "description": "Configuration management for OmniPanel",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.50",
+    "tsup": "^7.0.0",
+    "typescript": "^5.0.0"
+  }
+}

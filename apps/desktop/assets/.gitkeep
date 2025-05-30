@@ -1,0 +1,7 @@
+# This file ensures the assets directory is tracked by git
+# Place your app icons and other assets in this directory:
+# - icon.icns (macOS)
+# - icon.ico (Windows)  
+# - icon.png (Linux)
+# - splash images
+# - other resources 

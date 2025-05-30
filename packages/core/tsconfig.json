@@ -1,0 +1,45 @@
+
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": "./src",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "paths": {
+      "@/*": ["*"],
+      "@/auth/*": ["auth/*"],
+      "@/projects/*": ["projects/*"],
+      "@/chat/*": ["chat/*"],
+      "@/files/*": ["files/*"],
+      "@/utils/*": ["utils/*"],
+      "@/database/*": ["database/*"]
+    }
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ],
+  "references": [
+    {
+      "path": "../types"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../database"
+    },
+    {
+      "path": "../llm-adapters"
+    }
+  ]
+}

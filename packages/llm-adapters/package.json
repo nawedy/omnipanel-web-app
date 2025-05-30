@@ -1,0 +1,40 @@
+{
+  "name": "@omnipanel/llm-adapters",
+  "version": "1.0.0",
+  "description": "Universal LLM adapters for OmniPanel workspace",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "openai": "^4.24.1",
+    "anthropic": "^0.17.1",
+    "@google/generative-ai": "^0.2.1",
+    "@huggingface/inference": "^2.6.4",
+    "axios": "^1.6.2",
+    "ws": "^8.14.2",
+    "node-fetch": "^3.3.2",
+    "form-data": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.5.9",
+    "@types/node": "^20.10.4",
+    "typescript": "^5.3.3"
+  },
+  "peerDependencies": {
+    "@omnipanel/types": "workspace:*"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./adapters/*": {
+      "types": "./dist/adapters/*.d.ts",
+      "default": "./dist/adapters/*.js"
+    }
+  }
+}

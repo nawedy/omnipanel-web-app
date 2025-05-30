@@ -1,0 +1,26 @@
+{
+  "name": "@omnipanel/database",
+  "version": "1.0.0",
+  "description": "Database layer for OmniPanel",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@omnipanel/types": "file:../types",
+    "@omnipanel/config": "file:../config",
+    "drizzle-orm": "^0.29.0",
+    "postgres": "^3.4.3",
+    "@supabase/supabase-js": "^2.38.0",
+    "lodash": "^4.17.21",
+    "date-fns": "^2.30.0"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.0",
+    "tsup": "^7.0.0",
+    "typescript": "^5.0.0"
+  }
+}

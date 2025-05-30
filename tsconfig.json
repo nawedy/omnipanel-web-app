@@ -1,0 +1,78 @@
+// tsconfig.json (in project root)
+{
+    "compilerOptions": {
+      "target": "ES2022",
+      "lib": ["ES2022", "DOM", "DOM.Iterable"],
+      "allowJs": true,
+      "skipLibCheck": true,
+      "strict": true,
+      "noEmit": true,
+      "esModuleInterop": true,
+      "module": "ESNext",
+      "moduleResolution": "node",
+      "resolveJsonModule": true,
+      "isolatedModules": true,
+      "jsx": "preserve",
+      "incremental": true,
+      "composite": false,
+      "declaration": false,
+      "forceConsistentCasingInFileNames": true,
+      "allowSyntheticDefaultImports": true,
+      "baseUrl": ".",
+      "paths": {
+        "@omnipanel/types": ["./packages/types/src"],
+        "@omnipanel/types/*": ["./packages/types/src/*"],
+        "@omnipanel/config": ["./packages/config/src"],
+        "@omnipanel/config/*": ["./packages/config/src/*"],
+        "@omnipanel/database": ["./packages/database/src"],
+        "@omnipanel/database/*": ["./packages/database/src/*"],
+        "@omnipanel/core": ["./packages/core/src"],
+        "@omnipanel/core/*": ["./packages/core/src/*"],
+        "@omnipanel/ui": ["./packages/ui/src"],
+        "@omnipanel/ui/*": ["./packages/ui/src/*"],
+        "@omnipanel/llm-adapters": ["./packages/llm-adapters/src"],
+        "@omnipanel/llm-adapters/*": ["./packages/llm-adapters/src/*"]
+      }
+    },
+    "include": [
+      "packages/*/src/**/*",
+      "apps/*/src/**/*",
+      "apps/*/*.ts",
+      "apps/*/*.tsx",
+      "*.ts",
+      "*.js"
+    ],
+    "exclude": [
+      "node_modules",
+      "dist",
+      "build",
+      ".next",
+      "**/*.test.ts",
+      "**/*.test.tsx",
+      "**/*.spec.ts",
+      "**/*.spec.tsx"
+    ],
+    "references": [
+      {
+        "path": "./packages/types"
+      },
+      {
+        "path": "./packages/config"
+      },
+      {
+        "path": "./packages/database"
+      },
+      {
+        "path": "./packages/ui"
+      },
+      {
+        "path": "./packages/llm-adapters"
+      },
+      {
+        "path": "./packages/core"
+      }
+    ],
+    "ts-node": {
+      "esm": true
+    }
+  }
