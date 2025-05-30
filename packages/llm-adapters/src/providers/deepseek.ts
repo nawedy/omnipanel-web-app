@@ -79,13 +79,37 @@ export class DeepSeekAdapter extends BaseAdapter {
   private config: DeepSeekConfig;
 
   private static readonly MODELS = {
+    'deepseek-r1': {
+      id: 'deepseek-r1',
+      name: 'DeepSeek R1',
+      contextLength: 65536,
+      inputCost: 0.55, // per 1M tokens
+      outputCost: 2.19,
+      description: 'Latest reasoning model with advanced problem-solving capabilities'
+    },
+    'deepseek-r1-distill-llama-70b': {
+      id: 'deepseek-r1-distill-llama-70b',
+      name: 'DeepSeek R1 Distill LLaMA 70B',
+      contextLength: 65536,
+      inputCost: 0.14,
+      outputCost: 0.28,
+      description: 'Distilled version of R1 with LLaMA architecture for better efficiency'
+    },
+    'deepseek-r1-distill-qwen-32b': {
+      id: 'deepseek-r1-distill-qwen-32b',
+      name: 'DeepSeek R1 Distill Qwen 32B',
+      contextLength: 65536,
+      inputCost: 0.14,
+      outputCost: 0.28,
+      description: 'Distilled R1 model with Qwen architecture for reasoning tasks'
+    },
     'deepseek-chat': {
       id: 'deepseek-chat',
       name: 'DeepSeek Chat',
       contextLength: 32768,
-      inputCost: 0.14, // per 1M tokens
+      inputCost: 0.14,
       outputCost: 0.28,
-      description: 'DeepSeek general purpose chat model'
+      description: 'General purpose conversational model'
     },
     'deepseek-coder': {
       id: 'deepseek-coder',
@@ -93,7 +117,7 @@ export class DeepSeekAdapter extends BaseAdapter {
       contextLength: 16384,
       inputCost: 0.14,
       outputCost: 0.28,
-      description: 'Specialized coding assistant model'
+      description: 'Specialized model for code generation and programming tasks'
     },
     'deepseek-reasoner': {
       id: 'deepseek-reasoner',
@@ -101,7 +125,15 @@ export class DeepSeekAdapter extends BaseAdapter {
       contextLength: 65536,
       inputCost: 0.55,
       outputCost: 2.19,
-      description: 'Advanced reasoning and problem-solving model'
+      description: 'Advanced reasoning model for complex problem-solving'
+    },
+    'deepseek-v3': {
+      id: 'deepseek-v3',
+      name: 'DeepSeek V3',
+      contextLength: 65536,
+      inputCost: 0.14,
+      outputCost: 0.28,
+      description: 'Latest generation DeepSeek model with improved capabilities'
     }
   };
 

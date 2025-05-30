@@ -32,11 +32,14 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   private usageStats: LLMUsageStats = createUsageStats();
 
   private readonly modelPricing: Record<string, { input: number; output: number }> = {
-    'gpt-4': { input: 0.03, output: 0.06 },
+    'gpt-4o': { input: 0.0025, output: 0.01 },
+    'gpt-4o-mini': { input: 0.00015, output: 0.0006 },
     'gpt-4-turbo': { input: 0.01, output: 0.03 },
-    'gpt-3.5-turbo': { input: 0.0015, output: 0.002 },
-    'gpt-4o': { input: 0.005, output: 0.015 },
-    'gpt-4o-mini': { input: 0.00015, output: 0.0006 }
+    'gpt-4': { input: 0.03, output: 0.06 },
+    'gpt-3.5-turbo': { input: 0.0005, output: 0.0015 },
+    'o1-preview': { input: 0.015, output: 0.06 },
+    'o1-mini': { input: 0.003, output: 0.012 },
+    'gpt-4o-realtime-preview': { input: 0.005, output: 0.02 }
   };
 
   private readonly availableModels: LLMModel[] = [
@@ -48,9 +51,9 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       context_length: 128000,
       supports_streaming: true,
       supports_functions: true,
-      description: 'Most advanced GPT-4 model with vision capabilities',
+      description: 'Latest GPT-4o model with vision, faster and cheaper than GPT-4 Turbo',
       capabilities: ['chat', 'completion', 'vision', 'function_calling'],
-      pricing: { input: 0.005, output: 0.015 }
+      pricing: { input: 0.0025, output: 0.01 }
     },
     {
       id: 'gpt-4o-mini',
@@ -60,9 +63,33 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       context_length: 128000,
       supports_streaming: true,
       supports_functions: true,
-      description: 'Faster and cheaper GPT-4o model',
+      description: 'Affordable and intelligent small model, faster than GPT-3.5 Turbo',
       capabilities: ['chat', 'completion', 'vision', 'function_calling'],
       pricing: { input: 0.00015, output: 0.0006 }
+    },
+    {
+      id: 'o1-preview',
+      name: 'o1-preview',
+      provider: AIProvider.OPENAI,
+      contextLength: 128000,
+      context_length: 128000,
+      supports_streaming: false,
+      supports_functions: false,
+      description: 'Reasoning model designed for complex, multi-step problems',
+      capabilities: ['chat', 'completion', 'reasoning'],
+      pricing: { input: 0.015, output: 0.06 }
+    },
+    {
+      id: 'o1-mini',
+      name: 'o1-mini',
+      provider: AIProvider.OPENAI,
+      contextLength: 128000,
+      context_length: 128000,
+      supports_streaming: false,
+      supports_functions: false,
+      description: 'Faster and cheaper reasoning model for coding, math, and science',
+      capabilities: ['chat', 'completion', 'reasoning'],
+      pricing: { input: 0.003, output: 0.012 }
     },
     {
       id: 'gpt-4-turbo',
@@ -72,9 +99,21 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       context_length: 128000,
       supports_streaming: true,
       supports_functions: true,
-      description: 'Latest GPT-4 model with improved performance',
+      description: 'Previous generation GPT-4 with vision capabilities',
       capabilities: ['chat', 'completion', 'vision', 'function_calling'],
       pricing: { input: 0.01, output: 0.03 }
+    },
+    {
+      id: 'gpt-4',
+      name: 'GPT-4',
+      provider: AIProvider.OPENAI,
+      contextLength: 8192,
+      context_length: 8192,
+      supports_streaming: true,
+      supports_functions: true,
+      description: 'Original GPT-4 model with high accuracy',
+      capabilities: ['chat', 'completion', 'function_calling'],
+      pricing: { input: 0.03, output: 0.06 }
     },
     {
       id: 'gpt-3.5-turbo',
@@ -84,9 +123,9 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       context_length: 16385,
       supports_streaming: true,
       supports_functions: true,
-      description: 'Fast and cost-effective model for most tasks',
+      description: 'Fast and affordable model for simple tasks',
       capabilities: ['chat', 'completion', 'function_calling'],
-      pricing: { input: 0.0015, output: 0.002 }
+      pricing: { input: 0.0005, output: 0.0015 }
     }
   ];
 

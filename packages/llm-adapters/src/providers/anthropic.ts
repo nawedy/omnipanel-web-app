@@ -31,10 +31,11 @@ export class AnthropicAdapter extends BaseLLMAdapter {
   private usageStats: LLMUsageStats = createUsageStats();
 
   private readonly modelPricing: Record<string, { input: number; output: number }> = {
+    'claude-3-5-sonnet-20241022': { input: 0.003, output: 0.015 },
+    'claude-3-5-haiku-20241022': { input: 0.0008, output: 0.004 },
     'claude-3-opus-20240229': { input: 0.015, output: 0.075 },
     'claude-3-sonnet-20240229': { input: 0.003, output: 0.015 },
-    'claude-3-haiku-20240307': { input: 0.00025, output: 0.00125 },
-    'claude-3-5-sonnet-20241022': { input: 0.003, output: 0.015 }
+    'claude-3-haiku-20240307': { input: 0.00025, output: 0.00125 }
   };
 
   private readonly availableModels: ModelInfo[] = [
@@ -46,9 +47,21 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       context_length: 200000,
       supports_streaming: true,
       supports_functions: true,
-      description: 'Most intelligent model with enhanced capabilities',
+      description: 'Most intelligent model with enhanced reasoning and coding capabilities',
       capabilities: ['chat', 'completion', 'vision', 'function_calling'],
       pricing: { input: 0.003, output: 0.015 }
+    },
+    {
+      id: 'claude-3-5-haiku-20241022',
+      name: 'Claude 3.5 Haiku',
+      provider: AIProvider.ANTHROPIC,
+      contextLength: 200000,
+      context_length: 200000,
+      supports_streaming: true,
+      supports_functions: true,
+      description: 'Fast and affordable model with improved capabilities over Claude 3 Haiku',
+      capabilities: ['chat', 'completion', 'vision', 'function_calling'],
+      pricing: { input: 0.0008, output: 0.004 }
     },
     {
       id: 'claude-3-opus-20240229',
@@ -58,7 +71,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       context_length: 200000,
       supports_streaming: true,
       supports_functions: true,
-      description: 'Most powerful model for complex tasks',
+      description: 'Most powerful model for highly complex tasks',
       capabilities: ['chat', 'completion', 'vision', 'function_calling'],
       pricing: { input: 0.015, output: 0.075 }
     },
@@ -70,7 +83,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       context_length: 200000,
       supports_streaming: true,
       supports_functions: true,
-      description: 'Balanced model for most tasks',
+      description: 'Balanced model for a wide range of tasks',
       capabilities: ['chat', 'completion', 'vision', 'function_calling'],
       pricing: { input: 0.003, output: 0.015 }
     },
@@ -82,7 +95,7 @@ export class AnthropicAdapter extends BaseLLMAdapter {
       context_length: 200000,
       supports_streaming: true,
       supports_functions: true,
-      description: 'Fastest model for simple tasks',
+      description: 'Fastest and most affordable model for simple tasks',
       capabilities: ['chat', 'completion', 'vision', 'function_calling'],
       pricing: { input: 0.00025, output: 0.00125 }
     }

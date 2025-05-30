@@ -19,7 +19,7 @@ import {
   createTokenUsage,
   normalizeFinishReason
 } from '@omnipanel/types';
-import { BaseLLMAdapter, type LLMAdapterConfig, type StreamingOptions } from '@/base/adapter';
+import { BaseLLMAdapter, type LLMAdapterConfig, type StreamingOptions } from '../base/adapter';
 
 export interface GoogleAIConfig extends LLMAdapterConfig {
   projectId?: string;
@@ -34,13 +34,26 @@ export class GoogleAIAdapter extends BaseLLMAdapter {
 
   // Google AI model pricing (per 1K tokens)
   private readonly modelPricing: Record<string, { input: number; output: number }> = {
-    'gemini-1.5-pro': { input: 0.0035, output: 0.0105 },
-    'gemini-1.5-flash': { input: 0.00035, output: 0.00105 },
-    'gemini-1.0-pro': { input: 0.0005, output: 0.0015 },
-    'gemini-pro-vision': { input: 0.00025, output: 0.0005 }
+    'gemini-2.0-flash-exp': { input: 0, output: 0 }, // Free during preview
+    'gemini-1.5-pro': { input: 0.00125, output: 0.005 },
+    'gemini-1.5-flash': { input: 0.000075, output: 0.0003 },
+    'gemini-1.5-flash-8b': { input: 0.0375, output: 0.15 },
+    'gemini-1.0-pro': { input: 0.0005, output: 0.0015 }
   };
 
   private readonly availableModels: LLMModel[] = [
+    {
+      id: 'gemini-2.0-flash-exp',
+      name: 'Gemini 2.0 Flash Experimental',
+      provider: AIProvider.GOOGLE,
+      contextLength: 1000000,
+      context_length: 1000000,
+      supports_streaming: true,
+      supports_functions: true,
+      description: 'Latest experimental Gemini model with multimodal capabilities and tool use',
+      capabilities: ['chat', 'completion', 'vision', 'function_calling'],
+      pricing: { input: 0, output: 0 }
+    },
     {
       id: 'gemini-1.5-pro',
       name: 'Gemini 1.5 Pro',
@@ -49,9 +62,9 @@ export class GoogleAIAdapter extends BaseLLMAdapter {
       context_length: 2000000,
       supports_streaming: true,
       supports_functions: true,
-      description: 'Most capable Gemini model',
+      description: 'Most capable Gemini model with largest context window',
       capabilities: ['chat', 'completion', 'vision', 'function_calling'],
-      pricing: { input: 0.0035, output: 0.0105 }
+      pricing: { input: 0.00125, output: 0.005 }
     },
     {
       id: 'gemini-1.5-flash',
@@ -61,19 +74,31 @@ export class GoogleAIAdapter extends BaseLLMAdapter {
       context_length: 1000000,
       supports_streaming: true,
       supports_functions: true,
-      description: 'Fast and efficient Gemini model',
-      capabilities: ['chat', 'completion', 'vision'],
+      description: 'Fast and efficient model with excellent performance',
+      capabilities: ['chat', 'completion', 'vision', 'function_calling'],
       pricing: { input: 0.000075, output: 0.0003 }
     },
     {
-      id: 'gemini-pro',
-      name: 'Gemini Pro',
+      id: 'gemini-1.5-flash-8b',
+      name: 'Gemini 1.5 Flash-8B',
+      provider: AIProvider.GOOGLE,
+      contextLength: 1000000,
+      context_length: 1000000,
+      supports_streaming: true,
+      supports_functions: true,
+      description: 'Smaller, faster model optimized for speed and efficiency',
+      capabilities: ['chat', 'completion', 'vision'],
+      pricing: { input: 0.0375, output: 0.15 }
+    },
+    {
+      id: 'gemini-1.0-pro',
+      name: 'Gemini 1.0 Pro',
       provider: AIProvider.GOOGLE,
       contextLength: 32768,
       context_length: 32768,
       supports_streaming: true,
       supports_functions: false,
-      description: 'Balanced performance model',
+      description: 'Original Gemini Pro model for general tasks',
       capabilities: ['chat', 'completion'],
       pricing: { input: 0.0005, output: 0.0015 }
     }

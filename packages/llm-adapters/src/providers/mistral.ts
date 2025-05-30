@@ -114,37 +114,29 @@ export class MistralAdapter extends BaseAdapter {
   private config: MistralConfig;
 
   private static readonly MODELS = {
-    'mistral-tiny': {
-      id: 'mistral-tiny',
-      name: 'Mistral Tiny',
-      contextLength: 8192,
-      inputCost: 0.25, // per 1M tokens
-      outputCost: 0.25,
-      description: 'Fast and efficient model for simple tasks'
-    },
-    'mistral-small': {
-      id: 'mistral-small',
-      name: 'Mistral Small',
-      contextLength: 8192,
-      inputCost: 2.0,
-      outputCost: 6.0,
-      description: 'Balanced model for most use cases'
-    },
-    'mistral-medium': {
-      id: 'mistral-medium',
-      name: 'Mistral Medium',
-      contextLength: 8192,
-      inputCost: 2.7,
-      outputCost: 8.1,
-      description: 'Advanced model for complex tasks'
-    },
     'mistral-large-latest': {
       id: 'mistral-large-latest',
-      name: 'Mistral Large',
-      contextLength: 32768,
-      inputCost: 8.0,
-      outputCost: 24.0,
-      description: 'Most capable model with function calling'
+      name: 'Mistral Large Latest',
+      contextLength: 128000,
+      inputCost: 2.0, // per 1M tokens
+      outputCost: 6.0,
+      description: 'Most capable model with function calling and reasoning'
+    },
+    'mistral-small-latest': {
+      id: 'mistral-small-latest',
+      name: 'Mistral Small Latest',
+      contextLength: 128000,
+      inputCost: 0.2,
+      outputCost: 0.6,
+      description: 'Efficient model for most tasks with good performance'
+    },
+    'pixtral-12b-2409': {
+      id: 'pixtral-12b-2409',
+      name: 'Pixtral 12B',
+      contextLength: 128000,
+      inputCost: 0.15,
+      outputCost: 0.15,
+      description: 'Multimodal model with vision capabilities'
     },
     'mixtral-8x7b-instruct': {
       id: 'mixtral-8x7b-instruct',
@@ -161,6 +153,22 @@ export class MistralAdapter extends BaseAdapter {
       inputCost: 2.0,
       outputCost: 6.0,
       description: 'Large mixture of experts model with extended context'
+    },
+    'codestral-latest': {
+      id: 'codestral-latest',
+      name: 'Codestral Latest',
+      contextLength: 32768,
+      inputCost: 0.3,
+      outputCost: 0.9,
+      description: 'Specialized model for code generation and programming'
+    },
+    'ministral-8b-latest': {
+      id: 'ministral-8b-latest',
+      name: 'Ministral 8B Latest',
+      contextLength: 128000,
+      inputCost: 0.1,
+      outputCost: 0.1,
+      description: 'Efficient small model for simple tasks'
     }
   };
 

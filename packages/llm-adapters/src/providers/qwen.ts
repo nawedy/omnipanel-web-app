@@ -87,53 +87,77 @@ export class QwenAdapter extends BaseAdapter {
   private config: QwenConfig;
 
   private static readonly MODELS = {
-    'qwen-turbo': {
-      id: 'qwen-turbo',
-      name: 'Qwen Turbo',
-      contextLength: 8192,
-      inputCost: 0.3, // per 1M tokens (estimated)
-      outputCost: 0.6,
-      description: 'Fast and efficient Qwen model for general tasks'
+    'qwen-max': {
+      id: 'qwen-max',
+      name: 'Qwen Max',
+      contextLength: 30000,
+      inputCost: 0.02, // per 1K tokens
+      outputCost: 0.06,
+      description: 'Most capable Qwen model for complex reasoning and analysis'
     },
     'qwen-plus': {
       id: 'qwen-plus',
       name: 'Qwen Plus',
-      contextLength: 32768,
-      inputCost: 0.8,
-      outputCost: 2.0,
-      description: 'Enhanced Qwen model with better reasoning capabilities'
-    },
-    'qwen-max': {
-      id: 'qwen-max',
-      name: 'Qwen Max',
-      contextLength: 8192,
-      inputCost: 2.0,
-      outputCost: 6.0,
-      description: 'Most capable Qwen model for complex tasks'
-    },
-    'qwen-max-longcontext': {
-      id: 'qwen-max-longcontext',
-      name: 'Qwen Max Long Context',
-      contextLength: 30000,
-      inputCost: 2.0,
-      outputCost: 6.0,
-      description: 'Qwen Max with extended context window'
-    },
-    'qwen2-72b-instruct': {
-      id: 'qwen2-72b-instruct',
-      name: 'Qwen2 72B Instruct',
       contextLength: 131072,
-      inputCost: 0.35,
-      outputCost: 0.7,
-      description: 'Large open-source Qwen2 model with instruction tuning'
+      inputCost: 0.0014,
+      outputCost: 0.0028,
+      description: 'Enhanced Qwen model with extended context and better performance'
     },
-    'qwen2-7b-instruct': {
-      id: 'qwen2-7b-instruct',
-      name: 'Qwen2 7B Instruct',
+    'qwen-turbo': {
+      id: 'qwen-turbo',
+      name: 'Qwen Turbo',
       contextLength: 131072,
-      inputCost: 0.07,
-      outputCost: 0.14,
-      description: 'Efficient Qwen2 model with instruction tuning'
+      inputCost: 0.0003,
+      outputCost: 0.0006,
+      description: 'Fast and efficient Qwen model for general tasks'
+    },
+    'qwen2.5-72b-instruct': {
+      id: 'qwen2.5-72b-instruct',
+      name: 'Qwen2.5 72B Instruct',
+      contextLength: 131072,
+      inputCost: 0.0008,
+      outputCost: 0.0024,
+      description: 'Open-source Qwen2.5 model with instruction tuning'
+    },
+    'qwen2.5-32b-instruct': {
+      id: 'qwen2.5-32b-instruct',
+      name: 'Qwen2.5 32B Instruct',
+      contextLength: 131072,
+      inputCost: 0.0007,
+      outputCost: 0.0021,
+      description: 'Mid-size Qwen2.5 model optimized for performance'
+    },
+    'qwen2.5-14b-instruct': {
+      id: 'qwen2.5-14b-instruct',
+      name: 'Qwen2.5 14B Instruct',
+      contextLength: 131072,
+      inputCost: 0.0003,
+      outputCost: 0.0006,
+      description: 'Efficient Qwen2.5 model for most tasks'
+    },
+    'qwen2.5-7b-instruct': {
+      id: 'qwen2.5-7b-instruct',
+      name: 'Qwen2.5 7B Instruct',
+      contextLength: 131072,
+      inputCost: 0.0002,
+      outputCost: 0.0004,
+      description: 'Lightweight Qwen2.5 model for simple tasks'
+    },
+    'qwen2.5-coder-32b-instruct': {
+      id: 'qwen2.5-coder-32b-instruct',
+      name: 'Qwen2.5 Coder 32B',
+      contextLength: 131072,
+      inputCost: 0.0007,
+      outputCost: 0.0021,
+      description: 'Specialized Qwen2.5 model optimized for coding tasks'
+    },
+    'qwen2.5-math-72b-instruct': {
+      id: 'qwen2.5-math-72b-instruct',
+      name: 'Qwen2.5 Math 72B',
+      contextLength: 131072,
+      inputCost: 0.0008,
+      outputCost: 0.0024,
+      description: 'Specialized Qwen2.5 model for mathematical reasoning'
     }
   };
 
