@@ -24,21 +24,21 @@ interface Platform {
 }
 
 export default function DownloadPage() {
-  const [detectedPlatform, setDetectedPlatform] = useState<string>('');
-  const [selectedPlatform, setSelectedPlatform] = useState<string>('');
+  type PlatformKey = 'windows' | 'mac' | 'linux' | 'android' | 'ios' | 'web';
+
+  const [detectedPlatform, setDetectedPlatform] = useState<PlatformKey>('web');
+  const [selectedPlatform, setSelectedPlatform] = useState<PlatformKey>('web');
 
   useEffect(() => {
     // Detect user platform
     const userAgent = navigator.userAgent.toLowerCase();
-    let platform = '';
-    
+    let platform: PlatformKey = 'web';
     if (userAgent.includes('mac')) platform = 'mac';
     else if (userAgent.includes('windows')) platform = 'windows'; 
     else if (userAgent.includes('linux')) platform = 'linux';
     else if (userAgent.includes('android')) platform = 'android';
     else if (userAgent.includes('iphone') || userAgent.includes('ipad')) platform = 'ios';
-    else platform = 'web';
-
+    // fallback is 'web'
     setDetectedPlatform(platform);
     setSelectedPlatform(platform);
   }, []);
@@ -99,7 +99,7 @@ export default function DownloadPage() {
     }
   };
 
-  const installationGuides = {
+  const installationGuides: Record<PlatformKey, string[]> = {
     windows: [
       'Download the installer or portable version',
       'Run the .exe file (click "More info" > "Run anyway" if Windows warns)',
@@ -220,7 +220,7 @@ export default function DownloadPage() {
                 Installation Guide
               </h3>
               <ol className="text-gray-300 text-sm space-y-1">
-                {installationGuides[selectedPlatform]?.map((step, index) => (
+                {installationGuides[selectedPlatform as keyof typeof installationGuides]?.map((step, index) => (
                   <li key={index} className="flex gap-2">
                     <span className="text-blue-400 font-mono">{index + 1}.</span>
                     <span>{step}</span>
@@ -252,7 +252,7 @@ export default function DownloadPage() {
                     ? 'bg-blue-500/20 border-blue-500/40'
                     : 'bg-gray-700/30 border-gray-600 hover:border-gray-500'
                 }`}
-                onClick={() => setSelectedPlatform(key)}
+                onClick={() => setSelectedPlatform(key as PlatformKey)}
               >
                 <div className="flex items-center gap-3 mb-4">
                   <platform.icon className="w-6 h-6 text-gray-300" />

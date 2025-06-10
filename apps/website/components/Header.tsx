@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
+import { useIsMobile } from '@/hooks/use-media-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Bars3Icon, 
@@ -47,11 +48,12 @@ const navigation = [
   { name: 'Blog', href: '/blog' },
 ];
 
-export function Header(): JSX.Element {
+export function Header(): React.JSX.Element {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     setMounted(true);
@@ -71,7 +73,7 @@ export function Header(): JSX.Element {
 
   return (
     <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-gray-800">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8" aria-label="Global">
+      <nav className="max-w-7xl mx-auto flex items-center justify-between p-6 lg:px-8" aria-label="Global">
         {/* Logo */}
         <div className="flex lg:flex-1">
           <Link href="/" className="-m-1.5 p-1.5 group">
@@ -94,127 +96,136 @@ export function Header(): JSX.Element {
           </Link>
         </div>
 
-        {/* Mobile menu button */}
-        <div className="flex lg:hidden">
-          <button
-            type="button"
-            className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            onClick={() => setMobileMenuOpen(true)}
-          >
-            <span className="sr-only">Open main menu</span>
-            <Bars3Icon className="h-6 w-6" aria-hidden="true" />
-          </button>
-        </div>
-
-        {/* Desktop navigation */}
-        <div className="hidden lg:flex lg:gap-x-8">
-          {navigation.map((item) => (
-            <div 
-              key={item.name} 
-              className="relative"
-              onMouseEnter={() => item.dropdown && handleDropdownEnter(item.name)}
-              onMouseLeave={handleDropdownLeave}
-            >
-              {item.dropdown ? (
-                <div>
-                  <button className="flex items-center gap-x-1 text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                    {item.name}
-                    <ChevronDownIcon className="h-4 w-4 transition-transform" />
-                  </button>
-                  
-                  <AnimatePresence>
-                    {activeDropdown === item.name && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute left-1/2 z-10 mt-5 flex w-screen max-w-max -translate-x-1/2 px-4"
-                      >
-                        <div className="w-screen max-w-sm flex-auto overflow-hidden rounded-2xl bg-white dark:bg-gray-800 shadow-lg ring-1 ring-gray-900/5 dark:ring-gray-100/5">
-                          <div className="p-4">
-                            {item.dropdown.map((subItem) => (
-                              <div key={subItem.name} className="group relative flex gap-x-6 rounded-lg p-4 text-sm leading-6 hover:bg-gray-50 dark:hover:bg-gray-700">
-                                <div className="flex-auto">
-                                  <Link href={subItem.href} className="block font-semibold text-gray-900 dark:text-white">
-                                    {subItem.name}
-                                    <span className="absolute inset-0" />
-                                  </Link>
-                                  <p className="mt-1 text-gray-600 dark:text-gray-300">{subItem.description}</p>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ) : (
-                <Link
-                  href={item.href}
-                  className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
-                >
-                  {item.name}
-                </Link>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Right side buttons */}
-        <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:space-x-4">
-          {/* Theme toggle */}
-          {mounted && (
+        {/* Mobile menu button - only show on mobile */}
+        {isMobile && (
+          <div className="flex lg:hidden">
             <button
               type="button"
-              onClick={toggleTheme}
-              className="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-              aria-label="Toggle theme"
+              className="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              onClick={() => setMobileMenuOpen(true)}
             >
-              {theme === 'dark' ? (
-                <SunIcon className="h-5 w-5" />
-              ) : (
-                <MoonIcon className="h-5 w-5" />
-              )}
+              <span className="sr-only">Open main menu</span>
+              <Bars3Icon className="h-6 w-6" aria-hidden="true" />
             </button>
-          )}
+          </div>
+        )}
 
-          {/* Sign in */}
-          <Link
-            href="/signin"
-            className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
-          >
-            Sign in
-          </Link>
+        {/* Desktop navigation - only show on non-mobile */}
+        {!isMobile && (
+          <div className="hidden lg:flex lg:gap-x-12">
+            {navigation.map((item) => (
+              <div 
+                key={item.name} 
+                className="relative"
+                onMouseEnter={() => handleDropdownEnter(item.name)}
+                onMouseLeave={handleDropdownLeave}
+              >
+                {item.dropdown ? (
+                  <>
+                    <button
+                      type="button"
+                      className="flex items-center gap-x-1 text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                      aria-expanded={activeDropdown === item.name}
+                    >
+                      {item.name}
+                      <ChevronDownIcon className="h-4 w-4 flex-none" aria-hidden="true" />
+                    </button>
 
-          {/* Get started */}
-          <Link
-            href="/app"
-            className="rounded-full bg-primary-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 transition-all hover:scale-105 btn-shimmer"
-          >
-            Get started
-          </Link>
-        </div>
+                    <AnimatePresence>
+                      {activeDropdown === item.name && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          transition={{ duration: 0.2 }}
+                          className="absolute left-1/2 z-10 mt-3 w-screen max-w-md -translate-x-1/2 transform px-2"
+                        >
+                          <div className="overflow-hidden rounded-xl bg-white dark:bg-gray-800 shadow-lg ring-1 ring-gray-900/5 dark:ring-gray-700/10">
+                            <div className="p-4">
+                              {item.dropdown.map((subItem) => (
+                                <div
+                                  key={subItem.name}
+                                  className="group relative flex items-center gap-x-6 rounded-lg p-4 text-sm leading-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                  <div className="flex-auto">
+                                    <Link
+                                      href={subItem.href}
+                                      className="block font-semibold text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                                    >
+                                      {subItem.name}
+                                      <span className="absolute inset-0" />
+                                    </Link>
+                                    <p className="mt-1 text-gray-600 dark:text-gray-400">{subItem.description}</p>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
+                ) : (
+                  <Link
+                    href={item.href}
+                    className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                  >
+                    {item.name}
+                  </Link>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Desktop CTA and theme toggle - only show on non-mobile */}
+        {!isMobile && (
+          <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:gap-x-6">
+            {/* Theme toggle */}
+            {mounted && (
+              <button
+                type="button"
+                onClick={toggleTheme}
+                className="rounded-full p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                aria-label="Toggle dark mode"
+              >
+                {theme === 'dark' ? (
+                  <SunIcon className="h-5 w-5" aria-hidden="true" />
+                ) : (
+                  <MoonIcon className="h-5 w-5" aria-hidden="true" />
+                )}
+              </button>
+            )}
+
+            {/* Sign in */}
+            <Link
+              href="/signin"
+              className="text-sm font-semibold leading-6 text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400"
+            >
+              Sign in
+            </Link>
+            
+            <Link
+              href="/app"
+              className="rounded-md bg-primary-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+            >
+              Get started
+            </Link>
+          </div>
+        )}
       </nav>
 
       {/* Mobile menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm lg:hidden"
-              onClick={() => setMobileMenuOpen(false)}
-            />
+            <div className="fixed inset-0 z-50" />
             <motion.div
               initial={{ opacity: 0, x: '100%' }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-white dark:bg-gray-900 px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10 dark:sm:ring-gray-100/10"
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-white dark:bg-gray-900 px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10 dark:sm:ring-gray-800/20"
             >
               <div className="flex items-center justify-between">
                 <Link href="/" className="-m-1.5 p-1.5" onClick={() => setMobileMenuOpen(false)}>
@@ -323,4 +334,4 @@ export function Header(): JSX.Element {
       </AnimatePresence>
     </header>
   );
-} 
+}

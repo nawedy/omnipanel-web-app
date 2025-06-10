@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { ArrowRightIcon } from '@heroicons/react/24/outline';
+import React from 'react';
 
 const schema = z.object({
   email: z.string().email('Please enter a valid email address'),
@@ -13,7 +14,7 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
-export function NewsletterSignup(): JSX.Element {
+export function NewsletterSignup(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
 
   const {

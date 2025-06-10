@@ -1,21 +1,22 @@
 'use client';
 
+import React from 'react';
 import { motion } from 'framer-motion';
 
-interface Feature {
+export interface Feature {
   name: string;
   description: string;
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   color: string;
 }
 
-interface FeatureCardProps {
+export interface FeatureCardProps {
   feature: Feature;
   index: number;
   inView: boolean;
 }
 
-const colorClasses = {
+const colorClasses: Record<string, string> = {
   blue: 'text-blue-600',
   green: 'text-green-600',
   purple: 'text-purple-600',
@@ -27,24 +28,38 @@ const colorClasses = {
   yellow: 'text-yellow-600',
 };
 
-export function FeatureCard({ feature, index, inView }: FeatureCardProps): JSX.Element {
+export interface Feature {
+  name: string;
+  description: string;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  color: string;
+}
+
+export interface FeatureCardProps {
+  feature: Feature;
+  index: number;
+  inView: boolean;
+}
+
+
+export function FeatureCard({ feature, index, inView }: FeatureCardProps): React.JSX.Element {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="feature-card"
+      className="bg-white dark:bg-gray-900 p-6 h-full flex flex-col justify-between rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 hover:shadow-md transition-all"
     >
-      <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900 dark:text-white">
-        <feature.icon 
-          className={`h-5 w-5 flex-none ${colorClasses[feature.color as keyof typeof colorClasses] || 'text-primary-600'}`} 
-          aria-hidden="true" 
-        />
-        {feature.name}
-      </dt>
-      <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600 dark:text-gray-300">
-        <p className="flex-auto">{feature.description}</p>
-      </dd>
+      <div>
+        <div className="flex items-center justify-center h-12 w-12 rounded-md bg-gray-100 dark:bg-gray-800 mb-4">
+          <feature.icon 
+            className={`h-6 w-6 ${colorClasses[feature.color as keyof typeof colorClasses]}`} 
+            aria-hidden="true" 
+          />
+        </div>
+        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{feature.name}</h3>
+        <p className="text-gray-600 dark:text-gray-300">{feature.description}</p>
+      </div>
     </motion.div>
   );
 } 

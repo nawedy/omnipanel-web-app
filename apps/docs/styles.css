@@ -1,0 +1,47 @@
+/* Font imports */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+/* Base styles */
+:root {
+  --font-inter: 'Inter', system-ui, sans-serif;
+  --primary-color: #3b82f6;
+  --secondary-color: #1f2937;
+}
+
+/* Basic resets and defaults */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-inter);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  background-color: white;
+  color: #111827;
+}
+
+/* Utility classes */
+.min-h-screen {
+  min-height: 100vh;
+}
+
+.bg-white {
+  background-color: white;
+}
+
+.text-gray-900 {
+  color: #111827;
+}
+
+.font-sans {
+  font-family: var(--font-inter);
+}
+
+.antialiased {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

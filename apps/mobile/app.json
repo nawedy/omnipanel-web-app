@@ -17,6 +17,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.omnipanel.mobile",
       "buildNumber": "1",
+      "deploymentTarget": "18.2",
       "infoPlist": {
         "UIBackgroundModes": ["background-fetch", "background-processing"],
         "NSCameraUsageDescription": "This app uses the camera to scan documents and take photos for your projects.",

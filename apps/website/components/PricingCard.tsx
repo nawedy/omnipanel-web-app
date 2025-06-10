@@ -2,8 +2,9 @@
 
 import { CheckIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
+import React from 'react';
 
-interface PricingPlan {
+export interface PricingPlan {
   name: string;
   price: string;
   description: string;
@@ -17,7 +18,7 @@ interface PricingCardProps {
   plan: PricingPlan;
 }
 
-export function PricingCard({ plan }: PricingCardProps): JSX.Element {
+export function PricingCard({ plan }: PricingCardProps): React.JSX.Element {
   return (
     <div className={`pricing-card ${plan.featured ? 'featured' : ''}`}>
       {plan.featured && (

@@ -5,8 +5,8 @@
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "build:android": "eas build --platform android",
     "build:ios": "eas build --platform ios",
@@ -99,7 +99,9 @@
   },
   "jest": {
     "preset": "jest-expo",
-    "setupFilesAfterEnv": ["<rootDir>/jest.setup.js"],
+    "setupFilesAfterEnv": [
+      "<rootDir>/jest.setup.js"
+    ],
     "testMatch": [
       "**/__tests__/**/*.(ts|tsx|js)",
       "**/*.(test|spec).(ts|tsx|js)"
@@ -111,7 +113,11 @@
       "!src/**/__tests__/**"
     ],
     "coverageDirectory": "coverage",
-    "coverageReporters": ["text", "lcov", "html"]
+    "coverageReporters": [
+      "text",
+      "lcov",
+      "html"
+    ]
   },
   "eslintConfig": {
     "extends": [
@@ -120,7 +126,12 @@
       "plugin:react/recommended",
       "plugin:react-hooks/recommended"
     ],
-    "plugins": ["@typescript-eslint", "react", "react-hooks", "react-native"],
+    "plugins": [
+      "@typescript-eslint",
+      "react",
+      "react-hooks",
+      "react-native"
+    ],
     "rules": {
       "react/react-in-jsx-scope": "off",
       "react/prop-types": "off",
@@ -132,7 +143,9 @@
   },
   "expo": {
     "install": {
-      "exclude": ["react-native-safe-area-context"]
+      "exclude": [
+        "react-native-safe-area-context"
+      ]
     }
   }
-} 
+}

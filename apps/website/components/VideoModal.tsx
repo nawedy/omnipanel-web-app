@@ -3,13 +3,14 @@
 import { Fragment } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import React from 'react';
 
 interface VideoModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function VideoModal({ isOpen, onClose }: VideoModalProps): JSX.Element {
+export function VideoModal({ isOpen, onClose }: VideoModalProps): React.JSX.Element {
   return (
     <Transition.Root show={isOpen} as={Fragment}>
       <Dialog as="div" className="relative z-50" onClose={onClose}>
