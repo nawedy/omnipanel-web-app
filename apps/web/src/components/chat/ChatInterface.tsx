@@ -35,7 +35,7 @@ export function ChatInterface({ sessionId, projectId }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [streamingMessage, setStreamingMessage] = useState('');
+  const [isRegenerating, setIsRegenerating] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -44,7 +44,7 @@ export function ChatInterface({ sessionId, projectId }: ChatInterfaceProps) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, streamingMessage]);
+  }, [messages]);
 
   // Initialize with welcome message
   useEffect(() => {
@@ -54,48 +54,54 @@ export function ChatInterface({ sessionId, projectId }: ChatInterfaceProps) {
         content: `Welcome to OmniPanel! I'm your AI assistant. I can help you with coding, analysis, creative tasks, and more. What would you like to work on today?`,
         role: 'assistant',
         timestamp: new Date(),
-        model: selectedModel || 'gpt-3.5-turbo',
+        model: selectedModel || 'gpt-4o',
         provider: modelProvider || 'openai'
       };
       setMessages([welcomeMessage]);
     }
   }, []);
 
-  const handleSendMessage = async () => {
-    if (!input.trim() || isLoading) return;
-
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      content: input.trim(),
-      role: 'user',
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
+  const sendMessage = async (messageContent: string, isRegeneration = false, originalMessageId?: string) => {
+    if (isRegeneration && originalMessageId) {
+      setIsRegenerating(originalMessageId);
+    } else {
+      setIsLoading(true);
+    }
 
     try {
-      // Mock AI response for now - will integrate with LLM adapters later
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      let updatedMessages = messages;
+      
+      if (!isRegeneration) {
+        // Add user message
+        const userMessage: ChatMessage = {
+          id: Date.now().toString(),
+          content: messageContent,
+          role: 'user',
+          timestamp: new Date()
+        };
+        updatedMessages = [...messages, userMessage];
+        setMessages(updatedMessages);
+      } else if (originalMessageId) {
+        // Remove messages after the one being regenerated
+        const messageIndex = messages.findIndex(m => m.id === originalMessageId);
+        if (messageIndex !== -1) {
+          updatedMessages = messages.slice(0, messageIndex);
+          setMessages(updatedMessages);
+        }
+      }
 
-      const responses = [
-        "I understand your question. Let me help you with that.",
-        "That's an interesting point! Here's what I think about it:",
-        "Great question! Let me break this down for you:",
-        "I can definitely help with that. Here's my approach:",
-        "Excellent! Let's work through this step by step:"
-      ];
-
+      // Simulate AI response
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
       const assistantMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: responses[Math.floor(Math.random() * responses.length)] + "\n\nThis is a mock response. In the full implementation, this will connect to your selected LLM model through our adapter system.",
+        content: `I understand you're asking about: "${messageContent}"\n\nThis is a simulated response. In a real implementation, this would be connected to your selected LLM model (${modelProvider}/${selectedModel}).\n\nHere's what I can help you with:\n- Code explanation and generation\n- Debugging assistance\n- Project planning\n- Technical questions\n\nIs there something specific you'd like to explore?`,
         role: 'assistant',
         timestamp: new Date(),
-        model: selectedModel || 'gpt-3.5-turbo',
-        provider: modelProvider || 'openai'
+        model: selectedModel || undefined,
+        provider: modelProvider || undefined
       };
-
+      
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Error sending message:', error);
@@ -108,7 +114,17 @@ export function ChatInterface({ sessionId, projectId }: ChatInterfaceProps) {
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      setIsRegenerating(null);
     }
+  };
+
+  const handleSendMessage = async () => {
+    if (!input.trim() || isLoading) return;
+    
+    const messageContent = input.trim();
+    setInput('');
+    
+    await sendMessage(messageContent);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -122,9 +138,22 @@ export function ChatInterface({ sessionId, projectId }: ChatInterfaceProps) {
     navigator.clipboard.writeText(content);
   };
 
-  const regenerateResponse = (messageId: string) => {
-    // TODO: Implement response regeneration
-    console.log('Regenerating response for:', messageId);
+  const regenerateResponse = async (messageId: string) => {
+    const messageIndex = messages.findIndex(m => m.id === messageId);
+    if (messageIndex === -1) return;
+
+    // Find the user message that prompted this response
+    let userMessage = '';
+    for (let i = messageIndex - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') {
+        userMessage = messages[i].content;
+        break;
+      }
+    }
+
+    if (userMessage) {
+      await sendMessage(userMessage, true, messageId);
+    }
   };
 
   const formatTime = (date: Date) => {
@@ -207,10 +236,15 @@ export function ChatInterface({ sessionId, projectId }: ChatInterfaceProps) {
                         </button>
                         <button
                           onClick={() => regenerateResponse(message.id)}
-                          className="p-1 hover:bg-accent/50 rounded transition-colors"
+                          disabled={isLoading || isRegenerating === message.id}
+                          className="p-1 hover:bg-accent/50 rounded transition-colors disabled:opacity-50"
                           title="Regenerate response"
                         >
-                          <RotateCcw className="w-3 h-3" />
+                          {isRegenerating === message.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : (
+                            <RotateCcw className="w-3 h-3" />
+                          )}
                         </button>
                       </div>
                     )}

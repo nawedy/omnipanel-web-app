@@ -1,0 +1,57 @@
+[
+  {
+    "_type": "category",
+    "_id": "category-security",
+    "title": "Security & Privacy",
+    "slug": {
+      "_type": "slug",
+      "current": "security"
+    },
+    "description": "Articles about securing AI development workflows, protecting sensitive data, and privacy-first coding practices.",
+    "color": "blue"
+  },
+  {
+    "_type": "category", 
+    "_id": "category-ai-development",
+    "title": "AI Development",
+    "slug": {
+      "_type": "slug",
+      "current": "ai"
+    },
+    "description": "Best practices for building, testing, and deploying AI applications in secure and scalable environments.",
+    "color": "green"
+  },
+  {
+    "_type": "category",
+    "_id": "category-developer-tools",
+    "title": "Developer Tools",
+    "slug": {
+      "_type": "slug",
+      "current": "tools"
+    },
+    "description": "Reviews and tutorials on development tools, IDEs, and productivity solutions for AI developers.",
+    "color": "purple"
+  },
+  {
+    "_type": "category",
+    "_id": "category-industry-insights",
+    "title": "Industry Insights", 
+    "slug": {
+      "_type": "slug",
+      "current": "industry"
+    },
+    "description": "Analysis of trends in AI, cybersecurity, and developer productivity across different industries.",
+    "color": "orange"
+  },
+  {
+    "_type": "category",
+    "_id": "category-community",
+    "title": "Community",
+    "slug": {
+      "_type": "slug",
+      "current": "community"
+    },
+    "description": "Stories from the developer community, case studies, and insights from OmniPanel users.",
+    "color": "pink"
+  }
+] 

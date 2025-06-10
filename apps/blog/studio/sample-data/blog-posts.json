@@ -1,0 +1,296 @@
+[
+  {
+    "_type": "blogPost",
+    "_id": "post-1",
+    "title": "The Hidden Privacy Crisis in AI Development Tools",
+    "slug": {
+      "_type": "slug",
+      "current": "hidden-privacy-crisis-ai-development-tools"
+    },
+    "author": {
+      "_type": "reference",
+      "_ref": "author-1"
+    },
+    "excerpt": "Most AI development tools are sending your code, data, and intellectual property to third-party servers. Here's how to build AI applications while keeping your data truly private and secure.",
+    "content": [
+      {
+        "_type": "block",
+        "style": "normal",
+        "children": [
+          {
+            "_type": "span",
+            "text": "The rise of AI-powered development tools has revolutionized how we write code, but it's come at a hidden cost: our privacy. Every time you use GitHub Copilot, ChatGPT for coding, or similar tools, you're potentially sending sensitive code and data to external servers."
+          }
+        ]
+      },
+      {
+        "_type": "block",
+        "style": "h2",
+        "children": [
+          {
+            "_type": "span",
+            "text": "The Scale of the Problem"
+          }
+        ]
+      },
+      {
+        "_type": "block",
+        "style": "normal",
+        "children": [
+          {
+            "_type": "span",
+            "text": "Recent surveys show that 78% of developers are using AI coding assistants, but only 23% understand what data is being transmitted. This creates several critical risks:"
+          }
+        ]
+      },
+      {
+        "_type": "block",
+        "style": "normal",
+        "listItem": "bullet",
+        "children": [
+          {
+            "_type": "span",
+            "text": "Intellectual property exposure"
+          }
+        ]
+      },
+      {
+        "_type": "block",
+        "style": "normal",
+        "listItem": "bullet", 
+        "children": [
+          {
+            "_type": "span",
+            "text": "Compliance violations with GDPR, HIPAA, and SOC 2"
+          }
+        ]
+      },
+      {
+        "_type": "block",
+        "style": "normal",
+        "listItem": "bullet",
+        "children": [
+          {
+            "_type": "span",
+            "text": "Unintentional data breaches through AI training"
+          }
+        ]
+      },
+      {
+        "_type": "block",
+        "style": "h2",
+        "children": [
+          {
+            "_type": "span",
+            "text": "A Better Approach: Local-First AI"
+          }
+        ]
+      },
+      {
+        "_type": "block",
+        "style": "normal",
+        "children": [
+          {
+            "_type": "span", 
+            "text": "The solution isn't to abandon AI tools—it's to run them locally while maintaining connection to the best models. This hybrid approach gives you:"
+          }
+        ]
+      },
+      {
+        "_type": "block",
+        "style": "normal",
+        "listItem": "number",
+        "children": [
+          {
+            "_type": "span",
+            "text": "Complete data sovereignty"
+          }
+        ]
+      },
+      {
+        "_type": "block",
+        "style": "normal",
+        "listItem": "number",
+        "children": [
+          {
+            "_type": "span",
+            "text": "Access to multiple AI models"
+          }
+        ]
+      },
+      {
+        "_type": "block",
+        "style": "normal",
+        "listItem": "number",
+        "children": [
+          {
+            "_type": "span",
+            "text": "Enhanced performance and speed"
+          }
+        ]
+      },
+      {
+        "_type": "code",
+        "language": "typescript",
+        "code": "// Example: Secure AI integration\nconst aiClient = new LocalAIClient({\n  models: ['gpt-4', 'claude-3', 'deepseek-v3'],\n  privacy: 'local-only',\n  encryption: true\n});\n\nconst result = await aiClient.generateCode({\n  prompt: 'Create a secure authentication function',\n  context: localContext, // Never leaves your machine\n  model: 'gpt-4'\n});"
+      },
+      {
+        "_type": "block",
+        "style": "h2", 
+        "children": [
+          {
+            "_type": "span",
+            "text": "Implementation Strategy"
+          }
+        ]
+      },
+      {
+        "_type": "block",
+        "style": "normal",
+        "children": [
+          {
+            "_type": "span",
+            "text": "Transitioning to a privacy-first AI development workflow requires careful planning. Start by auditing your current tools and identifying which ones send data externally."
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "_type": "reference",
+        "_ref": "category-security"
+      },
+      {
+        "_type": "reference", 
+        "_ref": "category-ai-development"
+      }
+    ],
+    "tags": ["privacy", "security", "ai-development", "local-ai", "data-protection"],
+    "publishedAt": "2024-01-15T10:00:00Z",
+    "featured": true,
+    "readingTime": 8,
+    "seo": {
+      "title": "AI Development Privacy Crisis: How to Keep Your Code Secure",
+      "description": "Discover how AI development tools are exposing your code and data. Learn to build AI applications while maintaining complete privacy and security.",
+      "keywords": ["AI privacy", "secure coding", "local AI", "developer privacy", "code security"]
+    },
+    "campaignIntegration": {
+      "relatedCampaign": "early-access-2024",
+      "ctaText": "Get Early Access to OmniPanel",
+      "ctaUrl": "https://omnipanel.com/early-access?utm_source=blog&utm_campaign=privacy-crisis",
+      "trackingEnabled": true
+    }
+  },
+  {
+    "_type": "blogPost",
+    "_id": "post-2",
+    "title": "Building Your First Secure AI Application with Local Models",
+    "slug": {
+      "_type": "slug",
+      "current": "building-secure-ai-application-local-models"
+    },
+    "author": {
+      "_type": "reference",
+      "_ref": "author-2"
+    },
+    "excerpt": "Step-by-step guide to creating AI-powered applications that run entirely on your infrastructure, ensuring data privacy while maintaining cutting-edge functionality.",
+    "content": [
+      {
+        "_type": "block",
+        "style": "normal",
+        "children": [
+          {
+            "_type": "span",
+            "text": "Building AI applications doesn't have to mean sacrificing privacy. In this comprehensive guide, we'll walk through creating a secure, local-first AI application that keeps your data under your control."
+          }
+        ]
+      },
+      {
+        "_type": "block",
+        "style": "h2",
+        "children": [
+          {
+            "_type": "span",
+            "text": "Architecture Overview"
+          }
+        ]
+      },
+      {
+        "_type": "block",
+        "style": "normal",
+        "children": [
+          {
+            "_type": "span",
+            "text": "Our secure AI application will use a hybrid architecture that combines local processing with selective cloud connectivity for specific tasks."
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "_type": "reference",
+        "_ref": "category-ai-development"
+      },
+      {
+        "_type": "reference",
+        "_ref": "category-developer-tools"
+      }
+    ],
+    "tags": ["tutorial", "local-ai", "application-development", "security", "privacy"],
+    "publishedAt": "2024-01-12T14:30:00Z", 
+    "featured": false,
+    "readingTime": 12,
+    "campaignIntegration": {
+      "relatedCampaign": "developer-onboarding",
+      "ctaText": "Try OmniPanel Free",
+      "ctaUrl": "https://omnipanel.com/download?utm_source=blog&utm_campaign=tutorial",
+      "trackingEnabled": true
+    }
+  },
+  {
+    "_type": "blogPost",
+    "_id": "post-3",
+    "title": "The Future of Developer Productivity: AI-Human Collaboration",
+    "slug": {
+      "_type": "slug",
+      "current": "future-developer-productivity-ai-human-collaboration"
+    },
+    "author": {
+      "_type": "reference",
+      "_ref": "author-3"
+    },
+    "excerpt": "Exploring how the next generation of AI tools will augment human creativity rather than replace it, with insights from industry leaders and practical examples.",
+    "content": [
+      {
+        "_type": "block",
+        "style": "normal",
+        "children": [
+          {
+            "_type": "span",
+            "text": "The debate about AI replacing developers misses the point entirely. The future lies in thoughtful collaboration between human creativity and AI capabilities."
+          }
+        ]
+      }
+    ],
+    "categories": [
+      {
+        "_type": "reference",
+        "_ref": "category-industry-insights"
+      },
+      {
+        "_type": "reference",
+        "_ref": "category-ai-development"
+      }
+    ],
+    "tags": ["future-of-work", "ai-collaboration", "productivity", "developer-experience"],
+    "publishedAt": "2024-01-10T09:15:00Z",
+    "featured": false,
+    "readingTime": 6,
+    "campaignIntegration": {
+      "relatedCampaign": "thought-leadership",
+      "ctaText": "Join the Future of Development", 
+      "ctaUrl": "https://omnipanel.com/community?utm_source=blog&utm_campaign=future-work",
+      "trackingEnabled": true
+    }
+  }
+] 

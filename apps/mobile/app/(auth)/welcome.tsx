@@ -6,7 +6,8 @@ import {
   SafeAreaView, 
   StatusBar,
   TouchableOpacity,
-  Dimensions 
+  Dimensions,
+  Image
 } from 'react-native';
 import { Link } from 'expo-router';
 import { useTheme } from '@/hooks/useTheme';
@@ -31,12 +32,11 @@ export default function WelcomeScreen(): JSX.Element {
     },
     logoSection: {
       alignItems: 'center',
-      marginBottom: 60,
+      marginBottom: 48,
     },
     logo: {
-      fontSize: 48,
-      fontWeight: 'bold',
-      color: colors.primary,
+      width: 120,
+      height: 120,
       marginBottom: 16,
     },
     tagline: {
@@ -96,7 +96,11 @@ export default function WelcomeScreen(): JSX.Element {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.content}>
           <View style={styles.logoSection}>
-            <Text style={styles.logo}>OmniPanel</Text>
+            <Image 
+              source={require('../../assets/omnipanel-logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
             <Text style={styles.tagline}>
               Your AI workspace{'\n'}
               for chat, code, and creativity

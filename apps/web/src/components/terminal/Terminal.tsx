@@ -28,10 +28,88 @@ export function Terminal({ sessionId, projectId, initialPath }: TerminalProps) {
   const terminalRef = useRef<HTMLDivElement>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const [currentPath, setCurrentPath] = useState(initialPath || '~/');
+  const [currentPath, setCurrentPath] = useState(initialPath || '~/workspace');
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
-  const [output, setOutput] = useState<Array<{ type: 'input' | 'output' | 'error' | 'ai'; content: string; timestamp: Date }>>([]);
+  const [output, setOutput] = useState<Array<{ type: 'input' | 'output' | 'error' | 'ai'; content: string; timestamp: Date }>>([
+    { type: 'output', content: 'Welcome to OmniPanel Terminal\nType "help" for available commands or "ai: <message>" for AI assistance\n', timestamp: new Date() }
+  ]);
   const [currentInput, setCurrentInput] = useState('');
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Common commands and their descriptions
+  const commonCommands = [
+    'ls', 'cd', 'pwd', 'mkdir', 'rmdir', 'rm', 'cp', 'mv', 'cat', 'echo', 'grep', 'find', 'ps', 'kill', 'top', 'df', 'du',
+    'git', 'npm', 'yarn', 'node', 'python', 'pip', 'curl', 'wget', 'ssh', 'scp', 'vim', 'nano', 'code',
+    'ai:', 'help', 'clear', 'history', 'whoami', 'date', 'uptime', 'uname'
+  ];
+
+  const aiCommands = [
+    'ai: explain this error',
+    'ai: how to install dependencies',
+    'ai: debug this code',
+    'ai: optimize performance',
+    'ai: write a function for',
+    'ai: fix this bug'
+  ];
+
+  const getCommandSuggestions = (input: string): string[] => {
+    if (!input) return [];
+    
+    const trimmedInput = input.trim().toLowerCase();
+    
+    // AI command suggestions
+    if (trimmedInput.startsWith('ai:')) {
+      const aiInput = trimmedInput.substring(3).trim();
+      if (!aiInput) {
+        return aiCommands;
+      }
+      return aiCommands.filter(cmd => 
+        cmd.toLowerCase().includes(aiInput)
+      );
+    }
+    
+    // Regular command suggestions
+    const matchingCommands = commonCommands.filter(cmd =>
+      cmd.toLowerCase().startsWith(trimmedInput)
+    );
+    
+    // Add history matches
+    const historyMatches = commandHistory
+      .filter((cmd, index, self) => 
+        self.indexOf(cmd) === index && // Remove duplicates
+        cmd.toLowerCase().includes(trimmedInput)
+      )
+      .slice(-5); // Last 5 unique matches
+    
+    return [...new Set([...matchingCommands, ...historyMatches])];
+  };
+
+  const handleAutoComplete = () => {
+    const suggestions = getCommandSuggestions(currentInput);
+    
+    if (suggestions.length === 1) {
+      // Single match - auto complete
+      setCurrentInput(suggestions[0] + (suggestions[0].endsWith(':') ? ' ' : ''));
+      setShowSuggestions(false);
+    } else if (suggestions.length > 1) {
+      // Multiple matches - show suggestions
+      setSuggestions(suggestions);
+      setShowSuggestions(true);
+      setSelectedSuggestionIndex(0);
+    }
+  };
+
+  const applySuggestion = (suggestion: string) => {
+    setCurrentInput(suggestion + (suggestion.endsWith(':') ? ' ' : ''));
+    setShowSuggestions(false);
+    setSuggestions([]);
+    inputRef.current?.focus();
+  };
 
   // Mock terminal initialization
   useEffect(() => {
@@ -207,22 +285,69 @@ no changes added to commit (use "git add" or "git commit -a")`,
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
+      if (showSuggestions && selectedSuggestionIndex >= 0) {
+        applySuggestion(suggestions[selectedSuggestionIndex]);
+        return;
+      }
       executeCommand(currentInput);
       setCurrentInput('');
+      setShowSuggestions(false);
+      setHistoryIndex(-1);
     } else if (e.key === 'Tab') {
       e.preventDefault();
-      // TODO: Implement auto-completion
+      handleAutoComplete();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (showSuggestions) {
+        setSelectedSuggestionIndex(prev => 
+          prev > 0 ? prev - 1 : suggestions.length - 1
+        );
+      } else {
+        // Navigate command history
+        if (commandHistory.length > 0) {
+          const newIndex = historyIndex < commandHistory.length - 1 ? historyIndex + 1 : historyIndex;
+          setHistoryIndex(newIndex);
+          setCurrentInput(commandHistory[commandHistory.length - 1 - newIndex] || '');
+        }
+      }
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (showSuggestions) {
+        setSelectedSuggestionIndex(prev => 
+          prev < suggestions.length - 1 ? prev + 1 : 0
+        );
+      } else {
+        // Navigate command history
+        if (historyIndex > 0) {
+          const newIndex = historyIndex - 1;
+          setHistoryIndex(newIndex);
+          setCurrentInput(commandHistory[commandHistory.length - 1 - newIndex] || '');
+        } else if (historyIndex === 0) {
+          setHistoryIndex(-1);
+          setCurrentInput('');
+        }
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggestions(false);
+      setSuggestions([]);
+      setSelectedSuggestionIndex(0);
     } else if (e.ctrlKey && e.key === 'a') {
       e.preventDefault();
       setCurrentInput('ai: ');
     } else if (e.ctrlKey && e.key === 'c') {
       e.preventDefault();
       setIsRunning(false);
+      setShowSuggestions(false);
       setOutput(prev => [...prev, { 
         type: 'output', 
         content: '^C', 
         timestamp: new Date() 
       }]);
+    } else {
+      // Hide suggestions when typing
+      if (showSuggestions && e.key.length === 1) {
+        setShowSuggestions(false);
+      }
     }
   };
 
@@ -371,6 +496,7 @@ no changes added to commit (use "git add" or "git commit -a")`,
             placeholder={isRunning ? "Process running..." : "Type a command..."}
             disabled={isRunning}
             autoFocus
+            ref={inputRef}
           />
           {isRunning && (
             <div className="ml-2 flex items-center gap-1">
@@ -380,6 +506,20 @@ no changes added to commit (use "git add" or "git commit -a")`,
             </div>
           )}
         </div>
+
+        {showSuggestions && (
+          <div className="absolute bg-gray-800 border border-gray-700 rounded-md p-2 mt-2">
+            {suggestions.map((suggestion, index) => (
+              <div
+                key={index}
+                className={`p-2 hover:bg-gray-700 ${selectedSuggestionIndex === index ? 'bg-gray-700' : ''}`}
+                onClick={() => applySuggestion(suggestion)}
+              >
+                {suggestion}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Terminal Footer */}

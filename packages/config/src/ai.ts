@@ -20,9 +20,9 @@ export const AIConfigSchema = z.object({
     base_url: z.string().url().optional(),
     enabled: z.boolean().default(false),
     models: z.array(z.string()).default([
+      'gpt-4o',
       'gpt-4',
       'gpt-4-turbo',
-      'gpt-3.5-turbo',
     ]),
     rate_limit: z.object({
       requests_per_minute: z.number().positive().default(60),
@@ -116,7 +116,7 @@ export const createAIConfig = (): AIConfig => {
       project: process.env.OPENAI_PROJECT_ID,
       base_url: process.env.OPENAI_BASE_URL,
       enabled: !!process.env.OPENAI_API_KEY,
-      models: process.env.OPENAI_MODELS?.split(',') || ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+      models: process.env.OPENAI_MODELS?.split(',') || ['gpt-4o', 'gpt-4', 'gpt-4-turbo'],
       rate_limit: {
         requests_per_minute: parseInt(process.env.OPENAI_RATE_LIMIT_RPM || '60'),
         tokens_per_minute: parseInt(process.env.OPENAI_RATE_LIMIT_TPM || '60000'),

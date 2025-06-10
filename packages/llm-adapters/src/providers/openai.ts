@@ -36,7 +36,6 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     'gpt-4o-mini': { input: 0.00015, output: 0.0006 },
     'gpt-4-turbo': { input: 0.01, output: 0.03 },
     'gpt-4': { input: 0.03, output: 0.06 },
-    'gpt-3.5-turbo': { input: 0.0005, output: 0.0015 },
     'o1-preview': { input: 0.015, output: 0.06 },
     'o1-mini': { input: 0.003, output: 0.012 },
     'gpt-4o-realtime-preview': { input: 0.005, output: 0.02 }
@@ -114,18 +113,6 @@ export class OpenAIAdapter extends BaseLLMAdapter {
       description: 'Original GPT-4 model with high accuracy',
       capabilities: ['chat', 'completion', 'function_calling'],
       pricing: { input: 0.03, output: 0.06 }
-    },
-    {
-      id: 'gpt-3.5-turbo',
-      name: 'GPT-3.5 Turbo',
-      provider: AIProvider.OPENAI,
-      contextLength: 16385,
-      context_length: 16385,
-      supports_streaming: true,
-      supports_functions: true,
-      description: 'Fast and affordable model for simple tasks',
-      capabilities: ['chat', 'completion', 'function_calling'],
-      pricing: { input: 0.0005, output: 0.0015 }
     }
   ];
 
@@ -146,7 +133,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   // Required abstract methods from BaseLLMAdapter
   async chat(messages: ChatMessage[], options?: StreamingOptions): Promise<ChatResponse> {
     const request: ChatCompletionRequest = {
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4o',
       messages: messages as any, // Type assertion to handle interface differences
       temperature: options?.temperature,
       maxTokens: options?.max_tokens,
@@ -178,7 +165,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
 
   async *streamChat(messages: ChatMessage[], options?: StreamingOptions): AsyncGenerator<StreamingChatResponse> {
     const request: ChatCompletionRequest = {
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4o',
       messages: messages as any, // Type assertion to handle interface differences
       temperature: options?.temperature,
       maxTokens: options?.max_tokens,
@@ -237,7 +224,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
     try {
       // Test with a minimal request
       await this.client.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o',
         max_tokens: 1,
         messages: [{ role: 'user', content: 'test' }]
       });
@@ -250,7 +237,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   async testConnection(): Promise<boolean> {
     try {
       const response = await this.client.chat.completions.create({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4o',
         max_tokens: 1,
         messages: [{ role: 'user', content: 'test' }]
       });
@@ -368,7 +355,7 @@ export class OpenAIAdapter extends BaseLLMAdapter {
   }
 
   estimateCost(usage: TokenUsage): number {
-    const model = 'gpt-3.5-turbo'; // Default model for estimation
+    const model = 'gpt-4o'; // Default model for estimation
     const pricing = this.modelPricing[model];
     if (!pricing) return 0;
 

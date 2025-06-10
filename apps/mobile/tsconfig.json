@@ -52,16 +52,20 @@
       "path": "../../packages/core"
     },
     {
-      "path": "../../packages/types"
+      "path": "../../packages/types",
+      "composite": true
     },
     {
-      "path": "../../packages/config"
+      "path": "../../packages/config",
+      "composite": true
     },
     {
-      "path": "../../packages/ui"
+      "path": "../../packages/ui",
+      "composite": true
     },
     {
-      "path": "../../packages/database"
+      "path": "../../packages/database",
+      "composite": true
     },
     {
       "path": "../../packages/llm-adapters"

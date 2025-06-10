@@ -1,0 +1,60 @@
+[
+  {
+    "_type": "author",
+    "_id": "author-1",
+    "name": "Alex Chen",
+    "slug": {
+      "_type": "slug",
+      "current": "alex-chen"
+    },
+    "bio": "Security engineer and AI researcher focused on privacy-preserving development tools. Previously worked at major tech companies securing developer workflows.",
+    "image": {
+      "_type": "image",
+      "alt": "Alex Chen"
+    },
+    "social": {
+      "twitter": "https://twitter.com/alexchen_dev",
+      "linkedin": "https://linkedin.com/in/alexchen-security",
+      "github": "https://github.com/alexchen",
+      "website": "https://alexchen.dev"
+    }
+  },
+  {
+    "_type": "author",
+    "_id": "author-2", 
+    "name": "Sarah Rodriguez",
+    "slug": {
+      "_type": "slug",
+      "current": "sarah-rodriguez"
+    },
+    "bio": "Privacy advocate and full-stack developer specializing in secure AI applications. Contributor to open source security tools and AI ethics research.",
+    "image": {
+      "_type": "image",
+      "alt": "Sarah Rodriguez"
+    },
+    "social": {
+      "twitter": "https://twitter.com/sarah_codes",
+      "linkedin": "https://linkedin.com/in/sarah-rodriguez-dev",
+      "github": "https://github.com/srodriguez"
+    }
+  },
+  {
+    "_type": "author",
+    "_id": "author-3",
+    "name": "Marcus Kim",
+    "slug": {
+      "_type": "slug", 
+      "current": "marcus-kim"
+    },
+    "bio": "DevOps engineer and cybersecurity specialist. Expert in containerized AI deployments and zero-trust development environments.",
+    "image": {
+      "_type": "image",
+      "alt": "Marcus Kim"
+    },
+    "social": {
+      "linkedin": "https://linkedin.com/in/marcus-kim-devops",
+      "github": "https://github.com/mkim",
+      "website": "https://marcuskim.tech"
+    }
+  }
+] 

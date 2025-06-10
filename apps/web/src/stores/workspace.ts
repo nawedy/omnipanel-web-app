@@ -70,6 +70,8 @@ export interface WorkspaceActions {
   reorderTabs: (startIndex: number, endIndex: number) => void;
   closeAllTabs: () => void;
   closeOtherTabs: (id: string) => void;
+  moveTab: (id: string, newIndex: number) => void;
+  duplicateTab: (id: string) => void;
   
   // LLM Actions
   setSelectedModel: (model: string, provider: string) => void;
@@ -94,7 +96,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
       projects: [],
       tabs: [],
       activeTabId: null,
-      selectedModel: 'gpt-3.5-turbo',
+      selectedModel: 'gpt-4o',
       modelProvider: 'openai',
       layout: {
         showFileTree: true,
@@ -198,6 +200,43 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
           tabs: state.tabs.filter((t) => t.id === id),
           activeTabId: id,
         })),
+
+      moveTab: (id, newIndex) =>
+        set((state) => {
+          const currentIndex = state.tabs.findIndex((t) => t.id === id);
+          if (currentIndex === -1 || newIndex < 0 || newIndex >= state.tabs.length) {
+            return state;
+          }
+          
+          const newTabs = [...state.tabs];
+          const [movedTab] = newTabs.splice(currentIndex, 1);
+          newTabs.splice(newIndex, 0, movedTab);
+          
+          return { tabs: newTabs };
+        }),
+
+      duplicateTab: (id) =>
+        set((state) => {
+          const tabToDuplicate = state.tabs.find((t) => t.id === id);
+          if (!tabToDuplicate) return state;
+          
+          const newId = `tab-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+          const duplicatedTab: Tab = {
+            ...tabToDuplicate,
+            id: newId,
+            title: `${tabToDuplicate.title} (Copy)`,
+            isDirty: false,
+          };
+          
+          const currentIndex = state.tabs.findIndex((t) => t.id === id);
+          const newTabs = [...state.tabs];
+          newTabs.splice(currentIndex + 1, 0, duplicatedTab);
+          
+          return {
+            tabs: newTabs,
+            activeTabId: newId,
+          };
+        }),
 
       // LLM Actions
       setSelectedModel: (model, provider) =>

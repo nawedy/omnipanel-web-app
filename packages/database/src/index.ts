@@ -1,4 +1,63 @@
 // packages/database/src/index.ts
+// OmniPanel Database Package - Main exports
+
+// Configuration
+export { 
+  createDatabaseConfig, 
+  validateDatabaseConfig,
+  getDatabaseUrl,
+  isProductionDatabase,
+  getAuthConfig,
+  isNeonConfigured,
+  isSupabaseConfigured,
+  DatabaseProvider,
+  type DatabaseConfig 
+} from '@omnipanel/config';
+
+// Main database client (universal)
+export {
+  initializeDatabase,
+  getDatabaseClient,
+  getDatabasePool,
+  testDatabaseConnection,
+  getDatabaseHealth,
+  executeTransaction,
+  buildQuery,
+  handleDatabaseError,
+  setupRealtimeSubscription,
+  migrateToNeon,
+  type Database,
+  type DatabaseClient,
+  type DatabasePool,
+} from './client';
+
+// NeonDB-specific exports
+export {
+  createNeonClient,
+  createNeonPool,
+  getNeonClient,
+  getNeonPool,
+  testNeonConnection,
+  getNeonHealth,
+  executeNeonTransaction,
+  buildNeonQuery,
+  handleNeonError,
+  setupNeonRealtimeSubscription,
+  migrateFromSupabase,
+  type NeonDatabase,
+  type NeonPool,
+} from './neon-client';
+
+// Database types
+export type {
+  User as DatabaseUser,
+  DatabaseProject,
+  DatabaseChatSession,
+  DatabaseMessage,
+  DatabaseFile,
+  DatabaseProjectMember,
+  DatabaseFileVersion,
+} from '@omnipanel/types';
 
 // Re-export all database modules
 export * from './client';
@@ -8,54 +67,33 @@ export * from './queries';
 // Import main classes for convenience
 import type { DatabaseConfig } from '@omnipanel/config';
 import { 
-  initializeDatabase, 
-  type SupabaseDatabase 
+  initializeDatabase,
+  getDatabaseHealth,
+  testDatabaseConnection,
+  type DatabaseClient 
 } from './client';
-import { ChatSessionRepository, createRepositoryFactory, FileRepository, FileVersionRepository, MessageRepository, ProjectMemberRepository, ProjectRepository, UserRepository, type RepositoryFactory } from './models';
-import { createDatabaseQueries, type DatabaseQueries } from './queries';
 
 // Main database service interface
-// packages/database/src/index.ts - UPDATE THE DatabaseService INTERFACE
-
 export interface DatabaseService {
-  client: SupabaseDatabase;
-  serviceClient: SupabaseDatabase;
-  repositories: RepositoryFactory;
-  queries: DatabaseQueries;
+  client: DatabaseClient;
+  pool?: any; // NeonDB pool for server-side operations
   
-  // Add convenience properties for backward compatibility
-  users: UserRepository;
-  projects: ProjectRepository;
-  projectMembers: ProjectMemberRepository;
-  chatSessions: ChatSessionRepository;
-  messages: MessageRepository;
-  files: FileRepository;
-  fileVersions: FileVersionRepository;
+  // Health monitoring
+  testConnection: () => Promise<boolean>;
+  getHealth: () => Promise<any>;
 }
 
-// Update createDatabaseService function
+// Create database service function
 export const createDatabaseService = (config: DatabaseConfig): DatabaseService => {
-  const { client, serviceClient } = initializeDatabase(config);
-  const repositories = createRepositoryFactory(client);
-  const queries = createDatabaseQueries(client);
+  const { client, pool } = initializeDatabase(config);
   
   return {
     client,
-    serviceClient,
-    repositories,
-    queries,
-    
-    // Add convenience properties
-    users: repositories.users,
-    projects: repositories.projects,
-    projectMembers: repositories.projectMembers,
-    chatSessions: repositories.chatSessions,
-    messages: repositories.messages,
-    files: repositories.files,
-    fileVersions: repositories.fileVersions,
+    pool,
+    testConnection: testDatabaseConnection,
+    getHealth: getDatabaseHealth,
   };
 };
-
 
 // Singleton database service
 let databaseService: DatabaseService | null = null;
@@ -76,24 +114,19 @@ export const resetDatabaseService = (): void => {
   databaseService = null;
 };
 
-// Export types
-export type {
-  SupabaseDatabase,
-  RepositoryFactory,
-  DatabaseQueries,
+// Database health check and monitoring
+export const getDatabaseStatus = async (config: DatabaseConfig) => {
+  const { client } = initializeDatabase(config);
+  
+  const health = await getDatabaseHealth();
+  const connection = await testDatabaseConnection();
+  
+  return {
+    health,
+    connection,
+    config: {
+      provider: config.provider,
+      projectId: config.provider === 'neon' ? config.neon?.projectId : config.supabase?.project_id,
+    },
+  };
 };
-
-// Export repository classes
-export {
-  UserRepository,
-  ProjectRepository,
-  MessageRepository,
-  FileRepository,
-} from './models';
-
-// Export query result types
-export type {
-  ProjectWithStats,
-  UserWithProjects,
-  ProjectAnalytics,
-} from './queries';

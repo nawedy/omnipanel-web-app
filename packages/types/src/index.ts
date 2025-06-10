@@ -84,3 +84,8 @@ export * from './api';
 
 // Export comprehensive LLM adapter types (these are the primary AI types)
 export * from './llm-adapters';
+
+// Marketing and Sales types
+export * from './marketing';
+export * from './sales';
+export * from './analytics';

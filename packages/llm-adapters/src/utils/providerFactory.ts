@@ -1,7 +1,7 @@
 // packages/llm-adapters/src/utils/providerFactory.ts
 
 import { AIProvider, AIProviderConfig, ProviderError, ProviderErrorType } from '@omnipanel/types';
-import { BaseAdapter } from '../base/adapter';
+import { BaseLLMAdapter } from '../base/adapter';
 import { OpenAIAdapter } from '../providers/openai';
 import { AnthropicAdapter } from '../providers/anthropic';
 import { GoogleAIAdapter } from '../providers/google';
@@ -53,7 +53,7 @@ export class ProviderFactory {
     }
   }
 
-  static createProvider(providerConfig: ProviderConfig): BaseAdapter {
+  static createProvider(providerConfig: ProviderConfig): BaseLLMAdapter {
     const { provider, config } = providerConfig;
 
     // Validate configuration

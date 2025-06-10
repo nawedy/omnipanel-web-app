@@ -36,8 +36,12 @@ export function Header(): JSX.Element {
           <Link href="/" className="-m-1.5 p-1.5">
             <span className="sr-only">OmniPanel Docs</span>
             <div className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-lg bg-primary-600 flex items-center justify-center">
-                <span className="text-white font-bold text-sm">OP</span>
+              <div className="h-8 w-8 rounded-lg flex items-center justify-center">
+                <img 
+                  src="/omnipanel-logo.png" 
+                  alt="OmniPanel Logo" 
+                  className="h-8 w-8 object-contain"
+                />
               </div>
               <span className="text-xl font-bold text-gray-900 dark:text-white">
                 OmniPanel <span className="text-primary-600">Docs</span>
@@ -117,8 +121,12 @@ export function Header(): JSX.Element {
               <Link href="/" className="-m-1.5 p-1.5">
                 <span className="sr-only">OmniPanel Docs</span>
                 <div className="flex items-center space-x-2">
-                  <div className="h-8 w-8 rounded-lg bg-primary-600 flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">OP</span>
+                  <div className="h-8 w-8 rounded-lg flex items-center justify-center">
+                    <img 
+                      src="/omnipanel-logo.png" 
+                      alt="OmniPanel Logo" 
+                      className="h-8 w-8 object-contain"
+                    />
                   </div>
                   <span className="text-xl font-bold text-gray-900 dark:text-white">
                     OmniPanel <span className="text-primary-600">Docs</span>

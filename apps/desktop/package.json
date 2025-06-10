@@ -7,11 +7,11 @@
   "private": true,
   "scripts": {
     "dev": "npm run build && electron .",
-    "dev:main": "cross-env NODE_ENV=development electron-webpack dev",
+    "dev:main": "cross-env NODE_ENV=development webpack --config webpack.main.config.js --mode=development --watch",
     "dev:renderer": "cd ../web && npm run dev",
     "build": "npm run build:main && npm run build:preload",
-    "build:main": "webpack --config webpack.main.config.js",
-    "build:preload": "webpack --config webpack.preload.config.js",
+    "build:main": "webpack --config webpack.main.config.js --mode=production",
+    "build:preload": "webpack --config webpack.preload.config.js --mode=production",
     "build:renderer": "cd ../web && npm run build",
     "pack": "npm run build && npm run build:renderer && electron-builder --dir",
     "dist": "npm run build && npm run build:renderer && electron-builder",
@@ -44,10 +44,11 @@
   "devDependencies": {
     "electron": "^28.1.0",
     "electron-builder": "^24.9.1",
-    "electron-webpack": "^2.8.2",
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4",
+    "ts-loader": "^9.5.1",
     "@types/node": "^20.10.4",
     "@types/ws": "^8.5.9",
     "typescript": "^5.3.3"
@@ -75,7 +76,7 @@
           "arch": ["x64", "arm64"]
         }
       ],
-      "icon": "assets/icon.icns"
+      "icon": "../../assets/MacOS/omnipanel.icns"
     },
     "win": {
       "target": [
@@ -88,7 +89,7 @@
           "arch": ["x64", "ia32"]
         }
       ],
-      "icon": "assets/icon.ico"
+      "icon": "../../assets/Windows-icon/omnipanel.ico"
     },
     "linux": {
       "target": [
@@ -105,7 +106,7 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "assets/icon.png",
+      "icon": "../../assets/desktop/desktop-icon-512x512.png",
       "category": "Development"
     },
     "publish": {

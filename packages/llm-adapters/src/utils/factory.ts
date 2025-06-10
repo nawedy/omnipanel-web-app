@@ -1,9 +1,9 @@
 // packages/llm-adapters/src/utils/factory.ts
 import type { LLMProvider } from '@omnipanel/types';
 import { AIProvider } from '@omnipanel/types';
-import { BaseLLMAdapter, type LLMAdapterConfig } from '@/base/adapter';
-import { OpenAIAdapter, type OpenAIConfig } from '@/providers/openai';
-import { AnthropicAdapter, type AnthropicConfig } from '@/providers/anthropic';
+import { BaseLLMAdapter, type LLMAdapterConfig } from '../base/adapter';
+import { OpenAIAdapter, type OpenAIConfig } from '../providers/openai';
+import { AnthropicAdapter, type AnthropicConfig } from '../providers/anthropic';
 
 
 /**

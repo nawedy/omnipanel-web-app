@@ -1,6 +1,6 @@
 import { LLMAdapter, AdapterRegistry as IAdapterRegistry, SupportedProvider } from '../types';
-import { OpenAIAdapter } from '../adapters/OpenAIAdapter';
-import { OllamaAdapter } from '../adapters/OllamaAdapter';
+import { OpenAIAdapter } from '../providers/openai';
+import { OllamaAdapter } from '../providers/ollama';
 
 export class AdapterRegistry implements IAdapterRegistry {
   private adapters = new Map<string, LLMAdapter>();

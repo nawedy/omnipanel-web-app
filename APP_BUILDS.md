@@ -35,7 +35,7 @@ expo register  # or expo login
 
 ```bash
 # Navigate to desktop app
-cd apps/desktop
+cd omnipanel-core/apps/desktop
 
 # Install dependencies
 npm install
@@ -43,7 +43,7 @@ npm install
 # Build for all platforms
 npm run dist:all
 
-# Output will be in: apps/desktop/dist/
+# Output will be in: omnipanel-core/apps/desktop/dist/
 # - Windows: .exe, .zip
 # - macOS: .dmg, .zip  
 # - Linux: .AppImage, .deb, .rpm
@@ -108,7 +108,7 @@ npm run dist:win
 
 ```bash
 # Navigate to mobile app
-cd apps/mobile
+cd omnipanel-core/apps/mobile
 
 # Build production APK
 eas build --platform android --profile production
@@ -132,7 +132,7 @@ eas build --platform ios --profile preview
 
 ### Configure Build Profiles
 
-Edit `apps/mobile/eas.json`:
+Edit `omnipanel-core/apps/mobile/eas.json`:
 
 ```json
 {
@@ -215,14 +215,14 @@ jobs:
       
       - name: Build desktop app
         run: |
-          cd apps/desktop
+          cd omnipanel-core/apps/desktop
           npm run dist
       
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: desktop-${{ matrix.os }}
-          path: apps/desktop/dist/
+          path: omnipanel-core/apps/desktop/dist/
 ```
 
 ### GitHub Actions for Mobile
@@ -255,12 +255,12 @@ jobs:
       
       - name: Install dependencies
         run: |
-          cd apps/mobile
+          cd omnipanel-core/apps/mobile
           npm install
       
       - name: Build Android APK
         run: |
-          cd apps/mobile
+          cd omnipanel-core/apps/mobile
           eas build --platform android --non-interactive
 ```
 
@@ -288,7 +288,7 @@ The web app download page will automatically link to:
 
 ```bash
 # Copy APK to web app public folder
-cp apps/mobile/OmniPanel-v1.0.0.apk apps/web/public/downloads/
+cp omnipanel-core/apps/mobile/OmniPanel-v1.0.0.apk omnipanel-core/apps/web/public/downloads/
 
 # Update download page links
 # The page will serve APKs directly from the web app
@@ -300,14 +300,14 @@ cp apps/mobile/OmniPanel-v1.0.0.apk apps/web/public/downloads/
 
 ```bash
 # Test Windows (on Windows)
-./apps/desktop/dist/OmniPanel\ Setup\ 1.0.0.exe
+./omnipanel-core/apps/desktop/dist/OmniPanel\ Setup\ 1.0.0.exe
 
 # Test macOS (on macOS)
-open ./apps/desktop/dist/OmniPanel-1.0.0.dmg
+open ./omnipanel-core/apps/desktop/dist/OmniPanel-1.0.0.dmg
 
 # Test Linux AppImage
-chmod +x ./apps/desktop/dist/OmniPanel-1.0.0.AppImage
-./apps/desktop/dist/OmniPanel-1.0.0.AppImage
+chmod +x ./omnipanel-core/apps/desktop/dist/OmniPanel-1.0.0.AppImage
+./omnipanel-core/apps/desktop/dist/OmniPanel-1.0.0.AppImage
 ```
 
 ### Mobile Testing

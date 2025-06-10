@@ -73,7 +73,7 @@ export class ChatService {
         user_id: userId,
         project_id: data.project_id,
         model_provider: data.model_provider || 'openai',
-        model_name: data.model_name || 'gpt-3.5-turbo',
+        model_name: data.model_name || 'gpt-4o',
         system_prompt: data.system_prompt || undefined
       };
 

@@ -2,28 +2,38 @@
 export * from './types';
 
 // Base classes
-export { BaseAdapter } from './base/BaseAdapter';
+export { BaseLLMAdapter } from './base/adapter';
 
-// Adapters
-export { OpenAIAdapter } from './adapters/OpenAIAdapter';
-export { OllamaAdapter } from './adapters/OllamaAdapter';
+// Providers - Updated with latest models
+export { OpenAIAdapter } from './providers/openai';
+export { AnthropicAdapter } from './providers/anthropic';
+export { GoogleAIAdapter } from './providers/google';
+export { OllamaAdapter } from './providers/ollama';
+export { VLLMAdapter } from './providers/vllm';
+export { LlamaCppAdapter } from './providers/llamacpp';
+export { DeepSeekAdapter } from './providers/deepseek';
+export { MistralAdapter } from './providers/mistral';
+export { QwenAdapter } from './providers/qwen';
+export { HuggingFaceAdapter } from './providers/huggingface';
 
-// Registry
-export { AdapterRegistry, globalAdapterRegistry } from './registry/AdapterRegistry';
+// Export all providers
+export * from './providers';
+
+// Registry and utils
+export { ProviderFactory } from './utils/providerFactory';
 
 // Re-export common interfaces for convenience
 export type {
-  LLMAdapter,
-  LocalLLMAdapter,
-  AdapterConfig,
-  LLMMessage,
-  LLMCompletionRequest,
-  LLMCompletionResponse,
-  LLMStreamChunk,
+  LLMModel,
+  ChatMessage,
+  ChatCompletionRequest,
+  ChatCompletionResponse,
+  StreamingChatCompletionResponse,
+  LLMUsageStats,
+  MessageRole,
+  ChatResponse,
+  StreamingChatResponse,
   ModelInfo,
-  EmbeddingRequest,
-  EmbeddingResponse,
-  AdapterError,
-  SupportedProvider,
-  ProviderCapabilities
-} from './types'; 
+  TokenUsage,
+  ChatFinishReason
+} from '@omnipanel/types'; 

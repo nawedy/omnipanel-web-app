@@ -18,11 +18,13 @@ import {
   createUsageStats,
   createTokenUsage
 } from '@omnipanel/types';
-import { BaseLLMAdapter, type LLMAdapterConfig, type StreamingOptions } from '@/base/adapter';
+import { BaseLLMAdapter, type LLMAdapterConfig, type StreamingOptions } from '../base/adapter';
 
 export interface VLLMConfig extends LLMAdapterConfig {
   endpoint: string;
   model: string;
+  timeout?: number;
+  apiKey?: string;
 }
 
 export class VLLMAdapter extends BaseLLMAdapter {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ActivityIndicator, StyleSheet, Image } from 'react-native';
 import { useTheme } from '@/hooks/useTheme';
 
 interface LoadingScreenProps {
@@ -18,11 +18,9 @@ export function LoadingScreen({ message = 'Loading...' }: LoadingScreenProps): J
       paddingHorizontal: 32,
     },
     logo: {
-      fontSize: 32,
-      fontWeight: 'bold',
-      color: colors.primary,
+      width: 128,
+      height: 128,
       marginBottom: 32,
-      textAlign: 'center',
     },
     spinner: {
       marginBottom: 24,
@@ -36,7 +34,11 @@ export function LoadingScreen({ message = 'Loading...' }: LoadingScreenProps): J
 
   return (
     <View style={styles.container}>
-      <Text style={styles.logo}>OmniPanel</Text>
+      <Image 
+        source={require('../../../assets/omnipanel-logo.png')}
+        style={styles.logo}
+        resizeMode="contain"
+      />
       <ActivityIndicator 
         size="large" 
         color={colors.primary} 

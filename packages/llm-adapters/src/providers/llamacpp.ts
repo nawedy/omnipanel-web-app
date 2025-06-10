@@ -14,7 +14,7 @@ import {
   ChatFinishReason,
   normalizeFinishReason
 } from '@omnipanel/types';
-import { BaseLLMAdapter, type LLMAdapterConfig, type StreamingOptions } from '@/base/adapter';
+import { BaseLLMAdapter, type LLMAdapterConfig, type StreamingOptions } from '../base/adapter';
 
 export interface LlamaCppConfig extends LLMAdapterConfig {
   baseUrl: string;

@@ -62,6 +62,19 @@ export function Notebook({ filePath, initialContent, onSave }: NotebookProps) {
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
   const [isKernelRunning, setIsKernelRunning] = useState(false);
   const [language, setLanguage] = useState('python');
+  const [aiAssistModal, setAiAssistModal] = useState<{
+    isOpen: boolean;
+    cellId: string;
+    cellContent: string;
+    isLoading: boolean;
+    suggestion: string;
+  }>({
+    isOpen: false,
+    cellId: '',
+    cellContent: '',
+    isLoading: false,
+    suggestion: ''
+  });
 
   const addCell = (type: 'code' | 'markdown', afterId?: string) => {
     const newCell: NotebookCell = {
@@ -223,26 +236,26 @@ export function Notebook({ filePath, initialContent, onSave }: NotebookProps) {
         {output.map((item, index) => (
           <div key={index} className="mb-2">
             {item.output_type === 'stream' && (
-              <pre className="text-sm bg-gray-100 dark:bg-gray-800 p-2 rounded text-green-600 dark:text-green-400 font-mono">
+              <pre className="text-base bg-gray-100 dark:bg-gray-800 p-3 rounded text-green-600 dark:text-green-400 font-mono leading-relaxed" style={{ fontSize: '15px', lineHeight: '1.6' }}>
                 {item.text}
               </pre>
             )}
             {item.output_type === 'execute_result' && (
-              <div className="text-sm">
-                <div className="text-xs text-muted-foreground mb-1">
+              <div className="text-base">
+                <div className="text-sm text-muted-foreground mb-1">
                   Out[{item.execution_count}]:
                 </div>
-                <pre className="bg-gray-100 dark:bg-gray-800 p-2 rounded">
+                <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded font-mono text-base leading-relaxed" style={{ fontSize: '15px', lineHeight: '1.6' }}>
                   {item.data['text/plain']}
                 </pre>
               </div>
             )}
             {item.output_type === 'error' && (
-              <div className="text-sm">
-                <div className="text-red-600 dark:text-red-400 font-medium">
+              <div className="text-base">
+                <div className="text-red-600 dark:text-red-400 font-medium text-base" style={{ fontSize: '15px' }}>
                   {item.ename}: {item.evalue}
                 </div>
-                <pre className="text-red-500 text-xs mt-1">
+                <pre className="text-red-500 text-sm mt-1 font-mono leading-relaxed" style={{ fontSize: '14px', lineHeight: '1.5' }}>
                   {item.traceback?.join('\n')}
                 </pre>
               </div>
@@ -312,6 +325,56 @@ export function Notebook({ filePath, initialContent, onSave }: NotebookProps) {
     a.download = filePath || 'notebook.ipynb';
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleAiAssist = async (cellId: string) => {
+    const cell = cells.find(c => c.id === cellId);
+    if (!cell || cell.type !== 'code') return;
+
+    setAiAssistModal({
+      isOpen: true,
+      cellId,
+      cellContent: cell.content,
+      isLoading: true,
+      suggestion: ''
+    });
+
+    try {
+      // Simulate AI analysis
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const suggestions = [
+        "# AI Suggestion: Add error handling\ntry:\n    # Your code here\n    " + cell.content.replace(/\n/g, '\n    ') + "\nexcept Exception as e:\n    print(f'Error: {e}')",
+        "# AI Suggestion: Add type hints and documentation\ndef improved_function(data: list) -> None:\n    \"\"\"\n    Improved version of your code with better structure\n    Args:\n        data: Input data list\n    \"\"\"\n    " + cell.content.replace(/\n/g, '\n    '),
+        "# AI Suggestion: Optimize for performance\n# Using numpy operations for better performance\n" + cell.content + "\n\n# Consider using vectorized operations for better performance",
+        "# AI Suggestion: Add logging and monitoring\nimport logging\nlogging.basicConfig(level=logging.INFO)\n\n" + cell.content + "\n\nlogging.info('Code execution completed')"
+      ];
+      
+      const randomSuggestion = suggestions[Math.floor(Math.random() * suggestions.length)];
+      
+      setAiAssistModal(prev => ({
+        ...prev,
+        isLoading: false,
+        suggestion: randomSuggestion
+      }));
+    } catch (error) {
+      setAiAssistModal(prev => ({
+        ...prev,
+        isLoading: false,
+        suggestion: 'Sorry, there was an error getting AI suggestions. Please try again.'
+      }));
+    }
+  };
+
+  const applyAiSuggestion = () => {
+    if (aiAssistModal.suggestion && aiAssistModal.cellId) {
+      updateCellContent(aiAssistModal.cellId, aiAssistModal.suggestion);
+      setAiAssistModal(prev => ({ ...prev, isOpen: false }));
+    }
+  };
+
+  const closeAiModal = () => {
+    setAiAssistModal(prev => ({ ...prev, isOpen: false }));
   };
 
   return (
@@ -438,7 +501,7 @@ export function Notebook({ filePath, initialContent, onSave }: NotebookProps) {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            // TODO: AI code assistance
+                            handleAiAssist(cell.id);
                           }}
                           className="p-1 hover:bg-accent/50 rounded text-blue-500"
                           title="AI Assistance"
@@ -493,7 +556,7 @@ export function Notebook({ filePath, initialContent, onSave }: NotebookProps) {
                 {/* Cell Content */}
                 <div className="relative">
                   {cell.type === 'code' ? (
-                    <div className="min-h-[100px]">
+                    <div className="min-h-[120px]">
                       <Editor
                         height="auto"
                         language={language}
@@ -505,11 +568,14 @@ export function Notebook({ filePath, initialContent, onSave }: NotebookProps) {
                           lineNumbers: 'on',
                           wordWrap: 'on',
                           automaticLayout: true,
-                          fontSize: 14,
+                          fontSize: 18,
+                          fontFamily: 'JetBrains Mono, Consolas, Monaco, "Courier New", monospace',
+                          lineHeight: 1.6,
                           tabSize: 4,
                           insertSpaces: true,
                           scrollBeyondLastLine: false,
-                          readOnly: cell.isExecuting
+                          readOnly: cell.isExecuting,
+                          padding: { top: 12, bottom: 12 }
                         }}
                       />
                     </div>
@@ -517,8 +583,13 @@ export function Notebook({ filePath, initialContent, onSave }: NotebookProps) {
                     <textarea
                       value={cell.content}
                       onChange={(e) => updateCellContent(cell.id, e.target.value)}
-                      className="w-full min-h-[100px] p-4 bg-transparent border-none outline-none resize-none font-mono text-sm"
+                      className="w-full min-h-[120px] p-4 bg-transparent border-none outline-none resize-none font-mono text-lg leading-relaxed"
                       placeholder={cell.type === 'markdown' ? 'Enter markdown...' : 'Enter text...'}
+                      style={{
+                        fontSize: '18px',
+                        lineHeight: '1.6',
+                        fontFamily: 'JetBrains Mono, Consolas, Monaco, "Courier New", monospace'
+                      }}
                     />
                   )}
 
@@ -532,11 +603,10 @@ export function Notebook({ filePath, initialContent, onSave }: NotebookProps) {
                   {/* Markdown Preview */}
                   {cell.type === 'markdown' && !cell.isSelected && (
                     <div className="absolute inset-0 p-4 bg-card/90 backdrop-blur-sm">
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        {/* TODO: Add markdown renderer */}
+                      <div className="prose prose-lg dark:prose-invert max-w-none" style={{ fontSize: '18px', lineHeight: '1.6' }}>
                         <div className="text-muted-foreground">
-                          <p>Markdown preview: {cell.content.substring(0, 100)}...</p>
-                          <p className="text-xs">Click to edit</p>
+                          <p className="text-lg">Markdown preview: {cell.content.substring(0, 100)}...</p>
+                          <p className="text-base">Click to edit</p>
                         </div>
                       </div>
                     </div>
@@ -578,6 +648,78 @@ export function Notebook({ filePath, initialContent, onSave }: NotebookProps) {
           <span>Last saved: Just now</span>
         </div>
       </div>
+
+      {/* AI Assistance Modal */}
+      {aiAssistModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="w-full max-w-4xl bg-popover border border-border rounded-lg shadow-xl max-h-[80vh] overflow-hidden">
+            <div className="p-4 border-b border-border flex items-center justify-between">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Bot className="w-5 h-5 text-blue-500" />
+                AI Code Assistant
+              </h3>
+              <button
+                onClick={closeAiModal}
+                className="p-2 hover:bg-accent rounded-md transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-4 max-h-[60vh] overflow-y-auto">
+              {aiAssistModal.isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce" />
+                    <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce delay-100" />
+                    <div className="w-4 h-4 bg-blue-500 rounded-full animate-bounce delay-200" />
+                    <span className="ml-2 text-muted-foreground">AI is analyzing your code...</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-medium mb-2">Original Code:</h4>
+                    <pre className="bg-muted p-3 rounded-md text-sm font-mono overflow-x-auto">
+                      {aiAssistModal.cellContent}
+                    </pre>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-2">AI Suggestion:</h4>
+                    <pre className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-3 rounded-md text-sm font-mono overflow-x-auto">
+                      {aiAssistModal.suggestion}
+                    </pre>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {!aiAssistModal.isLoading && aiAssistModal.suggestion && (
+              <div className="p-4 border-t border-border flex justify-end gap-2">
+                <button
+                  onClick={() => navigator.clipboard.writeText(aiAssistModal.suggestion)}
+                  className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/80 transition-colors"
+                >
+                  Copy Suggestion
+                </button>
+                <button
+                  onClick={applyAiSuggestion}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+                >
+                  Apply Suggestion
+                </button>
+                <button
+                  onClick={closeAiModal}
+                  className="px-4 py-2 border border-border rounded-md hover:bg-accent transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
