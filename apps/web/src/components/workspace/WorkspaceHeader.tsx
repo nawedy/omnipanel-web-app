@@ -148,9 +148,9 @@ export function WorkspaceHeader() {
 
   return (
     <>
-      <header className="h-14 bg-background/80 backdrop-blur-lg border-b border-border flex items-center px-4 gap-4 flex-shrink-0">
+      <header className="h-14 w-full bg-background/80 backdrop-blur-lg border-b border-border flex items-center px-6 justify-between flex-shrink-0">
         {/* Left Section */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-shrink-0">
           {/* Menu Toggle */}
           <button
             onClick={toggleSidebar}
@@ -177,10 +177,10 @@ export function WorkspaceHeader() {
               <img 
                 src="/logo.png" 
                 alt="OmniPanel Logo" 
-                className="w-8 h-8 object-contain"
+                className="w-8 h-8 object-contain rounded-lg"
               />
             </div>
-            <span className="font-semibold text-sm hidden sm:block">OmniPanel</span>
+            <span className="font-semibold text-base hidden sm:block">OmniPanel</span>
           </div>
 
           {/* Project Selector */}
@@ -193,8 +193,8 @@ export function WorkspaceHeader() {
         </div>
 
         {/* Center Section - Search */}
-        <div className="flex-1 max-w-md mx-4">
-          <div className="relative">
+        <div className="flex-1 max-w-2xl px-4">
+          <div className="relative w-full">
             <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
@@ -210,7 +210,7 @@ export function WorkspaceHeader() {
         </div>
 
         {/* Right Section */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 flex-shrink-0">
           {/* Sync Status Indicator - only render after hydration */}
           {syncStatus && (
             <SyncStatusIndicator 

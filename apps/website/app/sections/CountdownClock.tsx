@@ -28,16 +28,32 @@ const CountdownClock: React.FC<CountdownClockProps> = ({
   finishedMessage = 'Time is up!',
 }) => {
   const target = typeof targetDate === 'string' ? new Date(targetDate) : targetDate;
-  const [timeLeft, setTimeLeft] = useState(() => getTimeRemaining(target));
+  const [timeLeft, setTimeLeft] = useState({ total: 0, days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [expired, setExpired] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  // Initialize on client-side only to prevent hydration mismatch
+  useEffect(() => {
+    setIsClient(true);
+    const initialTime = getTimeRemaining(target);
+    setTimeLeft(initialTime);
+    if (initialTime.total <= 0) {
+      setExpired(true);
+      if (onExpire) onExpire();
+      return;
+    }
+  }, []);
 
   useEffect(() => {
+    if (!isClient) return;
+    
     if (timeLeft.total <= 0 && !expired) {
       setExpired(true);
       if (onExpire) onExpire();
       return;
     }
     if (expired) return;
+    
     const timer = setInterval(() => {
       const updated = getTimeRemaining(target);
       setTimeLeft(updated);
@@ -49,8 +65,13 @@ const CountdownClock: React.FC<CountdownClockProps> = ({
     }, 1000);
     return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [targetDate, timeLeft.total, expired]);
+  }, [isClient, targetDate, timeLeft.total, expired, onExpire]);
 
+  // Show placeholder during server render to prevent hydration mismatch
+  if (!isClient) {
+    return <div className={`${className}`}></div>;
+  }
+  
   if (expired) {
     return (
       <div

@@ -41,7 +41,7 @@ export function WorkspaceLayout({ children }: { children: React.ReactNode }) {
       <WorkspaceHeader />
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden w-full">
         {/* Sidebar */}
         <AnimatePresence>
           {sidebarOpen && (
@@ -88,12 +88,12 @@ export function WorkspaceLayout({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden w-full">
           {/* Tab Manager */}
           <TabManager />
           
           {/* Content */}
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-hidden w-full">
             <MainContentArea>
               {children}
             </MainContentArea>

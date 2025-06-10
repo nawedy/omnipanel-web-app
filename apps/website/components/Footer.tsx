@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import React from 'react';
 
 const navigation = {
@@ -97,8 +98,14 @@ export function Footer(): React.JSX.Element {
           {/* Brand section */}
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-lg">OP</span>
+              <div className="h-10 w-10 relative">
+                <Image 
+                  src="/omnipanel-logo.png" 
+                  alt="OmniPanel Logo" 
+                  width={40} 
+                  height={40} 
+                  className="rounded-xl shadow-lg"
+                />
               </div>
               <span className="text-2xl font-bold text-gray-900 dark:text-white">
                 OmniPanel

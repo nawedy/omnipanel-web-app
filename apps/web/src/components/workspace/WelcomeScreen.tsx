@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { 
   MessageSquare, 
@@ -8,7 +9,6 @@ import {
   BookOpen, 
   Terminal, 
   Folder,
-  Sparkles,
   ArrowRight,
   Zap
 } from 'lucide-react';
@@ -95,16 +95,22 @@ export function WelcomeScreen() {
           className="text-center mb-12"
         >
           <div className="flex items-center justify-center mb-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-neon-blue to-neon-purple rounded-2xl flex items-center justify-center shadow-lg">
-              <Sparkles className="w-10 h-10 text-white" />
+            <div className="w-20 h-20 relative">
+              <Image 
+                src="/logo.png" 
+                alt="OmniPanel Logo" 
+                width={80} 
+                height={80} 
+                className="rounded-xl shadow-lg"
+              />
             </div>
           </div>
-          <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
+          <h1 className="text-4xl font-bold mb-4">
             Welcome to OmniPanel
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Your modern, extensible AI workspace for chat, code, notebooks, and automation.
-            {currentProject ? ` Working on ${currentProject.name}` : ' Create a project to get started.'}
+            Your modern, extensible AI workspace for chat, code, notebooks, and
+            automation. Create a project to get started.
           </p>
         </motion.div>
 

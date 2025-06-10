@@ -232,10 +232,10 @@ export function TabManager() {
 
   if (tabs.length === 0) {
     return (
-      <div className="h-12 bg-card/30 border-b border-border flex items-center justify-center">
+      <div className="h-12 w-full bg-card/30 border-b border-border flex items-center justify-center">
         <button
           onClick={handleNewTab}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-md transition-colors"
+          className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent/50 rounded-md transition-colors"
         >
           <Plus className="w-4 h-4" />
           <span>New Tab</span>
@@ -246,7 +246,7 @@ export function TabManager() {
 
   return (
     <>
-      <div className="h-12 bg-card/30 border-b border-border flex items-center overflow-hidden">
+      <div className="h-12 w-full bg-card/30 border-b border-border flex items-center overflow-hidden px-1">
         <div className="flex-1 flex items-center overflow-x-auto scrollbar-hide">
           <AnimatePresence mode="popLayout">
             {tabs.map((tab) => {
@@ -262,7 +262,7 @@ export function TabManager() {
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.2 }}
                   className={`
-                    relative flex items-center gap-2 px-3 py-2 min-w-0 max-w-48 cursor-pointer group border-r border-border/50
+                    relative flex items-center gap-2 px-4 py-2 min-w-0 max-w-56 cursor-pointer group border-r border-border/50
                     ${isActive 
                       ? 'bg-background text-foreground' 
                       : 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-accent/30'
@@ -309,10 +309,10 @@ export function TabManager() {
         </div>
 
         {/* New Tab Button */}
-        <div className="flex-shrink-0 px-2">
+        <div className="flex-shrink-0 px-3">
           <button
             onClick={handleNewTab}
-            className="p-1.5 hover:bg-accent/50 rounded-md transition-colors"
+            className="p-2 hover:bg-accent/50 rounded-md transition-colors"
             title="New Tab"
           >
             <Plus className="w-4 h-4" />

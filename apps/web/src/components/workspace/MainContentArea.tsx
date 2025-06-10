@@ -74,13 +74,13 @@ export function MainContentArea({ children }: { children: React.ReactNode }) {
 
   // If no tabs are open, show welcome screen
   if (!activeTab) {
-    return <WelcomeScreen />;
+    return <div className="w-full h-full"><WelcomeScreen /></div>;
   }
 
   // Show loading state for file/code tabs
   if ((activeTab.type === 'file' || activeTab.type === 'code') && isLoading) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="w-full h-full flex items-center justify-center">
         <div className="flex items-center gap-2 text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin" />
           <span>Loading file...</span>
@@ -92,7 +92,7 @@ export function MainContentArea({ children }: { children: React.ReactNode }) {
   // Show error state for file/code tabs
   if ((activeTab.type === 'file' || activeTab.type === 'code') && error) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="w-full h-full flex items-center justify-center">
         <div className="text-center space-y-4">
           <h3 className="text-lg font-semibold text-red-600">Error Loading File</h3>
           <p className="text-muted-foreground">{error}</p>
@@ -196,7 +196,7 @@ export function MainContentArea({ children }: { children: React.ReactNode }) {
       
       default:
         return (
-          <div className="h-full flex items-center justify-center">
+          <div className="w-full h-full flex items-center justify-center">
             <div className="text-center space-y-4">
               <h3 className="text-lg font-semibold">Unknown Tab Type</h3>
               <p className="text-muted-foreground">Tab type "{activeTab.type}" is not supported yet</p>
