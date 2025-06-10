@@ -6,33 +6,26 @@ import type { BlogPost, Author, Category } from '@/types/blog'
 export const demoAuthors: Author[] = [
   {
     _id: 'demo-author-1',
+    _type: 'author',
     name: 'Alex Chen',
     slug: 'alex-chen',
     bio: 'Security engineer and AI researcher focused on privacy-preserving development tools.',
-    image: null,
-    social: {
-      twitter: 'https://twitter.com/alexchen_dev',
-      linkedin: 'https://linkedin.com/in/alexchen-security',
-      github: 'https://github.com/alexchen',
-    }
+    image: undefined,
   },
   {
     _id: 'demo-author-2',
+    _type: 'author',
     name: 'Sarah Rodriguez',
     slug: 'sarah-rodriguez',
     bio: 'Privacy advocate and full-stack developer specializing in secure AI applications.',
-    image: null,
-    social: {
-      twitter: 'https://twitter.com/sarah_codes',
-      linkedin: 'https://linkedin.com/in/sarah-rodriguez-dev',
-      github: 'https://github.com/srodriguez',
-    }
+    image: undefined,
   }
 ]
 
 export const demoCategories: Category[] = [
   {
     _id: 'demo-category-1',
+    _type: 'category',
     title: 'Security & Privacy',
     slug: 'security',
     description: 'Articles about securing AI development workflows and protecting sensitive data.',
@@ -40,6 +33,7 @@ export const demoCategories: Category[] = [
   },
   {
     _id: 'demo-category-2',
+    _type: 'category',
     title: 'AI Development',
     slug: 'ai',
     description: 'Best practices for building and deploying AI applications securely.',
@@ -47,6 +41,7 @@ export const demoCategories: Category[] = [
   },
   {
     _id: 'demo-category-3',
+    _type: 'category',
     title: 'Developer Tools',
     slug: 'tools',
     description: 'Reviews and tutorials on development tools and productivity solutions.',
@@ -57,6 +52,7 @@ export const demoCategories: Category[] = [
 export const demoBlogPosts: BlogPost[] = [
   {
     _id: 'demo-post-1',
+    _type: 'blogPost',
     title: 'The Hidden Privacy Crisis in AI Development Tools',
     slug: 'hidden-privacy-crisis-ai-development-tools',
     excerpt: 'Most AI development tools are sending your code, data, and intellectual property to third-party servers. Here\'s how to build AI applications while keeping your data truly private and secure.',
@@ -93,12 +89,12 @@ export const demoBlogPosts: BlogPost[] = [
       }
     ],
     author: demoAuthors[0],
-    category: demoCategories[0],
+    categories: [demoCategories[0]],
     tags: ['privacy', 'security', 'ai-development', 'local-ai'],
     publishedAt: '2024-01-15T10:00:00Z',
     featured: true,
     readingTime: 8,
-    featuredImage: null,
+    featuredImage: undefined,
     seo: {
       title: 'AI Development Privacy Crisis: How to Keep Your Code Secure',
       description: 'Discover how AI development tools are exposing your code and data. Learn to build AI applications while maintaining complete privacy and security.',
@@ -113,6 +109,7 @@ export const demoBlogPosts: BlogPost[] = [
   },
   {
     _id: 'demo-post-2',
+    _type: 'blogPost',
     title: 'Building Your First Secure AI Application with Local Models',
     slug: 'building-secure-ai-application-local-models',
     excerpt: 'Step-by-step guide to creating AI-powered applications that run entirely on your infrastructure, ensuring data privacy while maintaining cutting-edge functionality.',
@@ -129,12 +126,12 @@ export const demoBlogPosts: BlogPost[] = [
       }
     ],
     author: demoAuthors[1],
-    category: demoCategories[1],
+    categories: [demoCategories[1]],
     tags: ['tutorial', 'local-ai', 'application-development', 'security'],
     publishedAt: '2024-01-12T14:30:00Z',
     featured: false,
     readingTime: 12,
-    featuredImage: null,
+    featuredImage: undefined,
     seo: {
       title: 'Build Secure AI Applications with Local Models - Complete Guide',
       description: 'Learn to create AI applications that run entirely on your infrastructure while maintaining privacy and security.',
@@ -149,6 +146,7 @@ export const demoBlogPosts: BlogPost[] = [
   },
   {
     _id: 'demo-post-3',
+    _type: 'blogPost',
     title: 'The Future of Developer Productivity: AI-Human Collaboration',
     slug: 'future-developer-productivity-ai-human-collaboration',
     excerpt: 'Exploring how the next generation of AI tools will augment human creativity rather than replace it, with insights from industry leaders and practical examples.',
@@ -165,12 +163,12 @@ export const demoBlogPosts: BlogPost[] = [
       }
     ],
     author: demoAuthors[0],
-    category: demoCategories[2],
+    categories: [demoCategories[2]],
     tags: ['future-of-work', 'ai-collaboration', 'productivity', 'developer-experience'],
     publishedAt: '2024-01-10T09:15:00Z',
     featured: false,
     readingTime: 6,
-    featuredImage: null,
+    featuredImage: undefined,
     seo: {
       title: 'The Future of Developer Productivity - AI-Human Collaboration',
       description: 'Discover how AI tools will augment human creativity in software development rather than replace developers.',

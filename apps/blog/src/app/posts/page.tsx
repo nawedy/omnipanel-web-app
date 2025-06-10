@@ -48,7 +48,7 @@ async function getPostsData(
     // Filter by category
     if (category) {
       filteredPosts = filteredPosts.filter((post: BlogPost) => 
-        post.category?.slug === category
+        post.categories?.some(cat => cat.slug === category)
       )
     }
 

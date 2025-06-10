@@ -219,13 +219,12 @@ export async function getPostsByAuthor(authorSlug: string, limit: number = 10): 
 export async function getPostsByTag(tag: string, limit: number = 10): Promise<BlogPost[]> {
   return client.fetch(
     groq`
-      *[_type == "blogPost" && $tag in tags && publishedAt <= now()]
+      *[_type == "blogPost" && "${tag}" in tags && publishedAt <= now()]
       | order(publishedAt desc)
       [0...${limit}] {
         ${blogPostFields}
       }
-    `,
-    { tag }
+    `
   )
 }
 

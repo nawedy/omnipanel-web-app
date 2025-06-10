@@ -62,13 +62,4 @@ export default defineConfig({
   },
 
   basePath: '/studio',
-
-  theme: {
-    // Dark theme to match OmniPanel branding
-    colors: {
-      accent: '#3b82f6',
-      bg: '#0f172a',
-      fg: '#f1f5f9',
-    },
-  },
 }) 

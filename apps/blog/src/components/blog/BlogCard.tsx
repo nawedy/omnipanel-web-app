@@ -33,21 +33,21 @@ export function BlogCard({
   if (variant === 'featured') {
     return (
       <article className={`${baseClasses} md:flex ${className}`}>
-        {post.coverImage && (
+        {post.featuredImage?.url && (
           <div className="md:w-1/2 relative overflow-hidden">
             <Image
-              src={post.coverImage}
+              src={post.featuredImage.url}
               alt={post.title}
               width={600}
               height={400}
               className="w-full h-64 md:h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
-            {showCategory && post.category && (
+            {showCategory && post.categories && post.categories[0] && (
               <Badge 
                 variant="outline" 
                 className="absolute top-4 left-4 bg-slate-950/80 backdrop-blur-sm"
               >
-                {post.category.title}
+                {post.categories[0].title}
               </Badge>
             )}
           </div>
@@ -94,10 +94,10 @@ export function BlogCard({
     return (
       <article className={`${baseClasses} p-4 ${className}`}>
         <div className="flex space-x-4">
-          {post.coverImage && (
+          {post.featuredImage?.url && (
             <div className="flex-shrink-0">
               <Image
-                src={post.coverImage}
+                src={post.featuredImage.url}
                 alt={post.title}
                 width={80}
                 height={80}
@@ -126,21 +126,21 @@ export function BlogCard({
   // Default variant
   return (
     <article className={`${baseClasses} ${className}`}>
-      {post.coverImage && (
+      {post.featuredImage?.url && (
         <div className="relative overflow-hidden">
           <Image
-            src={post.coverImage}
+            src={post.featuredImage.url}
             alt={post.title}
             width={400}
             height={250}
             className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
           />
-          {showCategory && post.category && (
+          {showCategory && post.categories && post.categories[0] && (
             <Badge 
               variant="outline" 
               className="absolute top-4 left-4 bg-slate-950/80 backdrop-blur-sm"
             >
-              {post.category.title}
+              {post.categories[0].title}
             </Badge>
           )}
         </div>

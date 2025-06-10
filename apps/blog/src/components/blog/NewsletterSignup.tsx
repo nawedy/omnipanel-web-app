@@ -68,8 +68,8 @@ export function NewsletterSignup({
       setEmail('')
       
       // Track successful signup
-      if (typeof window !== 'undefined' && window.gtag) {
-        window.gtag('event', 'newsletter_signup', {
+      if (typeof window !== 'undefined' && (window as any).gtag) {
+        (window as any).gtag('event', 'newsletter_signup', {
           event_category: 'engagement',
           event_label: campaignId || 'blog-newsletter',
         })
