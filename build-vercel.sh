@@ -1,5 +1,5 @@
 #!/bin/bash
-# Vercel build script for OmniPanel monorepo
+# Vercel build script for OmniPanel monorepo (PNPM workspace)
 # This script runs from the repository root
 
 set -e
@@ -17,9 +17,20 @@ if [ ! -d "apps/web" ]; then
   exit 1
 fi
 
-# Install root dependencies (for workspace)
-echo "📦 Installing root dependencies..."
-npm install --production=false
+# Check for PNPM workspace files
+if [ ! -f "pnpm-workspace.yaml" ]; then
+  echo "⚠️ Warning: pnpm-workspace.yaml not found, but proceeding..."
+fi
+
+# Install workspace dependencies using PNPM
+echo "📦 Installing workspace dependencies with PNPM..."
+pnpm install --frozen-lockfile
+
+# Build workspace packages that web app depends on
+echo "🔧 Building required workspace packages..."
+pnpm run build:types || echo "⚠️ Failed to build types package"
+pnpm run build:config || echo "⚠️ Failed to build config package"
+pnpm run build:ui || echo "⚠️ Failed to build ui package"
 
 # Navigate to web app
 echo "🔧 Navigating to web app directory..."
@@ -30,10 +41,6 @@ if [ ! -f "package.json" ]; then
   echo "❌ Error: package.json not found in apps/web!"
   exit 1
 fi
-
-# Install web app dependencies
-echo "📦 Installing web app dependencies..."
-npm install --production=false
 
 # Build the Next.js application
 echo "🏗️ Building Next.js application..."

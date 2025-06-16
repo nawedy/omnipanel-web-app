@@ -3,9 +3,15 @@
   "buildCommand": "./build-vercel.sh",
   "outputDirectory": "apps/web/.next",
   "framework": "nextjs",
-  "installCommand": "echo 'Dependencies will be installed by build script'",
+  "installCommand": "echo 'Dependencies will be installed by build script using PNPM'",
   "env": {
     "NODE_VERSION": "18",
-    "VERCEL": "1"
+    "VERCEL": "1",
+    "ENABLE_EXPERIMENTAL_COREPACK": "1"
+  },
+  "functions": {
+    "apps/web/app/api/**/*.js": {
+      "runtime": "nodejs18.x"
+    }
   }
 }
