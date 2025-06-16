@@ -2,7 +2,30 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { usePlugins } from '@/components/providers/PluginProvider';
-import { type Plugin, type PluginRegistryEntry } from '@omnipanel/plugin-sdk';
+import { AlertCircle, Loader2 } from 'lucide-react';
+
+// Local type definitions to avoid plugin SDK dependency issues
+type Plugin = {
+  id: string;
+  name: string;
+  version: string;
+  description?: string;
+  author?: string;
+  entryPoint?: string;
+  type?: string;
+};
+
+type PluginRegistryEntry = {
+  manifest: {
+    id: string;
+    name: string;
+    version: string;
+    description?: string;
+    author?: string;
+    category?: string;
+  };
+  enabled: boolean;
+};
 
 interface PluginRendererProps {
   pluginId: string;

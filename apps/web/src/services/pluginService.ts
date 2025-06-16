@@ -49,6 +49,9 @@ type PluginInstallResult = {
   error?: string;
 };
 
+// Export types for use in other files
+export type { Plugin, PluginManifest, PluginRegistryEntry, PluginInstallResult };
+
 /**
  * Initializes the plugin system
  * Temporarily disabled - returns immediately

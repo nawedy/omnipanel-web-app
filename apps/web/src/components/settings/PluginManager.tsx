@@ -1,18 +1,34 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePlugins } from '@/components/providers/PluginProvider';
-import { 
-  Package, 
-  PlusCircle, 
-  Trash2, 
-  ToggleLeft, 
-  ToggleRight, 
-  RefreshCw, 
-  AlertCircle,
-  CheckCircle2,
-  Loader2
-} from 'lucide-react';
+import {
+  getAllPlugins,
+  getEnabledPlugins,
+  enablePlugin,
+  disablePlugin,
+  installPlugin,
+  uninstallPlugin,
+  type PluginInstallResult
+} from '@/services/pluginService';
+import { Package, PlusCircle, Trash2, ToggleLeft, ToggleRight, RefreshCw, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+
+// Define local types to match the service
+type PluginManifest = {
+  id: string;
+  name: string;
+  version: string;
+  description?: string;
+  author?: string;
+  category?: string;
+  permissions?: string[];
+};
+
+type PluginRegistryEntry = {
+  manifest: PluginManifest;
+  enabled: boolean;
+  error?: Error;
+};
 
 export function PluginManager() {
   const { 
@@ -41,13 +57,14 @@ export function PluginManager() {
       setInstallError(null);
       setInstallSuccess(null);
       
-      const result = await installPlugin(installUrl);
+      const result: PluginInstallResult = await installPlugin(installUrl);
       
       if (result.success) {
-        setInstallSuccess(`Successfully installed plugin: ${result.plugin?.manifest.name || 'Unknown'}`);
+        const pluginName = result.plugin?.manifest?.name || 'Unknown';
+        setInstallSuccess(`Successfully installed plugin: ${pluginName}`);
         setInstallUrl('');
       } else {
-        setInstallError(`Failed to install plugin: ${result.error}`);
+        setInstallError(`Failed to install plugin: ${result.error || 'Unknown error'}`);
       }
     } catch (error) {
       setInstallError(`Error installing plugin: ${error instanceof Error ? error.message : String(error)}`);

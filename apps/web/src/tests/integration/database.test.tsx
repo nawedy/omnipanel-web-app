@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor, act } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { DatabaseProvider } from '@/components/providers/DatabaseProvider';
 import { useDatabaseContext } from '@/components/providers/DatabaseProvider';
 import * as databaseService from '@/services/databaseService';

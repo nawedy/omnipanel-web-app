@@ -78,89 +78,62 @@ export function ChatInterface({ sessionId, projectId }: ChatInterfaceProps) {
   }, [selectedModel, modelProvider]);
 
   const sendMessage = async (messageContent: string, isRegeneration = false, originalMessageId?: string) => {
-    // Start measuring performance for this operation
+    if (!streamingManager) {
+      console.error('StreamingManager not initialized');
+      return;
+    }
+
+    // Start performance measurement for the entire operation
     const perfMeasureId = startMeasure('chat.sendMessage', {
-      isRegeneration: isRegeneration ? 'true' : 'false',
+      messageLength: messageContent.length.toString(),
+      isRegeneration: isRegeneration.toString(),
       model: selectedModel || 'unknown',
       provider: modelProvider || 'unknown'
     });
-    if (!streamingManager) {
-      captureError(new Error('Streaming manager not initialized'), {
-        component: 'ChatInterface',
-        operation: 'sendMessage'
-      });
-      endMeasure(perfMeasureId, { error: true, errorType: 'initialization_error' });
-      return;
-    }
+
+    setIsLoading(true);
     
     if (isRegeneration && originalMessageId) {
       setIsRegenerating(originalMessageId);
-    } else {
-      setIsLoading(true);
     }
 
     try {
-      // Log the start of a message for monitoring
-      captureMessage(`Starting ${isRegeneration ? 'regeneration' : 'new message'} with ${selectedModel}`, 'info', {
-        model: selectedModel,
-        provider: modelProvider,
-        isRegeneration
-      });
-      let updatedMessages = [...messages];
-      let messageHistory: ChatMessage[] = [];
-      
-      if (!isRegeneration) {
-        // Add user message
-        const userMessage: ExtendedChatMessage = {
-          id: nanoid(),
-          content: messageContent,
-          role: 'user',
-          timestamp: new Date()
-        };
-        updatedMessages = [...messages, userMessage];
-        setMessages(updatedMessages);
-        
-        // Prepare message history for the API
-        messageHistory = updatedMessages.map(({ content, role }) => ({ content, role }));
-      } else if (originalMessageId) {
-        // Remove messages after the one being regenerated
-        const messageIndex = messages.findIndex(m => m.id === originalMessageId);
-        if (messageIndex !== -1) {
-          updatedMessages = messages.slice(0, messageIndex);
-          setMessages(updatedMessages);
-          
-          // Prepare message history for the API
-          messageHistory = updatedMessages.map(({ content, role }) => ({ content, role }));
-          
-          // Add the original user message that we're regenerating a response for
-          const userMessageIndex = messageIndex - 1;
-          if (userMessageIndex >= 0 && messages[userMessageIndex].role === 'user') {
-            messageHistory.push({
-              content: messages[userMessageIndex].content,
-              role: 'user'
-            });
-          }
-        }
-      }
+      // Add user message to the conversation
+      const userMessage: ExtendedChatMessage = {
+        id: nanoid(),
+        content: messageContent,
+        role: 'user',
+        timestamp: new Date()
+      };
 
-      // Create a placeholder for the streaming message
+      const updatedMessages = isRegeneration 
+        ? messages.filter(m => m.id !== originalMessageId)
+        : [...messages, userMessage];
+      
+      setMessages(updatedMessages);
+
+      // Prepare message history for the LLM
+      const messageHistory: ChatMessage[] = updatedMessages.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
+
+      // Create assistant message placeholder for streaming
       const assistantMessageId = nanoid();
-      
-      // Measure token streaming performance
-      const streamingMeasureId = startMeasure('chat.tokenStreaming', {
+      const streamingMeasureId = startMeasure('chat.streamResponse', {
+        messageId: assistantMessageId,
         model: selectedModel || 'unknown',
-        messageId: assistantMessageId
+        provider: modelProvider || 'unknown'
       });
-      
-      // Add streaming assistant message
+
       const streamingMessage: ExtendedChatMessage = {
         id: assistantMessageId,
         content: '',
         role: 'assistant',
         timestamp: new Date(),
         isStreaming: true,
-        model: selectedModel,
-        provider: modelProvider
+        model: selectedModel || undefined,
+        provider: modelProvider || undefined
       };
       setMessages([...updatedMessages, streamingMessage]);
       
@@ -170,7 +143,7 @@ export function ChatInterface({ sessionId, projectId }: ChatInterfaceProps) {
       });
 
       // Get the LLM adapter for the selected model
-      const adapter = LLMAdapterRegistry.getAdapter(modelProvider || 'openai');
+      const adapter = LLMAdapterRegistry.get(modelProvider || 'openai');
       if (!adapter) {
         const error = new Error(`No adapter available for provider: ${modelProvider}`);
         captureError(error, {
@@ -181,94 +154,72 @@ export function ChatInterface({ sessionId, projectId }: ChatInterfaceProps) {
         throw error;
       }
       
-      // Configure the adapter with the selected model
-      adapter.setModel(selectedModel || 'gpt-4o');
+      // Start streaming session with the streaming manager
+      const streamController = streamingManager.startStream(assistantMessageId);
       
-      // Set up streaming callbacks
-      const onToken = (token: string) => {
-        // First token received - log latency
-        if (streamingMessage.content === '') {
-          captureMessage('First token received', 'info', {
-            messageId: assistantMessageId,
-            latencyMs: Date.now() - streamingMessage.timestamp.getTime()
+      // Start streaming the response using the correct async generator pattern
+      const streamGenerator = adapter.streamChat(messageHistory, {
+        temperature: 0.7,
+        max_tokens: 4096
+      });
+      
+      let fullResponse = '';
+      
+      for await (const chunk of streamGenerator) {
+        // Check if stream was cancelled
+        if (streamController.signal.aborted) {
+          break;
+        }
+        
+        if (chunk.content) {
+          fullResponse += chunk.content;
+          
+          // First token received - log latency
+          if (streamingMessage.content === '') {
+            captureMessage('First token received', 'info', {
+              messageId: assistantMessageId,
+              latencyMs: Date.now() - streamingMessage.timestamp.getTime()
+            });
+          }
+          
+          // Update the streaming message with new content
+          setMessages(prev => {
+            const updatedMessages = [...prev];
+            const messageIndex = updatedMessages.findIndex(m => m.id === assistantMessageId);
+            if (messageIndex !== -1) {
+              updatedMessages[messageIndex] = {
+                ...updatedMessages[messageIndex],
+                content: fullResponse
+              };
+            }
+            return updatedMessages;
           });
         }
         
-        setMessages(prev => {
-          const updatedMessages = [...prev];
-          const messageIndex = updatedMessages.findIndex(m => m.id === assistantMessageId);
-          if (messageIndex !== -1) {
-            updatedMessages[messageIndex] = {
-              ...updatedMessages[messageIndex],
-              content: updatedMessages[messageIndex].content + token
-            };
-          }
-          return updatedMessages;
-        });
-      };
-      
-      const onComplete = (fullResponse: string) => {
-        // End streaming performance measurement
-        endMeasure(streamingMeasureId, {
-          tokenCount: fullResponse.length / 4, // Approximate token count
-          responseLength: fullResponse.length
-        });
-        
-        setMessages(prev => {
-          const updatedMessages = [...prev];
-          const messageIndex = updatedMessages.findIndex(m => m.id === assistantMessageId);
-          if (messageIndex !== -1) {
-            updatedMessages[messageIndex] = {
-              ...updatedMessages[messageIndex],
-              content: fullResponse,
-              isStreaming: false
-            };
-          }
-          return updatedMessages;
-        });
-      };
-      
-      const onError = (error: Error) => {
-        // Capture the error in our monitoring system
-        captureError(error, {
-          component: 'ChatInterface',
-          operation: 'streamResponse',
-          model: selectedModel,
-          provider: modelProvider,
-          messageId: assistantMessageId
-        });
-        
-        // End streaming performance measurement with error
-        endMeasure(streamingMeasureId, {
-          error: true,
-          errorMessage: error.message
-        });
-        
-        console.error('Error streaming response:', error);
-        setMessages(prev => {
-          const updatedMessages = [...prev];
-          const messageIndex = updatedMessages.findIndex(m => m.id === assistantMessageId);
-          if (messageIndex !== -1) {
-            updatedMessages[messageIndex] = {
-              ...updatedMessages[messageIndex],
-              content: 'Sorry, there was an error generating a response. Please try again.',
-              isStreaming: false
-            };
-          }
-          return updatedMessages;
-        });
-      };
-      
-      // Start streaming the response
-      const streamController = await adapter.streamChat({
-        messages: messageHistory,
-        onToken,
-        onComplete,
-        onError
-      });
-      
-      // Store the stream controller in the streaming manager
-      streamingManager.addStream(assistantMessageId, streamController);
+        // Check if streaming is complete
+        if (chunk.finishReason) {
+          // End streaming performance measurement
+          endMeasure(streamingMeasureId, {
+            tokenCount: fullResponse.length / 4, // Approximate token count
+            responseLength: fullResponse.length
+          });
+          
+          // Mark message as complete
+          setMessages(prev => {
+            const updatedMessages = [...prev];
+            const messageIndex = updatedMessages.findIndex(m => m.id === assistantMessageId);
+            if (messageIndex !== -1) {
+              updatedMessages[messageIndex] = {
+                ...updatedMessages[messageIndex],
+                content: fullResponse,
+                isStreaming: false
+              };
+            }
+            return updatedMessages;
+          });
+          break;
+        }
+      }
       
     } catch (error) {
       // Capture any errors that weren't caught in the specific handlers

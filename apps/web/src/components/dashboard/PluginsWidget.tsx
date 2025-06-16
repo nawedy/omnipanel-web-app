@@ -7,11 +7,24 @@ import { Package, ExternalLink, AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useMonitoring } from '@/components/providers/MonitoringProvider';
 
+// Define the plugin type based on the service
+type PluginRegistryEntry = {
+  manifest: {
+    id: string;
+    name: string;
+    version: string;
+    description?: string;
+    author?: string;
+    category?: string;
+  };
+  enabled: boolean;
+};
+
 export function PluginsWidget() {
-  const [plugins, setPlugins] = useState([]);
-  const [enabledPlugins, setEnabledPlugins] = useState([]);
+  const [plugins, setPlugins] = useState<PluginRegistryEntry[]>([]);
+  const [enabledPlugins, setEnabledPlugins] = useState<PluginRegistryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<Error | null>(null);
   const { captureError } = useMonitoring();
   
   // Load plugins on mount

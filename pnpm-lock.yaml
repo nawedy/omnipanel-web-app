@@ -57,6 +57,9 @@ importers:
       lucide-react:
         specifier: ^0.510.0
         version: 0.510.0(react@19.1.0)
+      next:
+        specifier: ^15.1.6
+        version: 15.3.3(@babel/core@7.27.4)(babel-plugin-macros@3.1.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(sass@1.89.2)
       prettier:
         specifier: ^3.5.3
         version: 3.5.3
@@ -1092,6 +1095,9 @@ importers:
       '@types/validator':
         specifier: ^13.15.1
         version: 13.15.1
+      tsup:
+        specifier: ^8.0.0
+        version: 8.5.0(jiti@2.4.2)(postcss@8.5.5)(tsx@4.20.3)(typescript@5.8.3)(yaml@2.8.0)
       typescript:
         specifier: ^5.3.0
         version: 5.8.3
@@ -3893,6 +3899,7 @@ packages:
 
   '@omnipanel/core@file:packages/core':
     resolution: {directory: packages/core, type: directory}
+    engines: {node: '>=22.0.0', pnpm: '>=8.0.0'}
 
   '@oslojs/asn1@1.0.0':
     resolution: {integrity: sha512-zw/wn0sj0j0QKbIXfIlnEcTviaCzYOY3V5rAyjR6YtOByFtJiT574+8p9Wlach0lZH9fddD4yb9laEAIl4vXQA==}

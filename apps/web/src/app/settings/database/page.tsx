@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useDatabase } from '@/hooks/useDatabase';
 import { DatabaseStatus } from '@/components/database/DatabaseStatus';
 import { Database, Save, RefreshCw, AlertCircle } from 'lucide-react';
-import configService from '@/services/configService';
+import { configService } from '@/services/configService';
 
 export default function DatabaseSettingsPage() {
   const { db, isConnected, isLoading, error, testConnection, resetConnection } = useDatabase();

@@ -211,7 +211,8 @@ class PerformanceMonitor {
       new PerformanceObserver((entryList) => {
         const entries = entryList.getEntries();
         if (entries.length > 0) {
-          this.webVitals.fid = entries[0].processingStart - entries[0].startTime;
+          const entry = entries[0] as PerformanceEventTiming;
+          this.webVitals.fid = entry.processingStart - entry.startTime;
         }
       }).observe({ type: 'first-input', buffered: true });
 
