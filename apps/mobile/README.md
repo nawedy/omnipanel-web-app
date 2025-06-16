@@ -27,7 +27,7 @@ A full-featured React Native/Expo mobile app for the OmniPanel AI workspace.
 
 ## Prerequisites
 
-- Node.js 18+ and npm/yarn
+- Node.js 22+ and npm/yarn
 - Expo CLI: `npm install -g @expo/cli`
 - iOS Simulator (macOS) or Android Studio
 - Expo Go app on your device (for testing)

@@ -72,7 +72,7 @@ omnipanel-core/
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
+- Node.js 22+ 
 - npm 8+
 - Git
 

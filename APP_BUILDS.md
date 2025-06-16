@@ -4,8 +4,8 @@
 
 ### Desktop App Requirements
 ```bash
-# Install Node.js 18+
-node --version  # Should be 18.0.0+
+# Install Node.js 22+
+node --version  # Should be 22.0.0+
 
 # Install build tools
 npm install -g electron-builder

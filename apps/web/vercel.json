@@ -2,7 +2,7 @@
   "version": 2,
   "framework": "nextjs",
   "env": {
-    "NODE_VERSION": "18",
+    "NODE_VERSION": "22",
     "VERCEL": "1",
     "STANDALONE_BUILD": "1"
   }

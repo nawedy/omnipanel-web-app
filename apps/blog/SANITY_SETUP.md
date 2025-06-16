@@ -1,7 +1,7 @@
 # 🎨 Sanity CMS Setup Guide for OmniPanel Blog
 
 ## Prerequisites
-- Node.js 18+ installed
+- Node.js 22+ installed
 - npm or yarn package manager
 - A Sanity account (free at https://sanity.io)
 

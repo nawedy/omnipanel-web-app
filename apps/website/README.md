@@ -51,7 +51,7 @@ apps/website/
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 22+ 
 - npm 8+
 
 ### Installation

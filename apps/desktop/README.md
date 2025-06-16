@@ -35,7 +35,7 @@ apps/desktop/
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22+
 - npm or yarn
 - Electron compatible environment
 

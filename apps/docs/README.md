@@ -27,7 +27,7 @@ A comprehensive documentation site built with Next.js, MDX, and Tailwind CSS for
 
 ### Prerequisites
 
-- Node.js 18+ and npm/yarn
+- Node.js 22+ and npm/yarn
 - All dependencies from the main monorepo
 
 ### Installation
