@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Send, 
@@ -11,48 +11,113 @@ import {
   Loader2,
   Settings,
   Plus,
-  Archive
+  Archive,
+  MessageSquare,
+  Trash2,
+  Download,
+  Upload,
+  Paperclip,
+  Image,
+  Code,
+  FileText,
+  Terminal,
+  BookOpen,
+  Zap,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  StopCircle
 } from 'lucide-react';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { LLMAdapterRegistry, ChatMessage, StreamingManager } from '@omnipanel/llm-adapters';
 import { nanoid } from '@omnipanel/core';
 import { useMonitoring } from '@/components/providers/MonitoringProvider';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { configService } from '@/services/configService';
 
-// Using ChatMessage from @omnipanel/llm-adapters
+// Enhanced chat message interface with context awareness
 interface ExtendedChatMessage extends ChatMessage {
   id: string;
   timestamp: Date;
   isStreaming?: boolean;
   model?: string;
   provider?: string;
+  context?: {
+    files?: string[];
+    terminal?: string[];
+    notebook?: string[];
+    selection?: string;
+    projectPath?: string;
+  };
+  metadata?: {
+    tokenCount?: number;
+    responseTime?: number;
+    cost?: number;
+  };
+}
+
+// Conversation interface for chat history management
+interface Conversation {
+  id: string;
+  title: string;
+  messages: ExtendedChatMessage[];
+  createdAt: Date;
+  updatedAt: Date;
+  context?: {
+    projectId?: string;
+    projectName?: string;
+    activeFiles?: string[];
+  };
 }
 
 interface ChatInterfaceProps {
   sessionId?: string;
   projectId?: string;
+  initialContext?: {
+    files?: string[];
+    selection?: string;
+    terminal?: string[];
+  };
 }
 
-export function ChatInterface({ sessionId, projectId }: ChatInterfaceProps) {
+export function ChatInterface({ sessionId, projectId, initialContext }: ChatInterfaceProps) {
   const { selectedModel, modelProvider, currentProject } = useWorkspaceStore();
-  const [messages, setMessages] = useState<ExtendedChatMessage[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState<string | null>(null);
   const [streamingManager, setStreamingManager] = useState<StreamingManager | null>(null);
+  const [showConversations, setShowConversations] = useState(false);
+  const [contextEnabled, setContextEnabled] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Get monitoring utilities
   const { captureError, captureMessage, measure, startMeasure, endMeasure } = useMonitoring();
 
-  const scrollToBottom = () => {
+  // Get active conversation
+  const activeConversation = conversations.find(c => c.id === activeConversationId);
+  const messages = activeConversation?.messages || [];
+
+  // Keyboard shortcuts for chat
+  useKeyboardShortcuts({
+    'chat.new-conversation': () => { createNewConversation(); },
+    'chat.send-message': () => { handleSendMessage(); },
+    'chat.clear-conversation': () => { clearCurrentConversation(); },
+    'chat.focus-input': () => { inputRef.current?.focus(); }
+  }, { context: 'chat' });
+
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
-  // Initialize streaming manager and LLM adapter registry
+  // Initialize streaming manager
   useEffect(() => {
     const manager = new StreamingManager();
     setStreamingManager(manager);
@@ -62,33 +127,155 @@ export function ChatInterface({ sessionId, projectId }: ChatInterfaceProps) {
     };
   }, []);
 
-  // Initialize with welcome message
+  // Load conversations from localStorage
   useEffect(() => {
-    if (messages.length === 0) {
-      const welcomeMessage: ExtendedChatMessage = {
+    const savedConversations = localStorage.getItem('omnipanel-conversations');
+    if (savedConversations) {
+      try {
+        const parsed = JSON.parse(savedConversations);
+        const conversationsWithDates = parsed.map((conv: any) => ({
+          ...conv,
+          createdAt: new Date(conv.createdAt),
+          updatedAt: new Date(conv.updatedAt),
+          messages: conv.messages.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp)
+          }))
+        }));
+        setConversations(conversationsWithDates);
+        
+        // Set active conversation to the most recent one
+        if (conversationsWithDates.length > 0) {
+          setActiveConversationId(conversationsWithDates[0].id);
+        }
+      } catch (error) {
+        captureError(error instanceof Error ? error : new Error('Failed to load conversations'), {
+          component: 'ChatInterface',
+          operation: 'loadConversations'
+        });
+      }
+    }
+    
+    // Create initial conversation if none exist
+    if (conversations.length === 0) {
+      createNewConversation();
+    }
+  }, []);
+
+  // Save conversations to localStorage
+  useEffect(() => {
+    if (conversations.length > 0) {
+      localStorage.setItem('omnipanel-conversations', JSON.stringify(conversations));
+    }
+  }, [conversations]);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 120)}px`;
+    }
+  }, [input]);
+
+  const createNewConversation = useCallback(() => {
+    const newConversation: Conversation = {
+      id: nanoid(),
+      title: 'New Conversation',
+      messages: [{
         id: 'welcome',
-        content: `Welcome to OmniPanel! I'm your AI assistant. I can help you with coding, analysis, creative tasks, and more. What would you like to work on today?`,
+        content: `Welcome to OmniPanel! I'm your AI assistant with full workspace context awareness. I can help you with:
+
+• **Code Analysis**: Understanding your project structure and codebase
+• **Development Tasks**: Writing, debugging, and optimizing code
+• **Terminal Commands**: Executing and explaining command-line operations
+• **Notebook Operations**: Working with Jupyter notebooks and data analysis
+• **File Management**: Organizing and manipulating project files
+• **Context-Aware Assistance**: Leveraging your current workspace state
+
+${contextEnabled ? '🔗 **Context Mode**: Enabled - I can see your active files, terminal history, and workspace state.' : '🔗 **Context Mode**: Disabled - Working in isolated mode.'}
+
+What would you like to work on today?`,
         role: 'assistant',
         timestamp: new Date(),
         model: selectedModel || 'gpt-4o',
         provider: modelProvider || 'openai'
-      };
-      setMessages([welcomeMessage]);
+      }],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      context: {
+        projectId,
+        projectName: currentProject?.name,
+        activeFiles: initialContext?.files
+      }
+    };
+
+    setConversations(prev => [newConversation, ...prev]);
+    setActiveConversationId(newConversation.id);
+    
+    captureMessage('New conversation created', 'info', {
+      conversationId: newConversation.id,
+      projectId,
+      contextEnabled
+    });
+  }, [selectedModel, modelProvider, projectId, currentProject, initialContext, contextEnabled]);
+
+  const updateConversationTitle = useCallback((conversationId: string, firstUserMessage: string) => {
+    const title = firstUserMessage.length > 50 
+      ? firstUserMessage.substring(0, 50) + '...'
+      : firstUserMessage;
+    
+    setConversations(prev => prev.map(conv => 
+      conv.id === conversationId 
+        ? { ...conv, title, updatedAt: new Date() }
+        : conv
+    ));
+  }, []);
+
+  const buildContextPrompt = useCallback(() => {
+    if (!contextEnabled || !activeConversation) return '';
+
+    const contextParts = [];
+    
+    // Project context
+    if (currentProject) {
+      contextParts.push(`**Current Project**: ${currentProject.name}`);
     }
-  }, [selectedModel, modelProvider]);
+
+    // File context
+    if (initialContext?.files && initialContext.files.length > 0) {
+      contextParts.push(`**Active Files**: ${initialContext.files.join(', ')}`);
+    }
+
+    // Selection context
+    if (initialContext?.selection) {
+      contextParts.push(`**Selected Code**:\n\`\`\`\n${initialContext.selection}\n\`\`\``);
+    }
+
+    // Terminal context
+    if (initialContext?.terminal && initialContext.terminal.length > 0) {
+      const recentCommands = initialContext.terminal.slice(-5);
+      contextParts.push(`**Recent Terminal Commands**: ${recentCommands.join(', ')}`);
+    }
+
+    if (contextParts.length > 0) {
+      return `\n\n**Workspace Context**:\n${contextParts.join('\n')}\n\n`;
+    }
+
+    return '';
+  }, [contextEnabled, activeConversation, currentProject, initialContext]);
 
   const sendMessage = async (messageContent: string, isRegeneration = false, originalMessageId?: string) => {
-    if (!streamingManager) {
-      console.error('StreamingManager not initialized');
+    if (!streamingManager || !activeConversationId) {
+      console.error('StreamingManager or active conversation not available');
       return;
     }
 
-    // Start performance measurement for the entire operation
     const perfMeasureId = startMeasure('chat.sendMessage', {
       messageLength: messageContent.length.toString(),
       isRegeneration: isRegeneration.toString(),
       model: selectedModel || 'unknown',
-      provider: modelProvider || 'unknown'
+      provider: modelProvider || 'unknown',
+      contextEnabled: contextEnabled.toString()
     });
 
     setIsLoading(true);
@@ -98,25 +285,58 @@ export function ChatInterface({ sessionId, projectId }: ChatInterfaceProps) {
     }
 
     try {
+      // Build context-aware prompt
+      const contextPrompt = buildContextPrompt();
+      const enhancedMessage = contextPrompt + messageContent;
+
       // Add user message to the conversation
       const userMessage: ExtendedChatMessage = {
         id: nanoid(),
         content: messageContent,
         role: 'user',
-        timestamp: new Date()
+        timestamp: new Date(),
+        context: {
+          files: initialContext?.files,
+          terminal: initialContext?.terminal,
+          selection: initialContext?.selection,
+          projectPath: currentProject?.name
+        }
       };
 
-      const updatedMessages = isRegeneration 
-        ? messages.filter(m => m.id !== originalMessageId)
-        : [...messages, userMessage];
-      
-      setMessages(updatedMessages);
+      // Update conversation with user message
+      setConversations(prev => prev.map(conv => {
+        if (conv.id === activeConversationId) {
+          const updatedMessages = isRegeneration 
+            ? conv.messages.filter(m => m.id !== originalMessageId)
+            : [...conv.messages, userMessage];
+          
+          // Update title if this is the first user message
+          const isFirstUserMessage = conv.messages.filter(m => m.role === 'user').length === 0;
+          const title = isFirstUserMessage ? 
+            (messageContent.length > 50 ? messageContent.substring(0, 50) + '...' : messageContent) :
+            conv.title;
+
+          return {
+            ...conv,
+            title,
+            messages: updatedMessages,
+            updatedAt: new Date()
+          };
+        }
+        return conv;
+      }));
 
       // Prepare message history for the LLM
-      const messageHistory: ChatMessage[] = updatedMessages.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }));
+      const currentConv = conversations.find(c => c.id === activeConversationId);
+      const messageHistory: ChatMessage[] = (currentConv?.messages || [])
+        .filter(m => m.id !== originalMessageId)
+        .concat(isRegeneration ? [] : [userMessage])
+        .map(msg => ({
+          role: msg.role,
+          content: msg.role === 'user' && contextEnabled ? 
+            (msg.content === messageContent ? enhancedMessage : msg.content) : 
+            msg.content
+        }));
 
       // Create assistant message placeholder for streaming
       const assistantMessageId = nanoid();
@@ -135,11 +355,23 @@ export function ChatInterface({ sessionId, projectId }: ChatInterfaceProps) {
         model: selectedModel || undefined,
         provider: modelProvider || undefined
       };
-      setMessages([...updatedMessages, streamingMessage]);
+
+      // Add streaming message to conversation
+      setConversations(prev => prev.map(conv => {
+        if (conv.id === activeConversationId) {
+          return {
+            ...conv,
+            messages: [...conv.messages, streamingMessage],
+            updatedAt: new Date()
+          };
+        }
+        return conv;
+      }));
       
       captureMessage('Started streaming response', 'info', {
         messageId: assistantMessageId,
-        model: selectedModel
+        model: selectedModel,
+        contextEnabled
       });
 
       // Get the LLM adapter for the selected model
@@ -154,16 +386,18 @@ export function ChatInterface({ sessionId, projectId }: ChatInterfaceProps) {
         throw error;
       }
       
-      // Start streaming session with the streaming manager
+      // Start streaming session
       const streamController = streamingManager.startStream(assistantMessageId);
       
-      // Start streaming the response using the correct async generator pattern
+      // Start streaming the response
       const streamGenerator = adapter.streamChat(messageHistory, {
         temperature: 0.7,
         max_tokens: 4096
       });
       
       let fullResponse = '';
+      const startTime = Date.now();
+      let firstTokenTime: number | null = null;
       
       for await (const chunk of streamGenerator) {
         // Check if stream was cancelled
@@ -174,74 +408,110 @@ export function ChatInterface({ sessionId, projectId }: ChatInterfaceProps) {
         if (chunk.content) {
           fullResponse += chunk.content;
           
-          // First token received - log latency
-          if (streamingMessage.content === '') {
+          // Record first token latency
+          if (firstTokenTime === null) {
+            firstTokenTime = Date.now();
             captureMessage('First token received', 'info', {
               messageId: assistantMessageId,
-              latencyMs: Date.now() - streamingMessage.timestamp.getTime()
+              latencyMs: firstTokenTime - startTime
             });
           }
           
           // Update the streaming message with new content
-          setMessages(prev => {
-            const updatedMessages = [...prev];
-            const messageIndex = updatedMessages.findIndex(m => m.id === assistantMessageId);
-            if (messageIndex !== -1) {
-              updatedMessages[messageIndex] = {
-                ...updatedMessages[messageIndex],
-                content: fullResponse
+          setConversations(prev => prev.map(conv => {
+            if (conv.id === activeConversationId) {
+              return {
+                ...conv,
+                messages: conv.messages.map(msg => 
+                  msg.id === assistantMessageId 
+                    ? { ...msg, content: fullResponse }
+                    : msg
+                ),
+                updatedAt: new Date()
               };
             }
-            return updatedMessages;
-          });
+            return conv;
+          }));
         }
         
         // Check if streaming is complete
         if (chunk.finishReason) {
-          // End streaming performance measurement
+          const endTime = Date.now();
+          const totalTime = endTime - startTime;
+          
+          // Finalize the message
+          setConversations(prev => prev.map(conv => {
+            if (conv.id === activeConversationId) {
+              return {
+                ...conv,
+                messages: conv.messages.map(msg => 
+                  msg.id === assistantMessageId 
+                    ? { 
+                        ...msg, 
+                        content: fullResponse,
+                        isStreaming: false,
+                        metadata: {
+                          responseTime: totalTime,
+                          tokenCount: fullResponse.split(' ').length
+                        }
+                      }
+                    : msg
+                ),
+                updatedAt: new Date()
+              };
+            }
+            return conv;
+          }));
+          
           endMeasure(streamingMeasureId, {
-            tokenCount: fullResponse.length / 4, // Approximate token count
+            success: 'true',
+            responseLength: fullResponse.length.toString(),
+            totalTimeMs: totalTime.toString()
+          });
+          
+          captureMessage('Streaming completed', 'info', {
+            messageId: assistantMessageId,
+            totalTimeMs: totalTime,
             responseLength: fullResponse.length
           });
           
-          // Mark message as complete
-          setMessages(prev => {
-            const updatedMessages = [...prev];
-            const messageIndex = updatedMessages.findIndex(m => m.id === assistantMessageId);
-            if (messageIndex !== -1) {
-              updatedMessages[messageIndex] = {
-                ...updatedMessages[messageIndex],
-                content: fullResponse,
-                isStreaming: false
-              };
-            }
-            return updatedMessages;
-          });
           break;
         }
       }
       
+      // Clean up streaming state
+      streamingManager.cancelStream(assistantMessageId);
+      
     } catch (error) {
-      // Capture any errors that weren't caught in the specific handlers
-      captureError(error instanceof Error ? error : new Error(String(error)), {
+      captureError(error instanceof Error ? error : new Error('Chat error'), {
         component: 'ChatInterface',
         operation: 'sendMessage',
         model: selectedModel,
         provider: modelProvider
       });
-      console.error('Error sending message:', error);
+      
+      // Add error message to conversation
       const errorMessage: ExtendedChatMessage = {
         id: nanoid(),
-        content: 'Sorry, there was an error processing your message. Please try again.',
+        content: 'Sorry, I encountered an error while processing your request. Please try again.',
         role: 'assistant',
         timestamp: new Date()
       };
-      setMessages(prev => [...prev, errorMessage]);
+      
+      setConversations(prev => prev.map(conv => {
+        if (conv.id === activeConversationId) {
+          return {
+            ...conv,
+            messages: [...conv.messages, errorMessage],
+            updatedAt: new Date()
+          };
+        }
+        return conv;
+      }));
     } finally {
-      // End the overall performance measurement
-      endMeasure(perfMeasureId);
       setIsLoading(false);
       setIsRegenerating(null);
+      endMeasure(perfMeasureId, { success: 'true' });
     }
   };
 
@@ -262,245 +532,452 @@ export function ChatInterface({ sessionId, projectId }: ChatInterfaceProps) {
   };
 
   const copyMessage = (content: string) => {
-    try {
-      navigator.clipboard.writeText(content);
-      captureMessage('Message copied to clipboard', 'info');
-    } catch (error) {
-      captureError(error instanceof Error ? error : new Error('Failed to copy message'), {
-        component: 'ChatInterface',
-        operation: 'copyMessage'
-      });
-    }
+    navigator.clipboard.writeText(content);
+    captureMessage('Message copied to clipboard', 'info');
   };
 
   const regenerateResponse = async (messageId: string) => {
-    // Measure regeneration performance
-    const regenerationMeasureId = startMeasure('chat.regenerateResponse', {
-      messageId,
-      model: selectedModel || 'unknown',
-      provider: modelProvider || 'unknown'
-    });
+    const messageIndex = messages.findIndex(m => m.id === messageId);
+    if (messageIndex === -1) return;
     
-    try {
-      // Log the regeneration attempt for monitoring
-      captureMessage('Regenerating response', 'info', {
-        messageId,
-        model: selectedModel,
-        provider: modelProvider
-      });
-      
-      const messageIndex = messages.findIndex(m => m.id === messageId);
-      if (messageIndex === -1) {
-        captureError(new Error('Message not found for regeneration'), {
-          component: 'ChatInterface',
-          operation: 'regenerateResponse',
-          messageId
-        });
-        endMeasure(regenerationMeasureId, { error: true, errorType: 'message_not_found' });
-        return;
-      }
+    // Find the previous user message
+    const userMessage = messages[messageIndex - 1];
+    if (!userMessage || userMessage.role !== 'user') return;
+    
+    await sendMessage(userMessage.content, true, messageId);
+  };
 
-      // Find the user message that prompted this response
-      let userMessage = '';
-      for (let i = messageIndex - 1; i >= 0; i--) {
-        if (messages[i].role === 'user') {
-          userMessage = messages[i].content;
-          break;
-        }
-      }
+  const clearCurrentConversation = () => {
+    if (!activeConversationId) return;
+    
+    setConversations(prev => prev.filter(conv => conv.id !== activeConversationId));
+    
+    // Create a new conversation
+    createNewConversation();
+    
+    captureMessage('Conversation cleared', 'info', {
+      conversationId: activeConversationId
+    });
+  };
 
-      if (userMessage) {
-        await sendMessage(userMessage, true, messageId);
+  const deleteConversation = (conversationId: string) => {
+    setConversations(prev => prev.filter(conv => conv.id !== conversationId));
+    
+    if (conversationId === activeConversationId) {
+      const remaining = conversations.filter(conv => conv.id !== conversationId);
+      if (remaining.length > 0) {
+        setActiveConversationId(remaining[0].id);
       } else {
-        captureError(new Error('No user message found to regenerate from'), {
-          component: 'ChatInterface',
-          operation: 'regenerateResponse',
-          messageId
-        });
-        endMeasure(regenerationMeasureId, { error: true, errorType: 'no_user_message' });
+        createNewConversation();
       }
-    } catch (error) {
-      captureError(error instanceof Error ? error : new Error(String(error)), {
-        component: 'ChatInterface',
-        operation: 'regenerateResponse',
-        messageId
-      });
-      endMeasure(regenerationMeasureId, { error: true, errorType: 'unknown_error' });
-    } finally {
-      endMeasure(regenerationMeasureId);
     }
+    
+    captureMessage('Conversation deleted', 'info', {
+      conversationId
+    });
+  };
+
+  const exportConversation = (conversation: Conversation) => {
+    const exportData = {
+      title: conversation.title,
+      messages: conversation.messages,
+      createdAt: conversation.createdAt,
+      context: conversation.context,
+      exportedAt: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `conversation-${conversation.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return new Intl.DateTimeFormat('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  };
+
+  const formatDate = (date: Date) => {
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) return 'Today';
+    if (diffDays === 2) return 'Yesterday';
+    if (diffDays <= 7) return `${diffDays} days ago`;
+    
+    return new Intl.DateTimeFormat('en-US', {
+      month: 'short',
+      day: 'numeric'
+    }).format(date);
+  };
+
+  const stopGeneration = () => {
+    if (streamingManager) {
+      streamingManager.cancelAllStreams();
+      setIsLoading(false);
+      setIsRegenerating(null);
+      
+      captureMessage('Generation stopped by user', 'info');
+    }
   };
 
   return (
-    <div className="h-full flex flex-col bg-background">
-      {/* Chat Header */}
-      <div className="flex-shrink-0 h-14 bg-card/30 border-b border-border flex items-center justify-between px-4">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Bot className="w-5 h-5 text-neon-blue" />
-            <span className="font-medium">AI Assistant</span>
-          </div>
-          {selectedModel && (
-            <div className="flex items-center gap-2 px-2 py-1 bg-accent/50 rounded-md text-sm">
-              <div className="w-2 h-2 bg-neon-green rounded-full animate-pulse" />
-              <span className="text-muted-foreground">{modelProvider}/{selectedModel}</span>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="p-2 hover:bg-accent/50 rounded-md transition-colors" title="New Chat">
-            <Plus className="w-4 h-4" />
-          </button>
-          <button className="p-2 hover:bg-accent/50 rounded-md transition-colors" title="Archive Chat">
-            <Archive className="w-4 h-4" />
-          </button>
-          <button className="p-2 hover:bg-accent/50 rounded-md transition-colors" title="Chat Settings">
-            <Settings className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <AnimatePresence>
-          {messages.map((message) => (
-            <motion.div
-              key={message.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              {message.role === 'assistant' && (
-                <div className="w-8 h-8 bg-gradient-to-br from-neon-blue to-neon-purple rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-4 h-4 text-white" />
-                </div>
-              )}
+    <div className="flex h-full bg-background">
+      {/* Conversations Sidebar */}
+      <AnimatePresence>
+        {showConversations && (
+          <motion.div
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 300, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            className="border-r border-border bg-card flex flex-col"
+          >
+            <div className="p-4 border-b border-border">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold">Conversations</h3>
+                <button
+                  onClick={createNewConversation}
+                  className="p-2 hover:bg-muted rounded-lg transition-colors"
+                  title="New conversation"
+                >
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
               
-              <div className={`max-w-[70%] ${message.role === 'user' ? 'order-first' : ''}`}>
-                <div
-                  className={`p-4 rounded-lg ${
-                    message.role === 'user'
-                      ? 'bg-primary text-primary-foreground ml-auto'
-                      : 'bg-card border border-border'
+              <div className="flex items-center gap-2 text-sm">
+                <button
+                  onClick={() => setContextEnabled(!contextEnabled)}
+                  className={`flex items-center gap-2 px-3 py-1 rounded-full transition-colors ${
+                    contextEnabled 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted text-muted-foreground'
                   }`}
                 >
-                  <div className="whitespace-pre-wrap">{message.content}</div>
-                  
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-border/30">
-                    <span className="text-xs text-muted-foreground">
-                      {formatTime(message.timestamp)}
-                      {message.model && (
-                        <span className="ml-2">• {message.model}</span>
+                  <Zap className="w-3 h-3" />
+                  Context {contextEnabled ? 'On' : 'Off'}
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto">
+              {conversations.map((conversation) => (
+                <div
+                  key={conversation.id}
+                  className={`p-3 border-b border-border cursor-pointer hover:bg-muted transition-colors ${
+                    conversation.id === activeConversationId ? 'bg-muted' : ''
+                  }`}
+                  onClick={() => setActiveConversationId(conversation.id)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium text-sm truncate">{conversation.title}</h4>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {formatDate(conversation.updatedAt)} • {conversation.messages.length} messages
+                      </p>
+                      {conversation.context?.projectName && (
+                        <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                          <Code className="w-3 h-3" />
+                          {conversation.context.projectName}
+                        </p>
                       )}
-                    </span>
+                    </div>
                     
-                    {message.role === 'assistant' && (
+                    <div className="flex items-center gap-1 ml-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          exportConversation(conversation);
+                        }}
+                        className="p-1 hover:bg-muted-foreground/20 rounded transition-colors"
+                        title="Export conversation"
+                      >
+                        <Download className="w-3 h-3" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteConversation(conversation.id);
+                        }}
+                        className="p-1 hover:bg-destructive/20 text-destructive rounded transition-colors"
+                        title="Delete conversation"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Chat Area */}
+      <div className="flex-1 flex flex-col">
+        {/* Chat Header */}
+        <div className="border-b border-border bg-card p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowConversations(!showConversations)}
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
+                title="Toggle conversations"
+              >
+                <MessageSquare className="w-5 h-5" />
+              </button>
+              
+              <div>
+                <h2 className="font-semibold">
+                  {activeConversation?.title || 'Chat'}
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  {selectedModel} via {modelProvider}
+                  {contextEnabled && ' • Context Enabled'}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {isLoading && (
+                <button
+                  onClick={stopGeneration}
+                  className="p-2 hover:bg-muted rounded-lg transition-colors text-destructive"
+                  title="Stop generation"
+                >
+                  <StopCircle className="w-5 h-5" />
+                </button>
+              )}
+              
+              <button
+                onClick={clearCurrentConversation}
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
+                title="Clear conversation"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+              
+              <button
+                onClick={() => {/* Open settings */}}
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
+                title="Chat settings"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <AnimatePresence>
+            {messages.map((message, index) => (
+              <motion.div
+                key={message.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                {message.role === 'assistant' && (
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                    <Bot className="w-4 h-4 text-primary-foreground" />
+                  </div>
+                )}
+                
+                <div className={`max-w-[80%] ${message.role === 'user' ? 'order-first' : ''}`}>
+                  <div
+                    className={`rounded-lg p-4 ${
+                      message.role === 'user'
+                        ? 'bg-primary text-primary-foreground ml-auto'
+                        : 'bg-muted'
+                    }`}
+                  >
+                    <div className="prose prose-sm max-w-none dark:prose-invert">
+                      {message.content}
+                      {message.isStreaming && (
+                        <span className="inline-block w-2 h-4 bg-current animate-pulse ml-1" />
+                      )}
+                    </div>
+                    
+                    {/* Message metadata */}
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-border/50">
+                      <div className="flex items-center gap-2 text-xs opacity-70">
+                        <Clock className="w-3 h-3" />
+                        {formatTime(message.timestamp)}
+                        {message.model && (
+                          <>
+                            <span>•</span>
+                            <span>{message.model}</span>
+                          </>
+                        )}
+                        {message.metadata?.responseTime && (
+                          <>
+                            <span>•</span>
+                            <span>{message.metadata.responseTime}ms</span>
+                          </>
+                        )}
+                      </div>
+                      
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => copyMessage(message.content)}
-                          className="p-1 hover:bg-accent/50 rounded transition-colors"
+                          className="p-1 hover:bg-muted-foreground/20 rounded transition-colors"
                           title="Copy message"
                         >
                           <Copy className="w-3 h-3" />
                         </button>
-                        <button
-                          onClick={() => regenerateResponse(message.id)}
-                          disabled={isLoading || isRegenerating === message.id}
-                          className="p-1 hover:bg-accent/50 rounded transition-colors disabled:opacity-50"
-                          title="Regenerate response"
-                        >
-                          {isRegenerating === message.id ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <RotateCcw className="w-3 h-3" />
+                        
+                        {message.role === 'assistant' && !message.isStreaming && (
+                          <button
+                            onClick={() => regenerateResponse(message.id)}
+                            disabled={isRegenerating === message.id}
+                            className="p-1 hover:bg-muted-foreground/20 rounded transition-colors disabled:opacity-50"
+                            title="Regenerate response"
+                          >
+                            {isRegenerating === message.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <RotateCcw className="w-3 h-3" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Context indicators */}
+                    {message.context && (
+                      <div className="mt-2 pt-2 border-t border-border/50">
+                        <div className="flex flex-wrap gap-1">
+                          {message.context.files && message.context.files.length > 0 && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs">
+                              <FileText className="w-3 h-3" />
+                              {message.context.files.length} files
+                            </span>
                           )}
-                        </button>
+                          {message.context.terminal && message.context.terminal.length > 0 && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded text-xs">
+                              <Terminal className="w-3 h-3" />
+                              Terminal
+                            </span>
+                          )}
+                          {message.context.selection && (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded text-xs">
+                              <Code className="w-3 h-3" />
+                              Selection
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
                 </div>
-              </div>
-
-              {message.role === 'user' && (
-                <div className="w-8 h-8 bg-gradient-to-br from-gray-600 to-gray-800 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <User className="w-4 h-4 text-white" />
-                </div>
-              )}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {/* Streaming Message */}
-        {isLoading && !messages.some(m => m.isStreaming) && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex gap-3"
-          >
-            <div className="w-8 h-8 bg-gradient-to-br from-neon-blue to-neon-purple rounded-lg flex items-center justify-center flex-shrink-0">
-              <Bot className="w-4 h-4 text-white" />
-            </div>
-            <div className="max-w-[70%]">
-              <div className="p-4 rounded-lg bg-card border border-border">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-muted-foreground">Thinking...</span>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input Area */}
-      <div className="flex-shrink-0 p-4 border-t border-border bg-card/30">
-        <div className="flex gap-3 items-end">
-          <div className="flex-1 relative">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type your message... (Press Enter to send, Shift+Enter for new line)"
-              className="w-full p-3 pr-12 bg-background border border-border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 min-h-[50px] max-h-32"
-              rows={1}
-              disabled={isLoading}
-            />
-            <div className="absolute right-3 bottom-3 text-xs text-muted-foreground">
-              {input.length}/2000
-            </div>
-          </div>
-          <button
-            onClick={handleSendMessage}
-            disabled={!input.trim() || isLoading}
-            className="p-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105"
-          >
-            {isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
-            ) : (
-              <Send className="w-5 h-5" />
-            )}
-          </button>
+                
+                {message.role === 'user' && (
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                    <User className="w-4 h-4" />
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+          
+          <div ref={messagesEndRef} />
         </div>
-        
-        {/* Quick Suggestions */}
-        <div className="flex gap-2 mt-3 flex-wrap">
-          {['Explain this code', 'Write a function', 'Debug this error', 'Optimize performance'].map((suggestion) => (
-            <button
-              key={suggestion}
-              onClick={() => setInput(suggestion)}
-              className="px-3 py-1 text-sm bg-accent/30 hover:bg-accent/50 rounded-full transition-colors"
-            >
-              {suggestion}
-            </button>
-          ))}
+
+        {/* Input Area */}
+        <div className="border-t border-border bg-card p-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-end gap-3">
+              <div className="flex-1 relative">
+                <textarea
+                  ref={inputRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder={contextEnabled ? 
+                    "Ask me anything about your workspace..." : 
+                    "Ask me anything..."
+                  }
+                  className="w-full resize-none rounded-lg border border-border bg-background px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  rows={1}
+                  disabled={isLoading}
+                />
+                
+                <div className="absolute right-2 bottom-2 flex items-center gap-1">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-1.5 hover:bg-muted rounded transition-colors"
+                    title="Attach file"
+                  >
+                    <Paperclip className="w-4 h-4" />
+                  </button>
+                  
+                  <button
+                    onClick={() => {/* Handle image upload */}}
+                    className="p-1.5 hover:bg-muted rounded transition-colors"
+                    title="Upload image"
+                  >
+                    <Image className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              
+              <button
+                onClick={handleSendMessage}
+                disabled={!input.trim() || isLoading}
+                className="p-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Send message (Enter)"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Send className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+            
+            {/* Context status */}
+            {contextEnabled && (initialContext?.files || initialContext?.selection || initialContext?.terminal) && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {initialContext.files && initialContext.files.length > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-xs">
+                    <FileText className="w-3 h-3" />
+                    {initialContext.files.length} active files
+                  </span>
+                )}
+                {initialContext.selection && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-full text-xs">
+                    <Code className="w-3 h-3" />
+                    Code selection
+                  </span>
+                )}
+                {initialContext.terminal && initialContext.terminal.length > 0 && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-xs">
+                    <Terminal className="w-3 h-3" />
+                    Terminal history
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+          
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              // Handle file upload
+              const files = Array.from(e.target.files || []);
+              console.log('Files selected:', files);
+            }}
+          />
         </div>
       </div>
     </div>
