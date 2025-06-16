@@ -19,6 +19,8 @@
     "build:llm-adapters": "tsc --build packages/llm-adapters",
     "build:core": "tsc --build packages/core",
     "build:web": "cd apps/web && npm run build",
+    "build:packages": "npm run build:types && npm run build:config && npm run build:database && npm run build:ui && npm run build:llm-adapters && npm run build:core",
+    "build:web-with-deps": "npm run build:packages && cd apps/web && npm run build",
     "build:desktop": "cd apps/desktop && npm run build",
     "build:docs": "cd apps/docs && npm run build",
     "build:website": "cd apps/website && npm run build",
