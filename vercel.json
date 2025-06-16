@@ -10,7 +10,7 @@
   },
   "functions": {
     "apps/web/app/api/**/*.js": {
-      "runtime": "nodejs22.x"
+      "runtime": "@vercel/node@3.0.0"
     }
   }
 }
