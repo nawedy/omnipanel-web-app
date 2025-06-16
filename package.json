@@ -90,6 +90,8 @@
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "lucide-react": "^0.510.0",
+    "nanoid": "^5.1.5",
+    "next": "^15.1.6",
     "prettier": "^3.5.3",
     "ts-jest": "^29.3.4",
     "tsup": "^8.5.0",
