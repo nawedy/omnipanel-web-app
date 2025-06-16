@@ -1,19 +1,32 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDatabase } from '@/hooks/useDatabase';
 import { DatabaseStatus } from '@/components/database/DatabaseStatus';
 import { Database, Save, RefreshCw, AlertCircle } from 'lucide-react';
+import configService from '@/services/configService';
 
 export default function DatabaseSettingsPage() {
   const { db, isConnected, isLoading, error, testConnection, resetConnection } = useDatabase();
   
-  const [projectId, setProjectId] = useState<string>(process.env.NEXT_PUBLIC_NEON_PROJECT_ID || '');
+  const [projectId, setProjectId] = useState<string>('');
   const [apiKey, setApiKey] = useState<string>('');
-  const [connectionString, setConnectionString] = useState<string>(process.env.DATABASE_URL || '');
+  const [connectionString, setConnectionString] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
+
+  // Load configuration on component mount
+  useEffect(() => {
+    const loadConfig = () => {
+      const dbConfig = configService.getDatabaseConfig();
+      setProjectId(dbConfig.projectId || process.env.NEXT_PUBLIC_NEON_PROJECT_ID || '');
+      setApiKey(dbConfig.apiKey || '');
+      setConnectionString(dbConfig.connectionString || process.env.DATABASE_URL || '');
+    };
+
+    loadConfig();
+  }, []);
 
   const handleSaveConfig = async () => {
     setIsSaving(true);
@@ -21,16 +34,27 @@ export default function DatabaseSettingsPage() {
     setSaveSuccess(false);
     
     try {
-      // In a real implementation, this would update environment variables //TODO: Implement this
-      // or store configuration securely
-      console.log('Saving database configuration:', {
-        projectId,
-        apiKey: apiKey ? '********' : '',
-        connectionString: connectionString ? '********' : '',
-      });
+      // Validate configuration before saving
+      const configToSave = { projectId, apiKey, connectionString };
+      const validation = configService.validateDatabaseConfig(configToSave);
       
-      // Simulate saving configuration
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!validation.valid) {
+        setSaveError(validation.errors.join(', '));
+        return;
+      }
+
+      // Save configuration using config service
+      const saved = configService.saveDatabaseConfig(configToSave);
+      
+      if (!saved) {
+        setSaveError('Failed to save configuration to local storage');
+        return;
+      }
+
+      console.log('Database configuration saved successfully');
+      
+      // Simulate processing time for UX
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Test the connection with new configuration
       await resetConnection();

@@ -139,6 +139,8 @@ Comprehensive feature implementation phase to transform OmniPanel from deploymen
   - Real-time streaming responses
   - Chat history persistence
   - Message formatting and markdown
+  - AI Assist Modal selection
+  - make sure that file and image upload functionalities are wired in properly
 - **Estimated Time**: 12 hours
 
 #### **Task 4.2: Context-Aware AI Implementation**

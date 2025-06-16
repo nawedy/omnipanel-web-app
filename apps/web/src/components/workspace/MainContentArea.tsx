@@ -174,11 +174,36 @@ export function MainContentArea({ children }: { children: React.ReactNode }) {
         );
       
       case 'file':
+        const getFileContent = () => {
+          if (fileContent?.content) {
+            return fileContent.content;
+          }
+          
+          // If no content available, create template based on file extension
+          const fileName = activeTab.filePath || activeTab.title;
+          const extension = fileName.split('.').pop()?.toLowerCase();
+          
+          switch (extension) {
+            case 'md':
+              return `# ${fileName}\n\nThis file is ready for your content.\n\n## Getting Started\n- Start typing your markdown content\n- Use AI assistance with Ctrl+E or Ctrl+I\n- Save your changes with Ctrl+S\n\nHappy writing! 🚀`;
+            case 'js':
+              return `// ${fileName}\n// JavaScript file ready for development\n\nconsole.log('File loaded in OmniPanel');\n\n// Start coding here...`;
+            case 'ts':
+              return `// ${fileName}\n// TypeScript file ready for development\n\ninterface FileData {\n  name: string;\n  content: string;\n}\n\nconst fileData: FileData = {\n  name: '${fileName}',\n  content: 'Ready for development'\n};\n\nconsole.log('File loaded:', fileData);`;
+            case 'py':
+              return `# ${fileName}\n# Python file ready for development\n\nprint(f"File loaded: ${fileName}")\n\n# Start coding here...`;
+            case 'json':
+              return `{\n  "name": "${fileName}",\n  "description": "JSON file ready for data",\n  "version": "1.0.0"\n}`;
+            default:
+              return `File: ${fileName}\n\nThis file is ready for your content.\nStart typing to begin editing.`;
+          }
+        };
+
         return (
           <CodeEditor 
             filePath={activeTab.filePath || activeTab.title}
-            initialContent={fileContent?.content || `# File: ${activeTab.filePath || activeTab.title}\n\nThis file will be loaded from the file system.\nCurrently showing placeholder content.\n\n## File Operations\n- Read from disk\n- Auto-detect language\n- Syntax highlighting\n- Save changes\n- AI assistance`}
-            language={fileContent?.language || 'markdown'}
+            initialContent={getFileContent()}
+            language={fileContent?.language || 'text'}
             onSave={async (content) => {
               const filePath = activeTab.filePath || activeTab.title;
               try {

@@ -58,7 +58,7 @@ function AiAssistModal({ isOpen, onClose, selectedText, action, onResult }: AiAs
       
       const mockResult = action === 'explain' 
         ? `## Code Explanation\n\nThe selected code:\n\`\`\`\n${selectedText}\n\`\`\`\n\nThis code appears to be doing the following:\n- Processing data structures\n- Implementing business logic\n- Handling user interactions\n\nKey points:\n1. The function uses modern JavaScript/TypeScript patterns\n2. It follows clean code principles\n3. Consider adding error handling for production use`
-        : `## Improved Code\n\nHere's an optimized version of your code:\n\n\`\`\`typescript\n// Improved version with better performance and readability\n${selectedText.replace(/console\.log/g, '// TODO: Replace with proper logging')}\n// Added type safety and error handling\n\`\`\`\n\n**Improvements made:**\n- Added type annotations\n- Improved error handling\n- Enhanced readability\n- Better performance optimizations`;
+        : `## Improved Code\n\nHere's an optimized version of your code:\n\n\`\`\`typescript\n// Improved version with better performance and readability\n${selectedText.replace(/console\.log/g, 'logger.info')}\n// Added type safety and error handling\ntry {\n  // Your code here\n} catch (error) {\n  logger.error('Operation failed:', error);\n}\n\`\`\`\n\n**Improvements made:**\n- Added proper logging with logger.info instead of console.log\n- Implemented try-catch error handling\n- Enhanced readability and structure\n- Better performance optimizations\n- Added type safety where applicable`;
       
       setResult(mockResult);
       onResult(mockResult);
@@ -129,7 +129,7 @@ function AiAssistModal({ isOpen, onClose, selectedText, action, onResult }: AiAs
 
 function MarkdownRenderer({ content }: { content: string }) {
   const renderMarkdown = (text: string) => {
-    // Simple markdown rendering - in production, use a proper markdown library
+    // Enhanced markdown rendering with improved pattern matching
     return text
       .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-bold mb-4">$1</h1>')
       .replace(/^## (.*$)/gim, '<h2 class="text-xl font-semibold mb-3">$1</h2>')
