@@ -522,7 +522,7 @@ export default function Notebook({ filePath, initialContent, onSave }: NotebookP
     }
   });
   
-  const { captureMessage } = useMonitoring();
+  const monitoring = useMonitoring();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Initialize notebook with default cells if no content provided
@@ -666,17 +666,21 @@ export default function Notebook({ filePath, initialContent, onSave }: NotebookP
         )
       );
     } catch (error) {
-      // Handle execution error
+      console.error('Error executing cell:', error);
+      
+      // Update cell with error output
       setCells(prevCells => 
-        prevCells.map(cell => 
-          cell.id === id ? { 
-            ...cell, 
-            isExecuting: false, 
-            output: [{
-              type: 'error',
-              content: `Error executing cell: ${error instanceof Error ? error.message : String(error)}`
-            }]
-          } : cell
+        prevCells.map(c => 
+          c.id === id 
+            ? { 
+                ...c, 
+                isExecuting: false,
+                output: [{
+                  type: 'error',
+                  content: error instanceof Error ? error.message : 'Unknown error'
+                }]
+              } 
+            : c
         )
       );
     } finally {
@@ -686,40 +690,39 @@ export default function Notebook({ filePath, initialContent, onSave }: NotebookP
   
   // Handle AI assistance for a cell
   const handleAiAssist = async (id: string, content: string) => {
-    try {
-      setAiModal({
-        isOpen: true,
-        cellId: id,
-        cellContent: content,
-        isLoading: true,
-        suggestion: ''
-      });
-      setStreamingContent('');
+    setAiModal({
+      isOpen: true,
+      cellId: id,
+      cellContent: content,
+      isLoading: true,
+      suggestion: ''
+    });
 
-      // Get current project context
+    try {
+      // Get workspace context for better AI assistance
       const projectContext = contextService.getProjectContext();
       const recentFiles = contextService.getRecentFiles();
       
-      // Enhanced prompt with context
-      const contextPrompt = `
-Project Context:
-- Framework: ${projectContext.framework || 'Unknown'}
-- Languages: ${projectContext.languages.join(', ')}
-- Recent files: ${recentFiles.map(f => f.name).join(', ')}
-
-Please analyze this code and provide improvements, optimizations, or suggestions:
-
-\`\`\`python
-${content}
-\`\`\`
-
-Provide:
-1. Code improvements or optimizations
-2. Best practices suggestions
-3. Potential issues or bugs
-4. Alternative approaches if applicable
-
-Return only the improved code without explanations.`;
+      let contextPrompt = `You are helping with a Jupyter notebook cell. Here's the context:\n\n`;
+      
+      if (projectContext) {
+        contextPrompt += `Project: ${projectContext.name}\n`;
+        contextPrompt += `Type: ${projectContext.type}\n`;
+        if (projectContext.language) {
+          contextPrompt += `Language: ${projectContext.language}\n`;
+        }
+        contextPrompt += `\n`;
+      }
+      
+      if (recentFiles.length > 0) {
+        contextPrompt += `Recent files:\n`;
+        recentFiles.slice(0, 5).forEach((f: any) => {
+          contextPrompt += `- ${f.name} (${f.language || 'unknown'})\n`;
+        });
+        contextPrompt += `\n`;
+      }
+      
+      contextPrompt += `\nPlease analyze this code and provide improvements, optimizations, or suggestions:\n\n\`\`\`python\n${content}\n\`\`\`\n\nProvide:\n1. Code improvements or optimizations\n2. Best practices suggestions\n3. Potential issues or bugs\n4. Alternative approaches if applicable\n\nReturn only the improved code without explanations.`;
 
       // Stream AI response
       let fullResponse = '';
@@ -739,7 +742,7 @@ Return only the improved code without explanations.`;
             setStreamingContent('');
             
             // Track AI assistance usage
-            captureMessage('AI assistance used in notebook', 'info', {
+            console.log('AI assistance used in notebook', {
               cellId: id,
               contentLength: content.length,
               responseLength: response.length
@@ -752,7 +755,7 @@ Return only the improved code without explanations.`;
               isLoading: false,
               suggestion: 'Error getting AI suggestion. Please try again.'
             }));
-            captureMessage('AI assistance error in notebook', 'error', { error: error.message });
+            console.log('AI assistance error in notebook', { error: error.message });
           }
         }
       );
@@ -763,7 +766,7 @@ Return only the improved code without explanations.`;
         isLoading: false,
         suggestion: 'Error getting AI suggestion. Please try again.'
       }));
-      captureMessage('AI assistance error in notebook', 'error', { 
+      console.log('AI assistance error in notebook', { 
         error: error instanceof Error ? error.message : 'Unknown error' 
       });
     }
@@ -774,7 +777,7 @@ Return only the improved code without explanations.`;
     if (aiModal.cellId && suggestion) {
       updateCellContent(aiModal.cellId, suggestion);
       setAiModal({ isOpen: false, cellId: '', cellContent: '', isLoading: false, suggestion: '' });
-      captureMessage('AI suggestion applied in notebook', 'info', {
+      console.log('AI suggestion applied in notebook', {
         cellId: aiModal.cellId,
         suggestionLength: suggestion.length
       });
@@ -783,49 +786,116 @@ Return only the improved code without explanations.`;
   
   // Save notebook to JSON format
   const saveNotebook = () => {
-    try {
-      const notebookData = {
-        cells: cells.map(cell => ({
-          cell_type: cell.type,
-          source: cell.content.split('\n'),
-          metadata: cell.metadata || {},
-          ...(cell.type === 'code' && {
-            execution_count: cell.execution_count,
-            outputs: cell.output || []
-          })
-        })),
-        metadata: notebookMetadata,
-        nbformat: 4,
-        nbformat_minor: 4
-      };
-      
-      const content = JSON.stringify(notebookData, null, 2);
-      onSave?.(content);
-      
-      // Update context service with notebook save
-      if (filePath) {
-        contextService.addFile({
-          path: filePath,
-          name: filePath.split('/').pop() || 'notebook.ipynb',
-          type: 'file',
-          content,
-          language: 'jupyter',
-          lastModified: new Date(),
-          size: content.length
-        });
+    const notebookData = {
+      cells: cells.map(cell => ({
+        cell_type: cell.type,
+        source: cell.content.split('\n'),
+        metadata: cell.metadata || {},
+        outputs: cell.output || [],
+        execution_count: cell.execution_count || null
+      })),
+      metadata: notebookMetadata,
+      nbformat: 4,
+      nbformat_minor: 4
+    };
+
+    const content = JSON.stringify(notebookData, null, 2);
+    onSave?.(content);
+  };
+
+  const exportNotebook = () => {
+    const notebookData = {
+      cells: cells.map(cell => ({
+        cell_type: cell.type,
+        source: cell.content.split('\n'),
+        metadata: cell.metadata || {},
+        outputs: cell.output || [],
+        execution_count: cell.execution_count || null
+      })),
+      metadata: notebookMetadata,
+      nbformat: 4,
+      nbformat_minor: 4
+    };
+
+    const content = JSON.stringify(notebookData, null, 2);
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filePath ? filePath.split('/').pop() || 'notebook.ipynb' : 'notebook.ipynb';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const importNotebook = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const notebookData = JSON.parse(content);
+        
+        if (notebookData.cells && Array.isArray(notebookData.cells)) {
+          const convertedCells: NotebookCell[] = notebookData.cells.map((cell: any) => ({
+            id: `cell-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            type: cell.cell_type === 'code' ? 'code' : cell.cell_type === 'markdown' ? 'markdown' : 'raw',
+            content: Array.isArray(cell.source) ? cell.source.join('') : cell.source,
+            metadata: cell.metadata || {},
+            output: cell.outputs ? cell.outputs.map((output: any) => {
+              if (output.output_type === 'stream') {
+                return {
+                  type: 'text',
+                  content: Array.isArray(output.text) ? output.text.join('') : output.text
+                };
+              } else if (output.output_type === 'error') {
+                return {
+                  type: 'error',
+                  content: output.ename + ': ' + output.evalue + '\n' + output.traceback.join('\n')
+                };
+              } else if (output.output_type === 'display_data' || output.output_type === 'execute_result') {
+                if (output.data && output.data['image/png']) {
+                  return {
+                    type: 'image',
+                    content: output.data['image/png'],
+                    mimeType: 'image/png'
+                  };
+                } else if (output.data && output.data['text/html']) {
+                  return {
+                    type: 'html',
+                    content: output.data['text/html']
+                  };
+                } else if (output.data['text/plain']) {
+                  return {
+                    type: 'text',
+                    content: output.data['text/plain']
+                  };
+                }
+              }
+              return {
+                type: 'text',
+                content: 'Unsupported output type'
+              };
+            }) : [],
+            execution_count: cell.execution_count || null
+          }));
+          
+          setCells(convertedCells);
+          if (convertedCells.length > 0) {
+            setSelectedCellId(convertedCells[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to import notebook:', error);
       }
-      
-      captureMessage('Notebook saved successfully', 'info', {
-        filePath,
-        cellCount: cells.length,
-        contentSize: content.length
-      });
-    } catch (error) {
-      console.error('Error saving notebook:', error);
-      captureMessage('Error saving notebook', 'error', { 
-        error: error instanceof Error ? error.message : 'Unknown error' 
-      });
-    }
+    };
+    reader.readAsText(file);
+    
+    // Reset the input
+    event.target.value = '';
   };
 
   // Effect to initialize notebook from provided content

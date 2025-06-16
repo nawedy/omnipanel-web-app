@@ -96,9 +96,11 @@ export interface ContextSummary {
   relevantContext: string;
 }
 
+type ContextSubscriber = (context: WorkspaceContext) => void;
+
 class ContextService {
   private context: WorkspaceContext;
-  private listeners: Set<(context: WorkspaceContext) => void> = new Set();
+  private subscribers: Set<ContextSubscriber> = new Set();
   private maxHistorySize = 100;
   private maxFileContentSize = 50000; // 50KB
   private contextCache = new Map<string, any>();
@@ -346,8 +348,8 @@ class ContextService {
 
   // Event Listeners
   public subscribe(listener: (context: WorkspaceContext) => void): () => void {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    this.subscribers.add(listener);
+    return () => this.subscribers.delete(listener);
   }
 
   // Private Methods
@@ -362,7 +364,7 @@ class ContextService {
   }
 
   private notifyListeners(): void {
-    this.listeners.forEach(listener => {
+    this.subscribers.forEach(listener => {
       try {
         listener({ ...this.context });
       } catch (error) {
@@ -601,6 +603,15 @@ class ContextService {
 
   public clearCache(): void {
     this.contextCache.clear();
+  }
+
+  // Additional methods expected by components
+  public getProjectContext(): ProjectContext | undefined {
+    return this.context.project;
+  }
+
+  public getRecentFiles(): FileContext[] {
+    return this.context.activeFiles.slice(0, 10); // Return last 10 files
   }
 }
 

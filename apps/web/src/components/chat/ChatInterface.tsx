@@ -28,6 +28,7 @@ import {
   AlertCircle,
   StopCircle
 } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { LLMAdapterRegistry, ChatMessage, StreamingManager } from '@omnipanel/llm-adapters';
 import { nanoid } from '@omnipanel/core';
@@ -786,7 +787,10 @@ What would you like to work on today?`,
               >
                 {message.role === 'assistant' && (
                   <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                    <Bot className="w-4 h-4 text-primary-foreground" />
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src="/ai-avatar.png" alt="AI Avatar" />
+                      <AvatarFallback>AI</AvatarFallback>
+                    </Avatar>
                   </div>
                 )}
                 
@@ -879,9 +883,12 @@ What would you like to work on today?`,
                 </div>
                 
                 {message.role === 'user' && (
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                    <User className="w-4 h-4" />
-                  </div>
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src="/user-avatar.png" alt="User Avatar" />
+                    <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-500 text-white font-medium">
+                      U
+                    </AvatarFallback>
+                  </Avatar>
                 )}
               </motion.div>
             ))}

@@ -92,7 +92,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
     (set, get) => ({
       // Initial State
       sidebarOpen: true,
-      sidebarWidth: 240,
+      sidebarWidth: 320,
       theme: 'dark',
       currentProject: null,
       projects: [],
@@ -105,7 +105,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
         showTerminal: false,
         showNotebook: false,
         terminalHeight: 200,
-        fileTreeWidth: 200,
+        fileTreeWidth: 280,
       },
 
       // UI Actions
@@ -113,7 +113,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
         set((state) => ({ sidebarOpen: !state.sidebarOpen })),
       
       setSidebarWidth: (width) =>
-        set({ sidebarWidth: Math.max(200, Math.min(400, width)) }),
+        set({ sidebarWidth: Math.max(240, Math.min(500, width)) }),
       
       setTheme: (theme) =>
         set({ theme }),

@@ -74,12 +74,15 @@ export function WorkspaceLayout({ children }: { children: React.ReactNode }) {
             
             {/* Sidebar Resize Handle */}
             <div
-              className={`workspace-resizer ${
+              className={`workspace-resizer group ${
                 isResizingSidebar ? 'active' : ''
               }`}
               onMouseDown={handleSidebarMouseDown}
               title="Drag to resize projects panel"
-            />
+            >
+              <div className="absolute inset-y-0 right-0 w-1 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute top-1/2 right-0 transform -translate-y-1/2 w-1 h-8 bg-primary/40 rounded-l opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
           </div>
         )}
 
@@ -126,12 +129,15 @@ export function WorkspaceLayout({ children }: { children: React.ReactNode }) {
             
             {/* File Tree Resize Handle */}
             <div
-              className={`workspace-resizer ${
+              className={`workspace-resizer group ${
                 isResizingFileTree ? 'active' : ''
               }`}
               onMouseDown={handleFileTreeMouseDown}
               title="Drag to resize file explorer"
-            />
+            >
+              <div className="absolute inset-y-0 right-0 w-1 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute top-1/2 right-0 transform -translate-y-1/2 w-1 h-8 bg-primary/40 rounded-l opacity-0 group-hover:opacity-100 transition-opacity" />
+            </div>
           </div>
         )}
 

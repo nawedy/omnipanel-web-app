@@ -22,12 +22,11 @@ import {
   Palette
 } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { useTheme } from '@/components/ThemeProvider';
 import { SyncStatusIndicator, type SyncStatus } from '../sync/SyncStatusIndicator';
-import { SettingsModal } from '@/components/modals/SettingsModal';
 import { NotificationsPanel } from '@/components/modals/NotificationsPanel';
 import { UserProfileModal } from '@/components/modals/UserProfileModal';
 
@@ -43,10 +42,10 @@ export function WorkspaceHeader() {
   const { theme, setTheme } = useTheme();
   const { toggleSidebar, currentProject, selectedModel, modelProvider, layout, toggleFileTree } = useWorkspaceStore();
   const pathname = usePathname();
+  const router = useRouter();
 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
   const [showUserProfileModal, setShowUserProfileModal] = useState(false);
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
@@ -120,7 +119,7 @@ export function WorkspaceHeader() {
   };
 
   const handleSettingsClick = () => {
-    setShowSettingsModal(true);
+    router.push('/settings');
     setShowUserMenu(false);
   };
 
@@ -389,12 +388,6 @@ export function WorkspaceHeader() {
         </div>
       </header>
 
-      {/* Settings Modal */}
-      <SettingsModal 
-        isOpen={showSettingsModal} 
-        onClose={() => setShowSettingsModal(false)} 
-      />
-
       {/* Notifications Panel */}
       <NotificationsPanel 
         isOpen={showNotificationsPanel} 
@@ -444,7 +437,7 @@ export function WorkspaceHeader() {
                 <button 
                   onClick={() => {
                     setShowCommandPalette(false);
-                    setShowSettingsModal(true);
+                    router.push('/settings');
                   }}
                   className="w-full text-left px-3 py-2 rounded hover:bg-accent text-sm"
                 >

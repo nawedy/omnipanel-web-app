@@ -27,8 +27,10 @@ import {
   Info,
   ChevronRight,
   Folder,
-  GitBranch
+  GitBranch,
+  HelpCircle
 } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { contextService, type TerminalContext } from '@/services/contextService';
 import { aiService } from '@/services/aiService';
@@ -312,43 +314,42 @@ export function Terminal({
             aiQuery;
 
           // Stream AI response
-          const conversation = aiService.createConversation(`Terminal AI: ${aiQuery.substring(0, 30)}...`);
+          const conversation = aiService.createConversation();
           const streamId = `terminal-${Date.now()}`;
           setAiStreamId(streamId);
           
           let fullResponse = '';
           
-          for await (const chunk of aiService.streamMessage({
-            message: contextPrompt,
-            conversationId: conversation.id,
-            includeContext: enableContextIntegration,
-            stream: true
-          })) {
-            fullResponse = chunk.content;
-            
-            // Update the AI response in real-time
-            setOutput(prev => {
-              const lastIndex = prev.length - 1;
-              const lastItem = prev[lastIndex];
+          await aiService.streamMessage(conversation.id, contextPrompt, {
+            onChunk: (chunk) => {
+              fullResponse += chunk;
               
-              if (lastItem && lastItem.type === 'ai' && lastItem.content.startsWith('🤖 AI:')) {
-                // Update existing AI response
-                return [
-                  ...prev.slice(0, lastIndex),
-                  { ...lastItem, content: `🤖 AI: ${fullResponse}` }
-                ];
-              } else {
-                // Add new AI response
-                return [...prev, {
-                  type: 'ai',
-                  content: `🤖 AI: ${fullResponse}`,
-                  timestamp: new Date()
-                }];
-              }
-            });
-            
-            if (chunk.isComplete) break;
-          }
+              // Update the AI response in real-time
+              setOutput(prev => {
+                const lastIndex = prev.length - 1;
+                const lastItem = prev[lastIndex];
+                
+                if (lastItem && lastItem.type === 'ai' && lastItem.content.startsWith('🤖 AI:')) {
+                  // Update existing AI response
+                  return [
+                    ...prev.slice(0, lastIndex),
+                    { ...lastItem, content: `🤖 AI: ${fullResponse}` }
+                  ];
+                } else {
+                  // Add new AI response
+                  return [...prev, {
+                    type: 'ai',
+                    content: `🤖 AI: ${fullResponse}`,
+                    timestamp: new Date()
+                  }];
+                }
+              });
+            },
+            onComplete: (response) => {
+              fullResponse = response;
+            },
+            context: enableContextIntegration ? `Working directory: ${currentPath}\nRecent commands: ${commandHistory.slice(-3).join(', ')}` : undefined
+          });
           
           captureMessage('AI command executed', 'info', {
             query: aiQuery,
@@ -758,7 +759,12 @@ no changes added to commit (use "git add ." or "git commit -a")`,
       case 'error': return <XCircle className="w-3 h-3 text-red-400" />;
       case 'success': return <CheckCircle className="w-3 h-3 text-green-400" />;
       case 'warning': return <AlertCircle className="w-3 h-3 text-yellow-400" />;
-      case 'ai': return <Bot className="w-3 h-3 text-purple-400" />;
+      case 'ai': return (
+        <Avatar className="w-3 h-3">
+          <AvatarImage src="/ai-avatar.png" alt="AI" />
+          <AvatarFallback className="text-xs">AI</AvatarFallback>
+        </Avatar>
+      );
       case 'system': return <Settings className="w-3 h-3 text-cyan-400" />;
       default: return <Info className="w-3 h-3 text-gray-400" />;
     }
@@ -770,7 +776,12 @@ no changes added to commit (use "git add ." or "git commit -a")`,
       case 'git': return <GitBranch className="w-3 h-3 text-orange-400" />;
       case 'npm': return <Code className="w-3 h-3 text-red-400" />;
       case 'system': return <Settings className="w-3 h-3 text-gray-400" />;
-      case 'ai': return <Bot className="w-3 h-3 text-purple-400" />;
+      case 'ai': return (
+        <Avatar className="w-3 h-3">
+          <AvatarImage src="/ai-avatar.png" alt="AI" />
+          <AvatarFallback className="text-xs">AI</AvatarFallback>
+        </Avatar>
+      );
       case 'custom': return <History className="w-3 h-3 text-green-400" />;
       default: return <Info className="w-3 h-3 text-gray-400" />;
     }
@@ -786,10 +797,13 @@ no changes added to commit (use "git add ." or "git commit -a")`,
           <TerminalIcon className="w-4 h-4 text-green-400" />
           <span className="font-medium text-white">Terminal</span>
           {enableContextIntegration && (
-            <Brain className="w-3 h-3 text-blue-400" title="Context-aware" />
+            <Brain className="w-3 h-3 text-blue-400" />
           )}
           {enableAIAssistance && (
-            <Bot className="w-3 h-3 text-purple-400" title="AI assistance" />
+            <Avatar className="w-3 h-3">
+              <AvatarImage src="/ai-avatar.png" alt="AI" />
+              <AvatarFallback className="text-xs">AI</AvatarFallback>
+            </Avatar>
           )}
           <span className="text-xs text-gray-400">{currentPath}</span>
         </div>
@@ -942,7 +956,10 @@ no changes added to commit (use "git add ." or "git commit -a")`,
             animate={{ opacity: 1 }}
             className="flex items-center gap-2 text-purple-400"
           >
-            <Bot className="w-3 h-3" />
+            <Avatar className="w-3 h-3">
+              <AvatarImage src="/ai-avatar.png" alt="AI" />
+              <AvatarFallback className="text-xs">AI</AvatarFallback>
+            </Avatar>
             <div className="flex items-center gap-1">
               <span className="text-sm">AI is thinking</span>
               <div className="flex gap-1">

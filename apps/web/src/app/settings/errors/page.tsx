@@ -11,13 +11,31 @@ export default function ErrorMonitoringPage() {
   const { errorHistory, clearErrorHistory } = useMonitoring();
   
   // Format timestamp to readable format
-  const formatTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
+  const formatTime = (timestamp: Date | number) => {
+    if (timestamp instanceof Date) {
+      return timestamp.toLocaleTimeString('en-US', { 
+        hour12: false, 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit' 
+      });
+    }
+    // Handle milliseconds
+    if (timestamp < 1000) {
+      return `${timestamp.toFixed(1)}ms`;
+    } else if (timestamp < 60000) {
+      return `${(timestamp / 1000).toFixed(2)}s`;
+    } else {
+      const minutes = Math.floor(timestamp / 60000);
+      const seconds = ((timestamp % 60000) / 1000).toFixed(1);
+      return `${minutes}m ${seconds}s`;
+    }
   };
   
   // Truncate long text
-  const truncate = (text: string, length = 100) => {
-    return text && text.length > length ? `${text.substring(0, length)}...` : text;
+  const truncate = (text: string | undefined, length = 100) => {
+    if (!text) return 'N/A';
+    return text.length > length ? text.substring(0, length) + '...' : text;
   };
   
   return (

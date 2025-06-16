@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useRouter } from 'next/navigation';
 import { 
   FolderIcon, 
   FileIcon, 
@@ -12,23 +13,72 @@ import {
   FolderOpenIcon,
   SearchIcon,
   SettingsIcon,
-  CommandIcon
+  CommandIcon,
+  MessageSquareIcon,
+  TerminalIcon,
+  BookOpenIcon,
+  CodeIcon,
+  SearchCodeIcon
 } from 'lucide-react';
 import { projectService, type Project, type ProjectTemplate } from '@/services/projectService';
 import { useCurrentProject, useRecentProjects } from '@/stores/projectStore';
+import { useWorkspaceStore } from '@/stores/workspace';
 
 interface WorkspaceSidebarProps {
   onFileSelect?: (filePath: string) => void;
-  onSettingsClick?: () => void;
+  onToolSelect?: (tool: string) => void;
 }
 
-export function WorkspaceSidebar({ onFileSelect, onSettingsClick }: WorkspaceSidebarProps) {
+// Workspace tools configuration
+const WORKSPACE_TOOLS = [
+  {
+    id: 'chat',
+    name: 'Chat',
+    icon: MessageSquareIcon,
+    description: 'AI-powered chat interface',
+    route: '/chat'
+  },
+  {
+    id: 'terminal',
+    name: 'Terminal',
+    icon: TerminalIcon,
+    description: 'Integrated terminal',
+    route: '/terminal'
+  },
+  {
+    id: 'notebook',
+    name: 'Notebook',
+    icon: BookOpenIcon,
+    description: 'Jupyter-style notebooks',
+    route: '/notebook'
+  },
+  {
+    id: 'editor',
+    name: 'Code Editor',
+    icon: CodeIcon,
+    description: 'Monaco code editor',
+    route: '/editor'
+  },
+  {
+    id: 'research',
+    name: 'Research',
+    icon: SearchCodeIcon,
+    description: 'AI research with Tavily',
+    route: '/research'
+  }
+];
+
+export function WorkspaceSidebar({ onFileSelect, onToolSelect }: WorkspaceSidebarProps) {
+  const router = useRouter();
   const currentProject = useCurrentProject();
   const recentProjects = useRecentProjects();
+  const { activeTabId, setActiveTab } = useWorkspaceStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<ProjectTemplate | null>(null);
   const [newProjectName, setNewProjectName] = useState('');
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [activeToolId, setActiveToolId] = useState<string>('chat');
 
   const handleOpenProject = async () => {
     try {
@@ -74,6 +124,26 @@ export function WorkspaceSidebar({ onFileSelect, onSettingsClick }: WorkspaceSid
     } catch (error) {
       console.error('Failed to open recent project:', error);
     }
+  };
+
+  const handleSettingsClick = () => {
+    router.push('/settings');
+  };
+
+  const handleToolSelect = (tool: typeof WORKSPACE_TOOLS[0]) => {
+    setActiveToolId(tool.id);
+    if (onToolSelect) {
+      onToolSelect(tool.id);
+    }
+    // For now, we'll just set the active tool
+    // In a full implementation, this would switch the main content area
+    console.log(`Selected tool: ${tool.name}`);
+  };
+
+  const handleCommandPalette = () => {
+    setShowCommandPalette(!showCommandPalette);
+    // In a full implementation, this would open a command palette modal
+    console.log('Command palette toggled');
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -175,10 +245,10 @@ export function WorkspaceSidebar({ onFileSelect, onSettingsClick }: WorkspaceSid
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-100">Workspace</h2>
           <Button
-            onClick={onSettingsClick}
+            onClick={handleSettingsClick}
             variant="ghost"
             size="sm"
-            className="text-slate-400 hover:text-slate-100"
+            className="text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
           >
             <SettingsIcon className="h-4 w-4" />
           </Button>
@@ -215,6 +285,34 @@ export function WorkspaceSidebar({ onFileSelect, onSettingsClick }: WorkspaceSid
             placeholder="Search projects..."
             className="pl-10 bg-slate-800 border-slate-700 text-slate-100 text-sm"
           />
+        </div>
+      </div>
+
+      {/* Workspace Tools */}
+      <div className="p-4 border-b border-slate-800">
+        <h3 className="text-sm font-medium text-slate-300 mb-3">Tools</h3>
+        <div className="grid grid-cols-2 gap-2">
+          {WORKSPACE_TOOLS.map((tool) => {
+            const Icon = tool.icon;
+            const isActive = activeToolId === tool.id;
+            
+            return (
+              <Button
+                key={tool.id}
+                onClick={() => handleToolSelect(tool)}
+                variant={isActive ? "default" : "outline"}
+                size="sm"
+                className={`flex flex-col items-center gap-1 h-auto py-3 text-xs border transition-colors ${
+                  isActive 
+                    ? 'bg-blue-600 border-blue-500 text-white' 
+                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-slate-100'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{tool.name}</span>
+              </Button>
+            );
+          })}
         </div>
       </div>
 
@@ -271,18 +369,17 @@ export function WorkspaceSidebar({ onFileSelect, onSettingsClick }: WorkspaceSid
         </div>
       </div>
 
-      {/* Quick Actions */}
+      {/* Command Palette */}
       <div className="p-4 border-t border-slate-800">
-        <div className="flex items-center justify-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-slate-400 hover:text-slate-100"
-          >
-            <CommandIcon className="h-4 w-4 mr-2" />
-            <span className="text-xs">Command Palette</span>
-          </Button>
-        </div>
+        <Button
+          onClick={handleCommandPalette}
+          variant="ghost"
+          size="sm"
+          className="w-full text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+        >
+          <CommandIcon className="h-4 w-4 mr-2" />
+          <span className="text-xs">Command Palette</span>
+        </Button>
       </div>
     </div>
   );

@@ -19,6 +19,7 @@ import {
   Terminal as TerminalIcon,
   MessageSquare
 } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useWorkspaceStore } from '@/stores/workspace';
 
 interface CodeEditorProps {
@@ -76,7 +77,10 @@ function AiAssistModal({ isOpen, onClose, selectedText, action, onResult }: AiAs
       <div className="w-full max-w-2xl bg-popover border border-border rounded-lg shadow-xl max-h-[80vh] overflow-hidden">
         <div className="p-4 border-b border-border flex items-center justify-between">
           <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Bot className="w-5 h-5 text-blue-500" />
+            <Avatar className="w-5 h-5 text-blue-500">
+              <AvatarImage src="/avatars/ai.png" alt="AI" />
+              <AvatarFallback>AI</AvatarFallback>
+            </Avatar>
             AI {action === 'explain' ? 'Code Explanation' : 'Code Improvement'}
           </h3>
           <button
@@ -481,7 +485,10 @@ export function CodeEditor({
             className="p-2 hover:bg-accent/50 rounded-md transition-colors text-blue-500"
             title="AI Explain Code (Ctrl+E)"
           >
-            <Bot className="w-4 h-4" />
+            <Avatar className="w-4 h-4">
+              <AvatarImage src="/ai-avatar.png" alt="AI" />
+              <AvatarFallback className="text-xs">AI</AvatarFallback>
+            </Avatar>
           </button>
           <button
             onClick={() => {
@@ -502,7 +509,9 @@ export function CodeEditor({
             className="p-2 hover:bg-accent/50 rounded-md transition-colors text-green-500"
             title="Send to Chat (Ctrl+Shift+C)"
           >
-            <MessageSquare className="w-4 h-4" />
+            <Avatar className="w-4 h-4 text-green-500">
+              <AvatarImage src="/avatars/user.png" alt="User" />
+            </Avatar>
           </button>
           <button
             onClick={handleRun}

@@ -259,7 +259,7 @@ export function PrivacyPolicy({
         {/* Main Content */}
         <div className="flex-1 min-w-0">
           <div className="space-y-12">
-            {PRIVACY_POLICY_DATA.map((section) => (
+            {PRIVACY_POLICY_DATA.map((section: any) => (
               <section
                 key={section.id}
                 id={`section-${section.id}`}

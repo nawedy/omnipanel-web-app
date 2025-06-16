@@ -240,14 +240,14 @@ export default function PerformancePage() {
                           {metric.duration !== undefined ? formatTime(metric.duration) : 'Incomplete'}
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          {metric.tags ? (
+                          {metric.metadata ? (
                             <div className="flex flex-wrap gap-1">
-                              {Object.entries(metric.tags).map(([key, value]) => (
+                              {Object.entries(metric.metadata).map(([key, value]) => (
                                 <span 
                                   key={key}
                                   className="px-1.5 py-0.5 bg-primary/10 text-primary text-xs rounded"
                                 >
-                                  {key}:{value}
+                                  {key}:{String(value)}
                                 </span>
                               ))}
                             </div>
@@ -256,7 +256,7 @@ export default function PerformancePage() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          {metric.data?.error ? (
+                          {metric.metadata?.error ? (
                             <span className="flex items-center gap-1 text-red-500">
                               <AlertTriangle className="w-3 h-3" />
                               Error

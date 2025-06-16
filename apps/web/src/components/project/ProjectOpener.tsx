@@ -95,14 +95,14 @@ export function ProjectOpener({ mode, onClose, onProjectSelected }: ProjectOpene
       // Close modal
       onClose();
       
-      captureMessage('Project opened successfully', {
+      captureMessage('Project opened successfully', 'info', {
         projectId: project.id,
         projectName: project.name
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to open project';
       setError(errorMessage);
-      captureMessage('Failed to open project', {
+      captureMessage('Failed to open project', 'error', {
         error: errorMessage,
         projectId: project.id
       });
@@ -136,7 +136,7 @@ export function ProjectOpener({ mode, onClose, onProjectSelected }: ProjectOpene
       if (err instanceof Error && err.name !== 'AbortError') {
         const errorMessage = 'Failed to open directory: ' + err.message;
         setError(errorMessage);
-        captureMessage('Failed to open directory', { error: errorMessage });
+        captureMessage('Failed to open directory', 'error', { error: errorMessage });
       }
     } finally {
       setIsLoading(false);
@@ -170,7 +170,7 @@ export function ProjectOpener({ mode, onClose, onProjectSelected }: ProjectOpene
 
       await handleProjectSelect(project);
       
-      captureMessage('Project created successfully', {
+      captureMessage('Project created successfully', 'info', {
         projectId: project.id,
         projectName: project.name,
         template: selectedTemplate?.id
@@ -178,7 +178,7 @@ export function ProjectOpener({ mode, onClose, onProjectSelected }: ProjectOpene
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to create project';
       setError(errorMessage);
-      captureMessage('Failed to create project', {
+      captureMessage('Failed to create project', 'error', {
         error: errorMessage,
         projectName,
         template: selectedTemplate?.id
