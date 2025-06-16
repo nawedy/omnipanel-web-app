@@ -120,7 +120,7 @@ export function FileTree({
   const [showFilters, setShowFilters] = useState(false);
   const [starredFiles, setStarredFiles] = useState<Set<string>>(new Set());
   const [recentFiles, setRecentFiles] = useState<FileNode[]>([]);
-  const [fileWatcher, setFileWatcher] = useState<FileSystemWatcher | null>(null);
+  const [fileWatcher, setFileWatcher] = useState<any | null>(null);
 
   // Load files from current project or file system service
   const loadProjectFiles = useCallback(async () => {
@@ -146,7 +146,7 @@ export function FileTree({
       }
     } catch (error) {
       console.error('Failed to load project files:', error);
-      captureMessage('Failed to load project files', {
+      captureMessage('Failed to load project files', 'error', {
         error: error instanceof Error ? error.message : 'Unknown error',
         projectId: projectId || currentProject?.id
       });
@@ -206,42 +206,20 @@ export function FileTree({
     return unsubscribe;
   }, [enableContextIntegration, files]);
 
-  // File system monitoring
+  // File system monitoring (simplified)
   useEffect(() => {
-    if (!('FileSystemWatcher' in window)) return;
+    if (typeof window === 'undefined') return;
 
-    const initFileWatcher = async () => {
-      try {
-        // Mock file system watcher - in real implementation, use File System Access API
-        const mockWatcher = {
-          addEventListener: (event: string, callback: () => void) => {
-            // Simulate file changes
-            const interval = setInterval(() => {
-              if (Math.random() > 0.95) { // 5% chance of file change
-                callback();
-              }
-            }, 5000);
-            
-            return () => clearInterval(interval);
-          }
-        } as any;
-
-        setFileWatcher(mockWatcher);
-        
-        const cleanup = mockWatcher.addEventListener('change', () => {
-          captureMessage('File system change detected', 'info');
-          // Refresh file tree
-          loadFiles();
-        });
-
-        return cleanup;
-      } catch (error) {
-        captureMessage('Failed to initialize file watcher', 'warning', { error });
+    // Simplified file monitoring - in production, integrate with File System Access API
+    const interval = setInterval(() => {
+      // Periodic refresh for demo purposes
+      if (Math.random() > 0.98) { // 2% chance of refresh
+        loadProjectFiles();
       }
-    };
+    }, 10000); // Check every 10 seconds
 
-    initFileWatcher();
-  }, [projectId]);
+    return () => clearInterval(interval);
+  }, [loadProjectFiles]);
 
   // Load starred files from localStorage
   useEffect(() => {
@@ -676,7 +654,7 @@ export function FileTree({
           <button
             className="p-1.5 hover:bg-accent/50 rounded transition-colors"
             title="Refresh"
-            onClick={loadFiles}
+            onClick={loadProjectFiles}
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
