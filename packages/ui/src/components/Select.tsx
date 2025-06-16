@@ -1,9 +1,6 @@
-//# packages/ui/src/components/Select.tsx
-
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Check } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -154,13 +151,9 @@ const Select: React.FC<SelectProps> = ({
       )}
       
       <div ref={selectRef} className="relative">
-        <motion.div
+        <div
           className={triggerClasses}
           onClick={toggleOpen}
-          whileTap={{ scale: disabled ? 1 : 0.98 }}
-          animate={neonFocus && isOpen ? {
-            boxShadow: error ? '0 0 20px rgba(239, 68, 68, 0.3)' : '0 0 20px rgba(59, 130, 246, 0.3)'
-          } : {}}
         >
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {selectedOption?.icon && (
@@ -176,73 +169,66 @@ const Select: React.FC<SelectProps> = ({
             </span>
           </div>
           
-          <motion.div
-            animate={{ rotate: isOpen ? 180 : 0 }}
-            transition={{ duration: 0.2 }}
+          <div
+            className={clsx(
+              "transition-transform duration-200",
+              isOpen && "rotate-180"
+            )}
           >
             <ChevronDown className="w-4 h-4 text-gray-400" />
-          </motion.div>
+          </div>
           
           {glassmorphism && isOpen && (
             <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-30" />
           )}
-        </motion.div>
+        </div>
         
-        <AnimatePresence>
-          {isOpen && (
-            <motion.div
-              className={dropdownClasses}
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-            >
-              <div className="py-1">
-                {options.map((option) => (
-                  <motion.div
-                    key={option.value}
-                    className={clsx(
-                      'flex items-center gap-2 px-3 py-2 cursor-pointer text-sm',
-                      'hover:bg-gray-100 dark:hover:bg-gray-700',
-                      'transition-colors duration-150',
-                      option.disabled && 'opacity-50 cursor-not-allowed',
-                      selectedValue === option.value && 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                    )}
-                    onClick={() => !option.disabled && handleSelect(option.value)}
-                    whileHover={!option.disabled ? { backgroundColor: 'rgba(59, 130, 246, 0.1)' } : {}}
-                    whileTap={!option.disabled ? { scale: 0.98 } : {}}
-                  >
-                    {option.icon && (
-                      <div className="flex-shrink-0">
-                        {option.icon}
-                      </div>
-                    )}
-                    <span className="flex-1 truncate">{option.label}</span>
-                    {selectedValue === option.value && (
-                      <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    )}
-                  </motion.div>
-                ))}
-                
-                {options.length === 0 && (
-                  <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
-                    No options available
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {isOpen && (
+          <div
+            className={clsx(
+              dropdownClasses,
+              "animate-in fade-in-0 zoom-in-95 slide-in-from-top-2"
+            )}
+          >
+            <div className="py-1">
+              {options.map((option) => (
+                <div
+                  key={option.value}
+                  className={clsx(
+                    'flex items-center gap-2 px-3 py-2 cursor-pointer text-sm',
+                    'hover:bg-gray-100 dark:hover:bg-gray-700',
+                    'transition-colors duration-150',
+                    option.disabled && 'opacity-50 cursor-not-allowed',
+                    selectedValue === option.value && 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                  )}
+                  onClick={() => !option.disabled && handleSelect(option.value)}
+                >
+                  {option.icon && (
+                    <div className="flex-shrink-0">
+                      {option.icon}
+                    </div>
+                  )}
+                  <span className="flex-1 truncate">{option.label}</span>
+                  {selectedValue === option.value && (
+                    <Check className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  )}
+                </div>
+              ))}
+              
+              {options.length === 0 && (
+                <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
+                  No options available
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
       
       {error && (
-        <motion.p
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-1 text-xs text-red-600 dark:text-red-400"
-        >
+        <p className="mt-1 text-xs text-red-600 dark:text-red-400">
           {error}
-        </motion.p>
+        </p>
       )}
     </div>
   );

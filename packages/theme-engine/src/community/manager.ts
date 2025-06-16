@@ -566,7 +566,7 @@ export class CommunityManager {
     });
 
     if (!response.ok) {
-      throw new CommunityError(`HTTP ${response.status}: ${response.statusText}`, response.status);
+      throw new CommunityError(`HTTP ${response.status}: ${response.statusText}`, response.status.toString());
     }
 
     return response.json();
@@ -628,21 +628,53 @@ let defaultManager: CommunityManager | null = null;
 /**
  * Get the default community manager
  */
-export function getCommunityManager(config?: CommunityConfig): CommunityManager {
+export function getCommunityManager(config?: Partial<CommunityConfig>): CommunityManager {
   if (!defaultManager) {
-    defaultManager = new CommunityManager(config || {
+    const defaultConfig: CommunityConfig = {
       baseUrl: 'https://community.omnipanel.ai',
-      apiKey: undefined,
-      userId: undefined
-    });
+      features: {
+        posts: true,
+        showcases: true,
+        tutorials: true,
+        challenges: true,
+        comments: true,
+        reactions: true,
+        notifications: true,
+        following: true
+      },
+      moderation: {
+        autoModeration: true,
+        requireApproval: false,
+        bannedWords: [],
+        maxPostLength: 5000,
+        maxCommentLength: 1000
+      },
+      gamification: {
+        badges: true,
+        points: true,
+        leaderboards: true,
+        achievements: true
+      },
+      limits: {
+        maxPostsPerDay: 10,
+        maxCommentsPerDay: 50,
+        maxFollowsPerDay: 20,
+        maxTagsPerPost: 5
+      },
+      ...config
+    };
+    
+    defaultManager = new CommunityManager(defaultConfig);
   }
+  
   return defaultManager;
 }
 
 /**
- * Initialize community manager with configuration
+ * Initialize community manager with full configuration
  */
 export function initializeCommunity(config: CommunityConfig): CommunityManager {
-  defaultManager = new CommunityManager(config);
-  return defaultManager;
+  const manager = new CommunityManager(config);
+  defaultManager = manager;
+  return manager;
 } 

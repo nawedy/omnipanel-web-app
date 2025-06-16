@@ -130,7 +130,7 @@ See **[SPRINT_2_DEMO.md](./SPRINT_2_DEMO.md)** for a comprehensive guide on test
 
 The foundation is complete! Next sprint will implement:
 
-1. **Real-time Sync**: Supabase integration for cloud synchronization
+1. **Real-time Sync**: NeonDB integration for cloud synchronization
 2. **File System**: Real file tree with actual file operations  
 3. **LLM Integration**: Connect to actual AI models via our adapter system
 4. **Advanced Features**: Git integration, plugin system, collaboration

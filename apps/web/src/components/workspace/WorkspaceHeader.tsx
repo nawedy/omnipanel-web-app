@@ -1,47 +1,68 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Menu, 
-  Search, 
-  Settings, 
-  User, 
-  Folder,
-  Command,
-  Moon,
-  Sun,
-  Monitor,
-  FileText,
+  Bell, 
+  Sun, 
+  Moon, 
+  User as UserIcon, 
+  LogOut, 
+  Settings as SettingsIcon,
   ChevronDown,
-  Bell,
+  PanelLeft,
+  Laptop,
+  Folder,
+  Search,
   HelpCircle,
-  LogOut,
-  Palette,
-  Activity,
-  Wifi,
-  WifiOff,
-  CheckCircle,
-  XCircle,
-  Clock,
-  RotateCcw
+  Command,
+  Settings,
+  User,
+  Palette
 } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { useTheme } from '@/components/ThemeProvider';
 import { SyncStatusIndicator, type SyncStatus } from '../sync/SyncStatusIndicator';
 import { SettingsModal } from '@/components/modals/SettingsModal';
 import { NotificationsPanel } from '@/components/modals/NotificationsPanel';
 import { UserProfileModal } from '@/components/modals/UserProfileModal';
 
 export function WorkspaceHeader() {
-  const { 
-    toggleSidebar, 
-    currentProject, 
-    theme, 
-    setTheme,
-    selectedModel,
-    modelProvider,
-    layout,
-    toggleFileTree
-  } = useWorkspaceStore();
+  const { theme, setTheme } = useTheme();
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  interface WorkspaceNotification {
+    id: string;
+    title: string;
+    message: string;
+    read: boolean;
+    date: Date;
+  }
+
+  const [notifications, setNotifications] = useState<WorkspaceNotification[]>([
+    {
+      id: '1',
+      title: 'New feature available',
+      message: 'Check out the new AI model selection in settings!',
+      read: false,
+      date: new Date(Date.now() - 1000 * 60 * 30) // 30 minutes ago
+    },
+    {
+      id: '2',
+      title: 'Workspace updated',
+      message: 'Your workspace settings have been updated successfully.',
+      read: true,
+      date: new Date(Date.now() - 1000 * 60 * 60 * 2) // 2 hours ago
+    }
+  ]);
+  
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const { toggleSidebar, currentProject, selectedModel, modelProvider, layout, toggleFileTree } = useWorkspaceStore();
+  const pathname = usePathname();
 
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showCommandPalette, setShowCommandPalette] = useState(false);
@@ -98,9 +119,7 @@ export function WorkspaceHeader() {
   }, []);
 
   const handleThemeToggle = () => {
-    const themes: Array<'light' | 'dark' | 'system'> = ['light', 'dark', 'system'];
-    const currentIndex = themes.indexOf(theme);
-    const nextTheme = themes[(currentIndex + 1) % themes.length];
+    const nextTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(nextTheme);
   };
 
@@ -136,12 +155,7 @@ export function WorkspaceHeader() {
   };
 
   const getThemeIcon = () => {
-    switch (theme) {
-      case 'light': return Sun;
-      case 'dark': return Moon;
-      case 'system': return Monitor;
-      default: return Moon;
-    }
+    return theme === 'light' ? Sun : Moon;
   };
 
   const ThemeIcon = getThemeIcon();
@@ -168,7 +182,7 @@ export function WorkspaceHeader() {
             }`}
             title="Toggle File Tree"
           >
-            <FileText className="w-4 h-4" />
+            <PanelLeft className="w-4 h-4" />
           </button>
 
           {/* Logo/Brand */}
@@ -266,7 +280,7 @@ export function WorkspaceHeader() {
           <button
             onClick={handleThemeToggle}
             className="p-2 hover:bg-accent rounded-md transition-colors"
-            title={`Switch to ${theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'} theme`}
+            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
           >
             <ThemeIcon className="w-4 h-4" />
           </button>

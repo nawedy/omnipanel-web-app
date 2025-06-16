@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { MarketplaceTheme, MarketplaceSearchQuery, MarketplaceSearchResult } from '../marketplace/types';
 import { MarketplaceClient } from '../marketplace/client';
-import { useTheme } from './hooks';
+import { useTheme, useThemeColors } from './hooks';
 
 /**
  * Marketplace Header with OmniPanel Branding
@@ -21,7 +21,7 @@ export const MarketplaceHeader: React.FC<MarketplaceHeaderProps> = ({
   user,
   onUserClick
 }) => {
-  const { colors } = useTheme();
+  const { colors } = useThemeColors();
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleSearch = useCallback((e: React.FormEvent) => {
@@ -57,14 +57,14 @@ export const MarketplaceHeader: React.FC<MarketplaceHeaderProps> = ({
             margin: 0, 
             fontSize: '1.5rem', 
             fontWeight: 600,
-            color: colors?.text?.primary || '#1a202c'
+            color: colors?.semantic?.text?.primary || '#1a202c'
           }}>
             Theme Marketplace
           </h1>
           <p style={{ 
             margin: 0, 
             fontSize: '0.875rem', 
-            color: colors?.text?.secondary || '#718096'
+            color: colors?.semantic?.text?.secondary || '#718096'
           }}>
             Discover and share beautiful themes for OmniPanel
           </p>
@@ -86,7 +86,7 @@ export const MarketplaceHeader: React.FC<MarketplaceHeaderProps> = ({
               borderRadius: '0.5rem',
               fontSize: '0.875rem',
               backgroundColor: colors?.surface?.foreground || '#ffffff',
-              color: colors?.text?.primary || '#1a202c'
+              color: colors?.semantic?.text?.primary || '#1a202c'
             }}
           />
           <button
@@ -98,7 +98,7 @@ export const MarketplaceHeader: React.FC<MarketplaceHeaderProps> = ({
               transform: 'translateY(-50%)',
               background: 'none',
               border: 'none',
-              color: colors?.text?.secondary || '#718096',
+              color: colors?.semantic?.text?.secondary || '#718096',
               cursor: 'pointer',
               padding: '0.25rem'
             }}
@@ -151,7 +151,7 @@ export const MarketplaceHeader: React.FC<MarketplaceHeaderProps> = ({
           )}
           <span style={{ 
             fontSize: '0.875rem', 
-            color: colors?.text?.primary || '#1a202c',
+            color: colors?.semantic?.text?.primary || '#1a202c',
             fontWeight: 500
           }}>
             {user.name}
@@ -167,185 +167,67 @@ export const MarketplaceHeader: React.FC<MarketplaceHeaderProps> = ({
  */
 export interface ThemeCardProps {
   theme: MarketplaceTheme;
-  onInstall?: (themeId: string) => void;
-  onPreview?: (themeId: string) => void;
-  onLike?: (themeId: string) => void;
-  installed?: boolean;
-  liked?: boolean;
+  onInstall: (themeId: string) => void;
+  onPreview: ((theme: MarketplaceTheme) => void) | (() => void);
+  onLike: (themeId: string) => void;
+  isInstalling?: boolean;
 }
 
-export const ThemeCard: React.FC<ThemeCardProps> = ({
-  theme,
-  onInstall,
-  onPreview,
-  onLike,
-  installed = false,
-  liked = false
-}) => {
-  const { colors } = useTheme();
+export function ThemeCard({ theme, onInstall, onPreview, onLike, isInstalling }: ThemeCardProps) {
+  const { colors } = useThemeColors();
 
   return (
-    <div style={{
-      backgroundColor: colors?.surface?.foreground || '#ffffff',
-      border: `1px solid ${colors?.semantic?.border?.default || '#e2e8f0'}`,
-      borderRadius: '0.75rem',
-      overflow: 'hidden',
-      transition: 'all 0.2s',
-      cursor: 'pointer'
-    }}>
-      {/* Theme Preview */}
-      <div style={{ position: 'relative' }}>
+    <div 
+      className="theme-card"
+      style={{
+        backgroundColor: colors?.surface?.card,
+        borderColor: colors?.semantic?.border?.default,
+        color: colors?.semantic?.text?.primary
+      }}
+    >
+      <div className="theme-preview">
         <img 
-          src={theme.metadata.preview || '/assets/theme-placeholder.png'}
+          src={theme.metadata.screenshots?.[0] || theme.metadata.preview} 
           alt={theme.name}
-          style={{
-            width: '100%',
-            height: '200px',
-            objectFit: 'cover'
-          }}
+          onClick={() => onPreview(theme)}
         />
-        <div style={{
-          position: 'absolute',
-          top: '0.5rem',
-          right: '0.5rem',
-          display: 'flex',
-          gap: '0.5rem'
-        }}>
-          {theme.marketplace.featured && (
-            <span style={{
-              backgroundColor: 'rgba(255, 193, 7, 0.9)',
-              color: '#000',
-              padding: '0.25rem 0.5rem',
-              borderRadius: '0.25rem',
-              fontSize: '0.75rem',
-              fontWeight: 600
-            }}>
-              Featured
-            </span>
-          )}
-          {theme.marketplace.verified && (
-            <span style={{
-              backgroundColor: 'rgba(34, 197, 94, 0.9)',
-              color: '#fff',
-              padding: '0.25rem 0.5rem',
-              borderRadius: '0.25rem',
-              fontSize: '0.75rem',
-              fontWeight: 600
-            }}>
-              ✓ Verified
-            </span>
-          )}
+      </div>
+      
+      <div className="theme-info">
+        <h3>{theme.name}</h3>
+        <p>{theme.description}</p>
+        
+        <div className="theme-meta">
+          <span>{theme.metadata.stats?.downloads || theme.metadata.downloads || 0} downloads</span>
+          <span>⭐ {theme.metadata.stats?.rating || theme.metadata.rating || 0}</span>
+        </div>
+        
+        <div className="theme-tags">
+          {(theme.metadata.categories || theme.metadata.tags || []).map((category: string) => (
+            <span key={category} className="tag">{category}</span>
+          ))}
         </div>
       </div>
-
-      {/* Theme Info */}
-      <div style={{ padding: '1rem' }}>
-        <div style={{ marginBottom: '0.5rem' }}>
-          <h3 style={{
-            margin: 0,
-            fontSize: '1.125rem',
-            fontWeight: 600,
-            color: colors?.text?.primary || '#1a202c'
-          }}>
-            {theme.name}
-          </h3>
-          <p style={{
-            margin: 0,
-            fontSize: '0.875rem',
-            color: colors?.text?.secondary || '#718096'
-          }}>
-            by {theme.author}
-          </p>
-        </div>
-
-        <p style={{
-          margin: '0.5rem 0',
-          fontSize: '0.875rem',
-          color: colors?.text?.secondary || '#718096',
-          lineHeight: 1.4,
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden'
-        }}>
-          {theme.description}
-        </p>
-
-        {/* Stats */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem',
-          margin: '0.75rem 0',
-          fontSize: '0.75rem',
-          color: colors?.text?.secondary || '#718096'
-        }}>
-          <span>⭐ {theme.marketplace.stats.rating.toFixed(1)}</span>
-          <span>📥 {theme.marketplace.stats.downloads.toLocaleString()}</span>
-          <span>💬 {theme.marketplace.stats.reviewCount}</span>
-        </div>
-
-        {/* Actions */}
-        <div style={{
-          display: 'flex',
-          gap: '0.5rem',
-          marginTop: '1rem'
-        }}>
-          <button
-            onClick={() => onInstall?.(theme.id)}
-            disabled={installed}
-            style={{
-              flex: 1,
-              padding: '0.5rem 1rem',
-              backgroundColor: installed 
-                ? colors?.semantic?.border?.default || '#e2e8f0'
-                : colors?.primary?.[500] || '#3182ce',
-              color: installed ? colors?.text?.secondary || '#718096' : '#ffffff',
-              border: 'none',
-              borderRadius: '0.375rem',
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              cursor: installed ? 'not-allowed' : 'pointer',
-              transition: 'background-color 0.2s'
-            }}
-          >
-            {installed ? 'Installed' : 'Install'}
-          </button>
-          
-          <button
-            onClick={() => onPreview?.(theme.id)}
-            style={{
-              padding: '0.5rem',
-              backgroundColor: 'transparent',
-              color: colors?.text?.secondary || '#718096',
-              border: `1px solid ${colors?.semantic?.border?.default || '#e2e8f0'}`,
-              borderRadius: '0.375rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-          >
-            👁️
-          </button>
-          
-          <button
-            onClick={() => onLike?.(theme.id)}
-            style={{
-              padding: '0.5rem',
-              backgroundColor: 'transparent',
-              color: liked ? '#ef4444' : colors?.text?.secondary || '#718096',
-              border: `1px solid ${colors?.semantic?.border?.default || '#e2e8f0'}`,
-              borderRadius: '0.375rem',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-          >
-            {liked ? '❤️' : '🤍'}
-          </button>
-        </div>
+      
+      <div className="theme-actions">
+        <button 
+          onClick={() => onInstall(theme.id)}
+          disabled={isInstalling}
+          className="install-btn"
+        >
+          {isInstalling ? 'Installing...' : 'Install'}
+        </button>
+        
+        <button 
+          onClick={() => onLike(theme.id)}
+          className="like-btn"
+        >
+          ❤️ {theme.metadata.stats?.likes || 0}
+        </button>
       </div>
     </div>
   );
-};
+}
 
 /**
  * Marketplace Grid Component
@@ -365,7 +247,7 @@ export const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({
   onThemePreview,
   onThemeLike
 }) => {
-  const { colors } = useTheme();
+  const { colors } = useThemeColors();
   const [themes, setThemes] = useState<MarketplaceTheme[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -385,15 +267,29 @@ export const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({
 
       const result = await client.searchThemes(query);
       
-      if (reset) {
-        setThemes(result.themes);
-        setPage(2);
+      // Handle the actual result structure
+      if (result && typeof result === 'object' && 'themes' in result) {
+        const searchResult = result as any;
+        if (reset) {
+          setThemes(searchResult.themes || []);
+          setPage(2);
+        } else {
+          setThemes(prev => [...prev, ...(searchResult.themes || [])]);
+          setPage(prev => prev + 1);
+        }
+        setHasMore(searchResult.hasMore || false);
       } else {
-        setThemes(prev => [...prev, ...result.themes]);
-        setPage(prev => prev + 1);
+        // If result is directly an array of themes
+        const themes = Array.isArray(result) ? result as unknown as MarketplaceTheme[] : [];
+        if (reset) {
+          setThemes(themes);
+          setPage(2);
+        } else {
+          setThemes(prev => [...prev, ...themes]);
+          setPage(prev => prev + 1);
+        }
+        setHasMore(false);
       }
-      
-      setHasMore(result.hasMore);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load themes');
     } finally {
@@ -412,7 +308,7 @@ export const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '400px',
-        color: colors?.text?.secondary || '#718096'
+        color: colors?.semantic?.text?.secondary || '#718096'
       }}>
         Loading themes...
       </div>
@@ -426,7 +322,7 @@ export const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({
         justifyContent: 'center',
         alignItems: 'center',
         minHeight: '400px',
-        color: colors?.semantic?.error || '#ef4444'
+        color: '#ef4444' // Use direct color since error color path doesn't exist
       }}>
         Error: {error}
       </div>
@@ -445,9 +341,9 @@ export const MarketplaceGrid: React.FC<MarketplaceGridProps> = ({
           <ThemeCard
             key={theme.id}
             theme={theme}
-            onInstall={onThemeInstall}
-            onPreview={onThemePreview}
-            onLike={onThemeLike}
+            onInstall={onThemeInstall || (() => {})}
+            onPreview={onThemePreview ? (theme) => onThemePreview(theme.id) : () => {}}
+            onLike={onThemeLike || (() => {})}
           />
         ))}
       </div>
@@ -505,7 +401,7 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
   onThemeLike,
   onUserClick
 }) => {
-  const { colors } = useTheme();
+  const { colors } = useThemeColors();
   const [searchQuery, setSearchQuery] = useState<MarketplaceSearchQuery>({});
 
   const handleSearch = useCallback((query: string) => {
@@ -532,4 +428,155 @@ export const Marketplace: React.FC<MarketplaceProps> = ({
       />
     </div>
   );
-}; 
+};
+
+// Theme Gallery Component
+interface ThemeGalleryProps {
+  client: MarketplaceClient;
+  onThemeInstall?: (theme: MarketplaceTheme) => void;
+  onThemePreview?: (theme: MarketplaceTheme) => void;
+}
+
+export function ThemeGallery({ client, onThemeInstall, onThemePreview }: ThemeGalleryProps) {
+  const [themes, setThemes] = useState<MarketplaceTheme[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [installingThemes, setInstallingThemes] = useState<Set<string>>(new Set());
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(1);
+
+  const loadThemes = useCallback(async (filters: any = {}, reset = false) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const searchFilters = {
+        ...filters,
+        page: reset ? 1 : page,
+        limit: 12
+      };
+      
+      const results = await client.searchThemes(searchFilters);
+      
+      // Handle the actual result structure
+      if (results && typeof results === 'object' && 'themes' in results) {
+        const searchResult = results as any;
+        if (reset) {
+          setThemes(searchResult.themes || []);
+          setPage(1);
+        } else {
+          setThemes(prev => [...prev, ...(searchResult.themes || [])]);
+        }
+        setHasMore(searchResult.hasMore || false);
+      } else {
+        // If results is directly an array of themes
+        const themes = Array.isArray(results) ? results as unknown as MarketplaceTheme[] : [];
+        if (reset) {
+          setThemes(themes);
+          setPage(1);
+        } else {
+          setThemes(prev => [...prev, ...themes]);
+        }
+        setHasMore(false);
+      }
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load themes');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [client, page]);
+
+  const handleInstall = useCallback(async (themeId: string) => {
+    try {
+      setInstallingThemes(prev => new Set([...prev, themeId]));
+      
+      const theme = await client.installTheme(themeId);
+      
+      if (onThemeInstall) {
+        onThemeInstall(theme as MarketplaceTheme);
+      }
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to install theme');
+    } finally {
+      setInstallingThemes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(themeId);
+        return newSet;
+      });
+    }
+  }, [client, onThemeInstall]);
+
+  const handleLike = useCallback(async (themeId: string) => {
+    try {
+      // TODO: Implement theme liking
+      console.log('Like theme:', themeId);
+    } catch (err) {
+      console.error('Failed to like theme:', err);
+    }
+  }, []);
+
+  const handlePreview = useCallback((theme: MarketplaceTheme) => {
+    if (onThemePreview) {
+      onThemePreview(theme);
+    }
+  }, [onThemePreview]);
+
+  // Provide default handlers to avoid undefined errors
+  const safeInstallHandler = onThemeInstall ? handleInstall : () => {};
+  const safeLikeHandler = handleLike;
+  const safePreviewHandler = onThemePreview ? handlePreview : () => {};
+
+  const loadMore = useCallback(() => {
+    if (!isLoading && hasMore) {
+      setPage(prev => prev + 1);
+      loadThemes({}, false);
+    }
+  }, [isLoading, hasMore, loadThemes]);
+
+  // Initial load
+  useEffect(() => {
+    loadThemes({}, true);
+  }, []);
+
+  // Load more when page changes
+  useEffect(() => {
+    if (page > 1) {
+      loadThemes({}, false);
+    }
+  }, [page]);
+
+  return (
+    <div className="theme-gallery">
+      <div>Search functionality will be implemented</div>
+      
+      {error && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
+      
+      <div className="themes-grid">
+        {themes.map(theme => (
+          <ThemeCard
+            key={theme.id}
+            theme={theme}
+            onInstall={safeInstallHandler}
+            onPreview={safePreviewHandler}
+            onLike={safeLikeHandler}
+            isInstalling={installingThemes.has(theme.id)}
+          />
+        ))}
+      </div>
+      
+      {hasMore && (
+        <div className="load-more">
+          <button onClick={loadMore} disabled={isLoading}>
+            {isLoading ? 'Loading...' : 'Load More'}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+} 

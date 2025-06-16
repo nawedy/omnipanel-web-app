@@ -63,9 +63,9 @@ omnipanel-core/
 - **Frontend**: Next.js, React, TypeScript, Tailwind CSS
 - **Desktop**: Electron with native APIs
 - **Mobile**: React Native with Expo
-- **Backend**: Supabase (PostgreSQL, Auth, Storage, Functions)
+- **Backend**: NeonDB (PostgreSQL, Auth, Storage, Functions)
 - **State**: Zustand for client state management
-- **Real-time**: Supabase Realtime subscriptions
+- **Real-time**: NeonDB real-time subscriptions
 - **Offline**: IndexedDB with automatic sync
 - **UI**: Framer Motion, Monaco Editor, xterm.js
 

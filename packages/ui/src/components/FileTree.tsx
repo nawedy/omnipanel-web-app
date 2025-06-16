@@ -75,7 +75,7 @@ const Tree: React.FC<TreeProps> = ({
         'select-none overflow-hidden rounded-md bg-gray-50 dark:bg-gray-900 p-2',
         className
       )}>
-        {children || <TreeContent elements={elements} />}
+        {children || React.createElement(TreeContent, { elements: elements })}
       </div>
     </TreeContext.Provider>
   );
@@ -85,7 +85,7 @@ const TreeContent: React.FC<{ elements: TreeElement[] }> = ({ elements }) => {
   return (
     <div className="space-y-1">
       {elements.map((element) => (
-        <TreeItem key={element.id} element={element} />
+        React.createElement(TreeItem, { key: element.id, element: element })
       ))}
     </div>
   );
@@ -140,7 +140,7 @@ const TreeItem: React.FC<{ element: TreeElement; depth?: number }> = ({
             animate={{ rotate: isExpanded ? 90 : 0 }}
             transition={{ duration: 0.2 }}
           >
-            <ChevronRight className="w-3 h-3" />
+            {React.createElement(ChevronRight, { className: "w-3 h-3" })}
           </motion.button>
         )}
         
@@ -148,9 +148,9 @@ const TreeItem: React.FC<{ element: TreeElement; depth?: number }> = ({
         <div className="flex-shrink-0 w-4 h-4 text-gray-600 dark:text-gray-400">
           {element.icon || (
             isFolder ? (
-              isExpanded ? <FolderOpen className="w-4 h-4" /> : <FolderIcon className="w-4 h-4" />
+              isExpanded ? React.createElement(FolderOpen, { className: "w-4 h-4" }) : React.createElement(FolderIcon, { className: "w-4 h-4" })
             ) : (
-              <FileIcon className="w-4 h-4" />
+              React.createElement(FileIcon, { className: "w-4 h-4" })
             )
           )}
         </div>
@@ -173,7 +173,7 @@ const TreeItem: React.FC<{ element: TreeElement; depth?: number }> = ({
           >
             <div className="ml-4 border-l border-gray-200 dark:border-gray-700 pl-2">
               {element.children!.map((child) => (
-                <TreeItem key={child.id} element={child} depth={depth + 1} />
+                React.createElement(TreeItem, { key: child.id, element: child, depth: depth + 1 })
               ))}
             </div>
           </motion.div>
@@ -207,10 +207,10 @@ export const Folder: React.FC<{
           animate={{ rotate: isExpanded ? 90 : 0 }}
           transition={{ duration: 0.2 }}
         >
-          <ChevronRight className="w-4 h-4 text-gray-500" />
+          {React.createElement(ChevronRight, { className: "w-4 h-4 text-gray-500" })}
         </motion.div>
         <div className="w-4 h-4 text-yellow-600">
-          {isExpanded ? <FolderOpen className="w-4 h-4" /> : <FolderIcon className="w-4 h-4" />}
+          {isExpanded ? React.createElement(FolderOpen, { className: "w-4 h-4" }) : React.createElement(FolderIcon, { className: "w-4 h-4" })}
         </div>
         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
           {element}
@@ -256,7 +256,7 @@ export const File: React.FC<{
       whileTap={{ scale: 0.99 }}
     >
       <div className="w-4 h-4 text-gray-600 dark:text-gray-400">
-        <FileIcon className="w-4 h-4" />
+        {React.createElement(FileIcon, { className: "w-4 h-4" })}
       </div>
       <div className="text-sm text-gray-700 dark:text-gray-300">
         {children}

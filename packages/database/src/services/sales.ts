@@ -1,556 +1,284 @@
-// omnipanel-core/packages/database/src/services/sales.ts
-// Database services for sales, products, subscriptions, and affiliate management
+// packages/database/src/services/sales.ts
+// Sales database service operations
 
-import { neonClient } from '../neon-client';
-import type {
-  Product,
-  PricingTier,
-  Subscription,
-  Sale,
-  Affiliate,
-  AffiliateReferral,
-  CreateProductInput,
-  CreatePricingTierInput,
-  CreateSubscriptionInput,
-  CreateSaleInput,
-  CreateAffiliateInput,
-  UpdateProductInput,
-  UpdateSubscriptionInput,
-  UpdateAffiliateInput,
-  SalesMetrics,
-  ProductMetrics,
-  AffiliateMetrics
-} from '@omnipanel/types';
+import { getNeonClient, extractFirstRow, extractRows } from '../client';
+import type { DatabaseConfig } from '@omnipanel/config';
+
+// Basic sales interfaces
+export interface Sale {
+  id: string;
+  customer_id: string;
+  product_id: string;
+  amount: number;
+  currency: string;
+  status: string;
+  payment_method: string;
+  transaction_id?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Customer {
+  id: string;
+  email: string;
+  name: string;
+  phone?: string;
+  company?: string;
+  address?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  currency: string;
+  category: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SalesMetrics {
+  total_sales: number;
+  total_revenue: number;
+  average_order_value: number;
+  conversion_rate: number;
+  period_start: string;
+  period_end: string;
+}
 
 export class SalesService {
-  // ============================
-  // PRODUCT OPERATIONS
-  // ============================
+  private client: ReturnType<typeof getNeonClient>;
 
-  async createProduct(data: CreateProductInput): Promise<Product> {
-    const sql = `
-      INSERT INTO products (
-        name, slug, description, product_type, pricing_model,
-        base_price, currency, billing_interval, trial_days,
-        features, metadata
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING *
-    `;
-
-    const values = [
-      data.name,
-      data.slug,
-      data.description,
-      data.product_type,
-      data.pricing_model,
-      data.base_price,
-      data.currency || 'USD',
-      data.billing_interval,
-      data.trial_days || 0,
-      JSON.stringify(data.features || []),
-      JSON.stringify(data.metadata || {})
-    ];
-
-    const result = await neonClient.query(sql, values);
-    return result.rows[0] as Product;
+  constructor(config?: DatabaseConfig) {
+    this.client = getNeonClient(config);
   }
 
-  async updateProduct(id: string, data: UpdateProductInput): Promise<Product> {
-    const updateFields: string[] = [];
-    const values: any[] = [];
-    let paramCount = 1;
-
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined) {
-        if (key === 'features' || key === 'metadata') {
-          updateFields.push(`${key} = $${paramCount}`);
-          values.push(JSON.stringify(value));
-        } else {
-          updateFields.push(`${key} = $${paramCount}`);
-          values.push(value);
-        }
-        paramCount++;
-      }
-    });
-
-    updateFields.push('updated_at = NOW()');
-    values.push(id);
-
-    const sql = `
-      UPDATE products 
-      SET ${updateFields.join(', ')}
-      WHERE id = $${paramCount}
-      RETURNING *
-    `;
-
-    const result = await neonClient.query(sql, values);
-    return result.rows[0] as Product;
+  // Sale operations
+  async createSale(saleData: Omit<Sale, 'id' | 'created_at' | 'updated_at'>): Promise<Sale> {
+    const result = await this.client(
+      `INSERT INTO sales (customer_id, product_id, amount, currency, status, payment_method, transaction_id, notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+      [
+        saleData.customer_id,
+        saleData.product_id,
+        saleData.amount,
+        saleData.currency,
+        saleData.status,
+        saleData.payment_method,
+        saleData.transaction_id,
+        saleData.notes
+      ]
+    );
+    return extractFirstRow(result) as unknown as Sale;
   }
 
-  async getProduct(id: string): Promise<Product | null> {
-    const sql = 'SELECT * FROM products WHERE id = $1';
-    const result = await neonClient.query(sql, [id]);
-    return result.rows[0] as Product || null;
+  async getSaleById(id: string): Promise<Sale | null> {
+    const result = await this.client('SELECT * FROM sales WHERE id = $1', [id]);
+    return extractFirstRow(result) as unknown as Sale | null;
   }
 
-  async getProductBySlug(slug: string): Promise<Product | null> {
-    const sql = 'SELECT * FROM products WHERE slug = $1 AND is_active = true';
-    const result = await neonClient.query(sql, [slug]);
-    return result.rows[0] as Product || null;
+  async getSalesByCustomer(customerId: string): Promise<Sale[]> {
+    const result = await this.client(
+      'SELECT * FROM sales WHERE customer_id = $1 ORDER BY created_at DESC',
+      [customerId]
+    );
+    return extractRows(result) as unknown as Sale[];
   }
 
-  async listProducts(activeOnly: boolean = true): Promise<Product[]> {
-    let sql = 'SELECT * FROM products';
-    if (activeOnly) {
-      sql += ' WHERE is_active = true';
-    }
-    sql += ' ORDER BY created_at DESC';
-
-    const result = await neonClient.query(sql);
-    return result.rows as Product[];
+  async updateSale(id: string, updates: Partial<Omit<Sale, 'id' | 'created_at' | 'updated_at'>>): Promise<Sale> {
+    const setClause = Object.keys(updates)
+      .map((key, index) => `${key} = $${index + 2}`)
+      .join(', ');
+    
+    const values = [id, ...Object.values(updates)];
+    
+    const result = await this.client(
+      `UPDATE sales SET ${setClause}, updated_at = NOW() WHERE id = $1 RETURNING *`,
+      values
+    );
+    return extractFirstRow(result) as unknown as Sale;
   }
 
-  // ============================
-  // PRICING TIER OPERATIONS
-  // ============================
-
-  async createPricingTier(data: CreatePricingTierInput): Promise<PricingTier> {
-    const sql = `
-      INSERT INTO pricing_tiers (
-        product_id, name, slug, price, billing_interval,
-        features, limits, is_popular, sort_order
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING *
-    `;
-
-    const values = [
-      data.product_id,
-      data.name,
-      data.slug,
-      data.price,
-      data.billing_interval,
-      JSON.stringify(data.features || []),
-      JSON.stringify(data.limits || {}),
-      data.is_popular || false,
-      data.sort_order || 0
-    ];
-
-    const result = await neonClient.query(sql, values);
-    return result.rows[0] as PricingTier;
+  async deleteSale(id: string): Promise<void> {
+    await this.client('DELETE FROM sales WHERE id = $1', [id]);
   }
 
-  async getPricingTier(id: string): Promise<PricingTier | null> {
-    const sql = 'SELECT * FROM pricing_tiers WHERE id = $1';
-    const result = await neonClient.query(sql, [id]);
-    return result.rows[0] as PricingTier || null;
+  // Customer operations
+  async createCustomer(customerData: Omit<Customer, 'id' | 'created_at' | 'updated_at'>): Promise<Customer> {
+    const result = await this.client(
+      `INSERT INTO customers (email, name, phone, company, address)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [
+        customerData.email,
+        customerData.name,
+        customerData.phone,
+        customerData.company,
+        customerData.address
+      ]
+    );
+    return extractFirstRow(result) as unknown as Customer;
   }
 
-  async listPricingTiers(productId: string, activeOnly: boolean = true): Promise<PricingTier[]> {
-    let sql = 'SELECT * FROM pricing_tiers WHERE product_id = $1';
-    if (activeOnly) {
-      sql += ' AND is_active = true';
-    }
-    sql += ' ORDER BY sort_order ASC, price ASC';
-
-    const result = await neonClient.query(sql, [productId]);
-    return result.rows as PricingTier[];
+  async getCustomerById(id: string): Promise<Customer | null> {
+    const result = await this.client('SELECT * FROM customers WHERE id = $1', [id]);
+    return extractFirstRow(result) as unknown as Customer | null;
   }
 
-  // ============================
-  // SUBSCRIPTION OPERATIONS
-  // ============================
-
-  async createSubscription(data: CreateSubscriptionInput): Promise<Subscription> {
-    const sql = `
-      INSERT INTO subscriptions (
-        user_id, product_id, pricing_tier_id, stripe_subscription_id,
-        status, trial_start, trial_end, metadata
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-      RETURNING *
-    `;
-
-    const values = [
-      data.user_id,
-      data.product_id,
-      data.pricing_tier_id,
-      data.stripe_subscription_id,
-      'trialing', // Default status
-      data.trial_start,
-      data.trial_end,
-      JSON.stringify(data.metadata || {})
-    ];
-
-    const result = await neonClient.query(sql, values);
-    return result.rows[0] as Subscription;
+  async getCustomerByEmail(email: string): Promise<Customer | null> {
+    const result = await this.client('SELECT * FROM customers WHERE email = $1', [email]);
+    return extractFirstRow(result) as unknown as Customer | null;
   }
 
-  async updateSubscription(id: string, data: UpdateSubscriptionInput): Promise<Subscription> {
-    const updateFields: string[] = [];
-    const values: any[] = [];
-    let paramCount = 1;
-
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined) {
-        if (key === 'metadata') {
-          updateFields.push(`${key} = $${paramCount}`);
-          values.push(JSON.stringify(value));
-        } else {
-          updateFields.push(`${key} = $${paramCount}`);
-          values.push(value);
-        }
-        paramCount++;
-      }
-    });
-
-    updateFields.push('updated_at = NOW()');
-    values.push(id);
-
-    const sql = `
-      UPDATE subscriptions 
-      SET ${updateFields.join(', ')}
-      WHERE id = $${paramCount}
-      RETURNING *
-    `;
-
-    const result = await neonClient.query(sql, values);
-    return result.rows[0] as Subscription;
+  async updateCustomer(id: string, updates: Partial<Omit<Customer, 'id' | 'created_at' | 'updated_at'>>): Promise<Customer> {
+    const setClause = Object.keys(updates)
+      .map((key, index) => `${key} = $${index + 2}`)
+      .join(', ');
+    
+    const values = [id, ...Object.values(updates)];
+    
+    const result = await this.client(
+      `UPDATE customers SET ${setClause}, updated_at = NOW() WHERE id = $1 RETURNING *`,
+      values
+    );
+    return extractFirstRow(result) as unknown as Customer;
   }
 
-  async getSubscription(id: string): Promise<Subscription | null> {
-    const sql = 'SELECT * FROM subscriptions WHERE id = $1';
-    const result = await neonClient.query(sql, [id]);
-    return result.rows[0] as Subscription || null;
+  // Product operations
+  async createProduct(productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<Product> {
+    const result = await this.client(
+      `INSERT INTO products (name, description, price, currency, category, status)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [
+        productData.name,
+        productData.description,
+        productData.price,
+        productData.currency,
+        productData.category,
+        productData.status
+      ]
+    );
+    return extractFirstRow(result) as unknown as Product;
   }
 
-  async getUserSubscriptions(userId: string): Promise<Subscription[]> {
-    const sql = `
-      SELECT s.*, p.name as product_name, pt.name as tier_name
-      FROM subscriptions s
-      JOIN products p ON s.product_id = p.id
-      JOIN pricing_tiers pt ON s.pricing_tier_id = pt.id
-      WHERE s.user_id = $1
-      ORDER BY s.created_at DESC
-    `;
-
-    const result = await neonClient.query(sql, [userId]);
-    return result.rows as Subscription[];
+  async getProductById(id: string): Promise<Product | null> {
+    const result = await this.client('SELECT * FROM products WHERE id = $1', [id]);
+    return extractFirstRow(result) as unknown as Product | null;
   }
 
-  async getActiveSubscription(userId: string, productId?: string): Promise<Subscription | null> {
-    let sql = `
-      SELECT * FROM subscriptions 
-      WHERE user_id = $1 AND status IN ('active', 'trialing')
-    `;
-    const values = [userId];
-
-    if (productId) {
-      sql += ' AND product_id = $2';
-      values.push(productId);
-    }
-
-    sql += ' ORDER BY created_at DESC LIMIT 1';
-
-    const result = await neonClient.query(sql, values);
-    return result.rows[0] as Subscription || null;
+  async getAllProducts(): Promise<Product[]> {
+    const result = await this.client('SELECT * FROM products ORDER BY name');
+    return extractRows(result) as unknown as Product[];
   }
 
-  // ============================
-  // SALES OPERATIONS
-  // ============================
-
-  async createSale(data: CreateSaleInput): Promise<Sale> {
-    const sql = `
-      INSERT INTO sales (
-        user_id, lead_id, subscription_id, product_id, pricing_tier_id,
-        affiliate_id, campaign_id, amount, currency, commission_amount,
-        tax_amount, discount_amount, net_amount, payment_method,
-        payment_status, transaction_type, utm_data, metadata,
-        stripe_payment_intent_id, stripe_charge_id
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
-      ) RETURNING *
-    `;
-
-    const netAmount = data.amount - (data.tax_amount || 0) - (data.discount_amount || 0);
-
-    const values = [
-      data.user_id,
-      data.lead_id,
-      data.subscription_id,
-      data.product_id,
-      data.pricing_tier_id,
-      data.affiliate_id,
-      data.campaign_id,
-      data.amount,
-      data.currency || 'USD',
-      data.commission_amount || 0,
-      data.tax_amount || 0,
-      data.discount_amount || 0,
-      netAmount,
-      data.payment_method,
-      'pending',
-      data.transaction_type,
-      JSON.stringify(data.utm_data || {}),
-      JSON.stringify(data.metadata || {}),
-      data.stripe_payment_intent_id,
-      data.stripe_charge_id
-    ];
-
-    const result = await neonClient.query(sql, values);
-    return result.rows[0] as Sale;
+  async updateProduct(id: string, updates: Partial<Omit<Product, 'id' | 'created_at' | 'updated_at'>>): Promise<Product> {
+    const setClause = Object.keys(updates)
+      .map((key, index) => `${key} = $${index + 2}`)
+      .join(', ');
+    
+    const values = [id, ...Object.values(updates)];
+    
+    const result = await this.client(
+      `UPDATE products SET ${setClause}, updated_at = NOW() WHERE id = $1 RETURNING *`,
+      values
+    );
+    return extractFirstRow(result) as unknown as Product;
   }
 
-  async updateSaleStatus(id: string, status: Sale['payment_status']): Promise<Sale> {
-    const sql = `
-      UPDATE sales 
-      SET payment_status = $1, updated_at = NOW()
-      WHERE id = $2
-      RETURNING *
-    `;
-
-    const result = await neonClient.query(sql, [status, id]);
-    return result.rows[0] as Sale;
+  // Analytics and reporting
+  async getSalesMetrics(startDate: string, endDate: string): Promise<SalesMetrics> {
+    const result = await this.client(
+      `SELECT 
+         COUNT(*) as total_sales,
+         COALESCE(SUM(amount), 0) as total_revenue,
+         COALESCE(AVG(amount), 0) as average_order_value,
+         $1 as period_start,
+         $2 as period_end
+       FROM sales 
+       WHERE created_at >= $1 AND created_at <= $2 AND status = 'completed'`,
+      [startDate, endDate]
+    );
+    
+    const row = extractFirstRow(result) as any;
+    return {
+      total_sales: parseInt(row?.total_sales || '0'),
+      total_revenue: parseFloat(row?.total_revenue || '0'),
+      average_order_value: parseFloat(row?.average_order_value || '0'),
+      conversion_rate: 0, // Would need additional data to calculate
+      period_start: startDate,
+      period_end: endDate
+    };
   }
 
-  async getSale(id: string): Promise<Sale | null> {
-    const sql = 'SELECT * FROM sales WHERE id = $1';
-    const result = await neonClient.query(sql, [id]);
-    return result.rows[0] as Sale || null;
+  async getTopProducts(limit = 10): Promise<Array<Product & { sales_count: number; total_revenue: number }>> {
+    const result = await this.client(
+      `SELECT 
+         p.*,
+         COUNT(s.id) as sales_count,
+         COALESCE(SUM(s.amount), 0) as total_revenue
+       FROM products p
+       LEFT JOIN sales s ON p.id = s.product_id AND s.status = 'completed'
+       GROUP BY p.id
+       ORDER BY total_revenue DESC, sales_count DESC
+       LIMIT $1`,
+      [limit]
+    );
+    
+    return extractRows(result).map((row: Record<string, unknown>) => ({
+      ...row,
+      sales_count: parseInt(row.sales_count as string || '0'),
+      total_revenue: parseFloat(row.total_revenue as string || '0')
+    })) as unknown as Array<Product & { sales_count: number; total_revenue: number }>;
   }
 
-  async getUserSales(userId: string): Promise<Sale[]> {
-    const sql = `
-      SELECT s.*, p.name as product_name
-      FROM sales s
-      JOIN products p ON s.product_id = p.id
-      WHERE s.user_id = $1
-      ORDER BY s.created_at DESC
-    `;
-
-    const result = await neonClient.query(sql, [userId]);
-    return result.rows as Sale[];
+  async getTopCustomers(limit = 10): Promise<Array<Customer & { total_spent: number; order_count: number }>> {
+    const result = await this.client(
+      `SELECT 
+         c.*,
+         COUNT(s.id) as order_count,
+         COALESCE(SUM(s.amount), 0) as total_spent
+       FROM customers c
+       LEFT JOIN sales s ON c.id = s.customer_id AND s.status = 'completed'
+       GROUP BY c.id
+       ORDER BY total_spent DESC, order_count DESC
+       LIMIT $1`,
+      [limit]
+    );
+    
+    return extractRows(result).map((row: Record<string, unknown>) => ({
+      ...row,
+      order_count: parseInt(row.order_count as string || '0'),
+      total_spent: parseFloat(row.total_spent as string || '0')
+    })) as unknown as Array<Customer & { total_spent: number; order_count: number }>;
   }
 
-  // ============================
-  // AFFILIATE OPERATIONS
-  // ============================
-
-  async createAffiliate(data: CreateAffiliateInput): Promise<Affiliate> {
-    const sql = `
-      INSERT INTO affiliates (
-        user_id, affiliate_code, company_name, contact_email,
-        contact_name, website_url, commission_rate, commission_type,
-        payment_terms
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING *
-    `;
-
-    const values = [
-      data.user_id,
-      data.affiliate_code,
-      data.company_name,
-      data.contact_email,
-      data.contact_name,
-      data.website_url,
-      data.commission_rate || 0.10,
-      data.commission_type || 'percentage',
-      data.payment_terms || 'monthly'
-    ];
-
-    const result = await neonClient.query(sql, values);
-    return result.rows[0] as Affiliate;
+  async searchSales(searchTerm: string, limit = 50): Promise<Sale[]> {
+    const result = await this.client(
+      `SELECT s.* FROM sales s
+       JOIN customers c ON s.customer_id = c.id
+       JOIN products p ON s.product_id = p.id
+       WHERE c.email ILIKE $1 OR c.name ILIKE $1 OR p.name ILIKE $1 OR s.transaction_id ILIKE $1
+       ORDER BY s.created_at DESC
+       LIMIT $2`,
+      [`%${searchTerm}%`, limit]
+    );
+    return extractRows(result) as unknown as Sale[];
   }
 
-  async updateAffiliate(id: string, data: UpdateAffiliateInput): Promise<Affiliate> {
-    const updateFields: string[] = [];
-    const values: any[] = [];
-    let paramCount = 1;
-
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined) {
-        if (key === 'metadata') {
-          updateFields.push(`${key} = $${paramCount}`);
-          values.push(JSON.stringify(value));
-        } else {
-          updateFields.push(`${key} = $${paramCount}`);
-          values.push(value);
-        }
-        paramCount++;
-      }
-    });
-
-    updateFields.push('updated_at = NOW()');
-    values.push(id);
-
-    const sql = `
-      UPDATE affiliates 
-      SET ${updateFields.join(', ')}
-      WHERE id = $${paramCount}
-      RETURNING *
-    `;
-
-    const result = await neonClient.query(sql, values);
-    return result.rows[0] as Affiliate;
-  }
-
-  async getAffiliate(id: string): Promise<Affiliate | null> {
-    const sql = 'SELECT * FROM affiliates WHERE id = $1';
-    const result = await neonClient.query(sql, [id]);
-    return result.rows[0] as Affiliate || null;
-  }
-
-  async getAffiliateByCode(code: string): Promise<Affiliate | null> {
-    const sql = 'SELECT * FROM affiliates WHERE affiliate_code = $1 AND status = \'active\'';
-    const result = await neonClient.query(sql, [code]);
-    return result.rows[0] as Affiliate || null;
-  }
-
-  async createAffiliateReferral(affiliateId: string, data: {
-    lead_id?: string;
-    user_id?: string;
-    referral_code?: string;
-    ip_address?: string;
-    user_agent?: string;
-    referrer_url?: string;
-    landing_url?: string;
-    utm_data?: Record<string, any>;
-  }): Promise<AffiliateReferral> {
-    const sql = `
-      INSERT INTO affiliate_referrals (
-        affiliate_id, lead_id, user_id, referral_code,
-        ip_address, user_agent, referrer_url, landing_url, utm_data
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING *
-    `;
-
-    const values = [
-      affiliateId,
-      data.lead_id,
-      data.user_id,
-      data.referral_code,
-      data.ip_address,
-      data.user_agent,
-      data.referrer_url,
-      data.landing_url,
-      JSON.stringify(data.utm_data || {})
-    ];
-
-    const result = await neonClient.query(sql, values);
-    return result.rows[0] as AffiliateReferral;
-  }
-
-  // ============================
-  // ANALYTICS & METRICS
-  // ============================
-
-  async getSalesMetrics(dateRange?: { start: Date; end: Date }): Promise<SalesMetrics> {
-    let dateFilter = '';
-    const values: any[] = [];
-
-    if (dateRange) {
-      dateFilter = 'WHERE created_at >= $1 AND created_at <= $2';
-      values.push(dateRange.start, dateRange.end);
-    }
-
-    const sql = `
-      SELECT 
-        COALESCE(SUM(net_amount), 0) as total_revenue,
-        COUNT(*) as total_sales,
-        CASE 
-          WHEN COUNT(*) > 0 THEN ROUND(AVG(net_amount), 2)
-          ELSE 0 
-        END as average_order_value,
-        0 as conversion_rate,
-        0 as monthly_recurring_revenue,
-        0 as annual_recurring_revenue,
-        0 as churn_rate,
-        0 as customer_lifetime_value
-      FROM sales 
-      WHERE payment_status = 'succeeded'
-      ${dateFilter}
-    `;
-
-    const result = await neonClient.query(sql, values);
-    return result.rows[0] as SalesMetrics;
-  }
-
-  async getProductMetrics(productId: string): Promise<ProductMetrics> {
-    const sql = `
-      SELECT 
-        $1 as product_id,
-        COUNT(*) as total_sales,
-        COALESCE(SUM(net_amount), 0) as total_revenue,
-        (
-          SELECT COUNT(*) 
-          FROM subscriptions 
-          WHERE product_id = $1 AND status IN ('active', 'trialing')
-        ) as active_subscriptions,
-        0 as conversion_rate,
-        CASE 
-          WHEN COUNT(DISTINCT user_id) > 0 THEN 
-            ROUND(SUM(net_amount) / COUNT(DISTINCT user_id), 2)
-          ELSE 0 
-        END as average_revenue_per_user
-      FROM sales 
-      WHERE product_id = $1 AND payment_status = 'succeeded'
-    `;
-
-    const result = await neonClient.query(sql, [productId]);
-    return result.rows[0] as ProductMetrics;
-  }
-
-  async getAffiliateMetrics(affiliateId: string): Promise<AffiliateMetrics> {
-    const sql = `
-      SELECT 
-        $1 as affiliate_id,
-        COUNT(ar.*) as total_clicks,
-        COUNT(CASE WHEN ar.status = 'converted' THEN 1 END) as total_conversions,
-        CASE 
-          WHEN COUNT(ar.*) > 0 THEN 
-            ROUND((COUNT(CASE WHEN ar.status = 'converted' THEN 1 END)::decimal / COUNT(ar.*)::decimal) * 100, 2)
-          ELSE 0 
-        END as conversion_rate,
-        COALESCE(SUM(s.commission_amount), 0) as total_commission_earned,
-        COALESCE(SUM(CASE WHEN ar.status = 'credited' THEN s.commission_amount ELSE 0 END), 0) as commission_pending,
-        COALESCE(SUM(CASE WHEN ar.status = 'paid' THEN s.commission_amount ELSE 0 END), 0) as commission_paid
-      FROM affiliate_referrals ar
-      LEFT JOIN sales s ON (ar.user_id = s.user_id OR ar.lead_id = s.lead_id)
-      WHERE ar.affiliate_id = $1
-    `;
-
-    const result = await neonClient.query(sql, [affiliateId]);
-    return result.rows[0] as AffiliateMetrics;
-  }
-
-  async getTopProducts(limit: number = 10): Promise<Product[]> {
-    const sql = `
-      SELECT p.*, COUNT(s.id) as sale_count, SUM(s.net_amount) as total_revenue
-      FROM products p
-      LEFT JOIN sales s ON p.id = s.product_id AND s.payment_status = 'succeeded'
-      WHERE p.is_active = true
-      GROUP BY p.id
-      ORDER BY total_revenue DESC NULLS LAST, sale_count DESC
-      LIMIT $1
-    `;
-
-    const result = await neonClient.query(sql, [limit]);
-    return result.rows as Product[];
-  }
-
-  async getRevenueByMonth(months: number = 12): Promise<Array<{ month: string; revenue: number; sales: number }>> {
-    const sql = `
-      SELECT 
-        TO_CHAR(created_at, 'YYYY-MM') as month,
-        SUM(net_amount) as revenue,
-        COUNT(*) as sales
-      FROM sales 
-      WHERE payment_status = 'succeeded' 
-        AND created_at >= NOW() - INTERVAL '${months} months'
-      GROUP BY TO_CHAR(created_at, 'YYYY-MM')
-      ORDER BY month DESC
-    `;
-
-    const result = await neonClient.query(sql);
-    return result.rows as Array<{ month: string; revenue: number; sales: number }>;
+  async getSalesByDateRange(startDate: string, endDate: string): Promise<Sale[]> {
+    const result = await this.client(
+      `SELECT * FROM sales 
+       WHERE created_at >= $1 AND created_at <= $2
+       ORDER BY created_at DESC`,
+      [startDate, endDate]
+    );
+    return extractRows(result) as unknown as Sale[];
   }
 } 

@@ -8,6 +8,17 @@ const nextConfig = {
   experimental: {
     typedRoutes: false,
   },
+  // Enable transpilation of custom packages
+  transpilePackages: [
+    '@omnipanel/types',
+    '@omnipanel/config', 
+    '@omnipanel/database',
+    '@omnipanel/ui',
+    '@omnipanel/llm-adapters',
+    '@omnipanel/core',
+    '@omnipanel/theme-engine',
+    '@omnipanel/plugin-sdk'
+  ],
   // Simplify image configuration
   images: {
     domains: [

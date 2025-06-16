@@ -36,7 +36,7 @@ const IconCloud: React.FC<IconCloudProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [items, setItems] = useState<CloudItem[]>([]);
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
 
   const speedMultiplier = {
     slow: 0.3,

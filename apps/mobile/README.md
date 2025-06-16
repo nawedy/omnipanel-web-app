@@ -5,7 +5,7 @@ A full-featured React Native/Expo mobile app for the OmniPanel AI workspace.
 ## Features
 
 - **Cross-platform**: iOS and Android support
-- **Real-time sync**: Seamless data synchronization with Supabase
+- **Real-time sync**: Seamless data synchronization with NeonDB
 - **Multi-model AI**: Support for multiple LLM providers
 - **Offline-first**: Works without internet connection
 - **Biometric auth**: Face ID/Touch ID support
@@ -19,11 +19,11 @@ A full-featured React Native/Expo mobile app for the OmniPanel AI workspace.
 - **Framework**: React Native with Expo
 - **Navigation**: Expo Router (file-based routing)
 - **State Management**: Zustand + React Context
-- **Backend**: Supabase (Auth, Database, Storage, Real-time)
+- **Backend**: NeonDB (Auth, Database, Storage, Real-time)
 - **Styling**: StyleSheet with dynamic theming
 - **Icons**: Lucide React Native
 - **Storage**: Expo SecureStore + AsyncStorage
-- **Authentication**: Supabase Auth with biometric support
+- **Authentication**: Stack Auth with biometric support
 
 ## Prerequisites
 
@@ -46,8 +46,8 @@ npm install
 Create a `.env` file in the mobile app root:
 
 ```env
-EXPO_PUBLIC_SUPABASE_URL=your_supabase_url
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+EXPO_PUBLIC_NEON_DATABASE_URL=your_neon_database_url
+EXPO_PUBLIC_STACK_PROJECT_ID=your_stack_project_id
 ```
 
 ### 3. Development
@@ -110,13 +110,13 @@ assets/                 # Static assets
 ## Key Features Implementation
 
 ### Authentication
-- Supabase Auth with email/password
+- Stack Auth with email/password
 - Biometric authentication (Face ID/Touch ID)
 - Secure token storage with Expo SecureStore
 - Offline authentication fallback
 
 ### Real-time Sync
-- Supabase real-time subscriptions
+- NeonDB real-time subscriptions
 - Optimistic updates for better UX
 - Conflict resolution for offline changes
 - Background sync when app becomes active

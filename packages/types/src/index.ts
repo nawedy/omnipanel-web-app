@@ -82,6 +82,9 @@ export * from './files';
 // API types
 export * from './api';
 
+// Project types
+export * from './projects';
+
 // Export comprehensive LLM adapter types (these are the primary AI types)
 export * from './llm-adapters';
 

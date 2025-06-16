@@ -1,5 +1,5 @@
 import { MarketplaceTheme, ThemeSubmission, MarketplaceCategory } from './types';
-import { Theme } from '../types';
+import { Theme, ColorSystem, TypographySystem, SpacingSystem } from '../types';
 import { ThemeValidator } from '../validator';
 
 /**
@@ -10,64 +10,40 @@ import { ThemeValidator } from '../validator';
 /**
  * Validate a theme for marketplace submission
  */
-export function validateMarketplaceTheme(theme: Theme): {
-  valid: boolean;
-  errors: string[];
-  warnings: string[];
-} {
-  const validator = new ThemeValidator();
-  const validation = validator.validate(theme);
-  
+export function validateThemeForMarketplace(theme: Theme): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
-  const warnings: string[] = [];
 
-  // Add validation errors
-  if (!validation.valid) {
-    errors.push(...validation.errors.map(e => e.message));
-  }
+  // Required fields
+  if (!theme.name?.trim()) errors.push('Theme name is required');
+  if (!theme.description?.trim()) errors.push('Theme description is required');
+  if (!theme.author?.trim()) errors.push('Theme author is required');
+  if (!theme.version?.trim()) errors.push('Theme version is required');
 
-  // Marketplace-specific validations
-  if (!theme.name || theme.name.trim().length < 3) {
-    errors.push('Theme name must be at least 3 characters long');
-  }
-
-  if (!theme.description || theme.description.trim().length < 10) {
-    errors.push('Theme description must be at least 10 characters long');
-  }
-
-  if (!theme.author) {
-    errors.push('Theme must have an author');
-  }
-
-  if (!theme.version) {
-    errors.push('Theme must have a version');
-  }
-
-  // Check for required colors
-  const requiredColors = ['primary', 'secondary', 'surface', 'text'];
-  for (const colorKey of requiredColors) {
-    if (!theme.colors[colorKey]) {
-      errors.push(`Theme must define ${colorKey} colors`);
+  // Color system validation
+  if (!theme.colors) {
+    errors.push('Color system is required');
+  } else {
+    const requiredColors = ['primary', 'secondary', 'accent', 'neutral'];
+    for (const colorKey of requiredColors) {
+      if (!theme.colors[colorKey as keyof ColorSystem]) {
+        errors.push(`${colorKey} color palette is required`);
+      }
     }
   }
 
-  // Warnings for best practices
-  if (!theme.metadata?.preview) {
-    warnings.push('Consider adding a preview image for better discovery');
+  // Typography validation
+  if (!theme.typography?.fonts) {
+    errors.push('Typography system with fonts is required');
   }
 
-  if (!theme.metadata?.tags?.length) {
-    warnings.push('Consider adding tags for better searchability');
-  }
-
-  if (theme.name.length > 50) {
-    warnings.push('Theme name is quite long, consider shortening it');
+  // Spacing validation
+  if (!theme.spacing?.scale) {
+    errors.push('Spacing system with scale is required');
   }
 
   return {
     valid: errors.length === 0,
-    errors,
-    warnings
+    errors
   };
 }
 
@@ -206,7 +182,7 @@ export function generateThemeTags(theme: Theme): string[] {
     tags.push('animated');
   }
 
-  if (theme.typography?.fontFamily?.includes('mono')) {
+  if (theme.typography?.fonts?.mono) {
     tags.push('developer');
   }
 
@@ -252,25 +228,18 @@ function isThemeDark(theme: Theme): boolean {
 /**
  * Create theme submission from theme
  */
-export function createThemeSubmission(
-  theme: Theme,
-  metadata: {
-    category: MarketplaceCategory;
-    pricing: 'free' | 'premium';
-    price?: number;
-    tags?: string[];
-  }
-): ThemeSubmission {
+export function createThemeSubmission(theme: Theme, metadata: {
+  category?: string;
+  tags?: string[];
+  pricing?: 'free' | 'premium';
+  description?: string;
+}): ThemeSubmission {
   return {
-    id: `submission-${Date.now()}`,
     theme,
-    category: metadata.category,
-    pricing: metadata.pricing,
-    price: metadata.price || 0,
-    tags: metadata.tags || generateThemeTags(theme),
-    submittedBy: 'current-user', // In real implementation, get from auth
-    submittedAt: new Date().toISOString(),
-    status: 'submitted',
-    reviewNotes: []
+    screenshots: theme.metadata.screenshots || [],
+    metadata: {
+      // Only include partial marketplace metadata that's allowed
+    },
+    submissionNotes: metadata.description || `Initial submission of ${theme.name}`
   };
-} 
+}

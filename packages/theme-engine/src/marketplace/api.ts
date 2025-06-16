@@ -105,7 +105,7 @@ export class MarketplaceAPI {
     if (query.query) params.append('q', query.query);
     if (query.category) params.append('category', query.category);
     if (query.tags?.length) params.append('tags', query.tags.join(','));
-    if (query.pricing) params.append('pricing', query.pricing);
+    if (query.pricing) params.append('pricing', query.pricing.join(','));
     if (query.sortBy) params.append('sortBy', query.sortBy);
     if (query.sortOrder) params.append('sortOrder', query.sortOrder);
     if (query.featured !== undefined) params.append('featured', query.featured.toString());
@@ -139,9 +139,9 @@ export class MarketplaceAPI {
   private async request(endpoint: string, options: RequestInit = {}): Promise<any> {
     const url = `${this.baseUrl}${endpoint}`;
     
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers
+      ...(options.headers as Record<string, string>)
     };
 
     if (this.apiKey) {

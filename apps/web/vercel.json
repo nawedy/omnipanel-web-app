@@ -1,6 +1,9 @@
 {
   "version": 2,
   "framework": "nextjs",
-  "routes": [],
-  "trailingSlash": false
+  "env": {
+    "NODE_VERSION": "18",
+    "VERCEL": "1",
+    "STANDALONE_BUILD": "1"
+  }
 }

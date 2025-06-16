@@ -70,7 +70,7 @@ export class MarketplaceClient {
         return response.data;
       }
       
-      throw new Error(response.error || 'Failed to search themes');
+      this.handleErrorResponse(response, 'Failed to search themes');
     } catch (error) {
       throw this.handleError(error, 'Failed to search themes');
     }
@@ -89,7 +89,7 @@ export class MarketplaceClient {
         return response.data;
       }
       
-      throw new Error(response.error || 'Failed to get featured themes');
+      this.handleErrorResponse(response, 'Failed to get featured themes');
     } catch (error) {
       throw this.handleError(error, 'Failed to get featured themes');
     }
@@ -108,7 +108,7 @@ export class MarketplaceClient {
         return response.data;
       }
       
-      throw new Error(response.error || 'Failed to get popular themes');
+      this.handleErrorResponse(response, 'Failed to get popular themes');
     } catch (error) {
       throw this.handleError(error, 'Failed to get popular themes');
     }
@@ -127,7 +127,7 @@ export class MarketplaceClient {
         return response.data;
       }
       
-      throw new Error(response.error || 'Failed to get recent themes');
+      this.handleErrorResponse(response, 'Failed to get recent themes');
     } catch (error) {
       throw this.handleError(error, 'Failed to get recent themes');
     }
@@ -149,7 +149,7 @@ export class MarketplaceClient {
         return response.data;
       }
       
-      throw new Error(response.error || 'Theme not found');
+      this.handleErrorResponse(response, 'Theme not found');
     } catch (error) {
       throw this.handleError(error, 'Failed to get theme details');
     }
@@ -165,44 +165,59 @@ export class MarketplaceClient {
         return response.data;
       }
       
-      throw new Error(response.error || 'Failed to get download info');
+      this.handleErrorResponse(response, 'Failed to get download info');
     } catch (error) {
       throw this.handleError(error, 'Failed to get theme download info');
     }
   }
 
   /**
-   * Theme Installation & Management
+   * Theme Installation & Downloads
    */
+  async downloadTheme(themeId: string, version?: string): Promise<Theme> {
+    try {
+      const downloadInfo = await this.getThemeDownloadInfo(themeId);
+      
+      // Use specific version if provided
+      const downloadUrl = version 
+        ? downloadInfo.downloadUrl.replace(/v[\d.]+/, `v${version}`)
+        : downloadInfo.downloadUrl;
+      
+      const theme = await this.downloadThemePackage(downloadUrl);
+      
+      // Track download
+      await this.trackThemeInstallation(themeId);
+      
+      return theme;
+    } catch (error) {
+      throw this.handleError(error, 'Failed to download theme');
+    }
+  }
+
   async installTheme(themeId: string, options: { 
     version?: string; 
     overwrite?: boolean; 
     activate?: boolean;
-  } = {}): Promise<Theme> {
+  } | string = {}): Promise<Theme> {
     try {
-      // Get download information
+      // Handle both object and string (version) parameters
+      const installOptions = typeof options === 'string' 
+        ? { version: options }
+        : options;
+      
       const downloadInfo = await this.getThemeDownloadInfo(themeId);
       
-      // Download theme package
-      const themeData = await this.downloadThemePackage(downloadInfo.downloadUrl, downloadInfo.accessToken);
+      // Use specific version if provided
+      const downloadUrl = installOptions.version 
+        ? downloadInfo.downloadUrl.replace(/v[\d.]+/, `v${installOptions.version}`)
+        : downloadInfo.downloadUrl;
       
-      // Install to theme engine
-      const engine = getThemeEngine();
+      const theme = await this.downloadThemePackage(downloadUrl);
       
-      if (options.overwrite || !engine.getTheme(themeData.id)) {
-        engine.addTheme(themeData);
-        
-        if (options.activate) {
-          await engine.setTheme(themeData.id);
-        }
-        
-        // Track installation
-        await this.trackThemeInstallation(themeId);
-        
-        return themeData;
-      } else {
-        throw new Error('Theme already installed. Use overwrite option to replace.');
-      }
+      // Track installation
+      await this.trackThemeInstallation(themeId);
+      
+      return theme;
     } catch (error) {
       throw this.handleError(error, 'Failed to install theme');
     }
@@ -269,7 +284,7 @@ export class MarketplaceClient {
         return response.data;
       }
       
-      throw new Error(response.error || 'Failed to get reviews');
+      this.handleErrorResponse(response, 'Failed to get reviews');
     } catch (error) {
       throw this.handleError(error, 'Failed to get theme reviews');
     }
@@ -302,7 +317,7 @@ export class MarketplaceClient {
         return response.data;
       }
       
-      throw new Error(response.error || 'Failed to submit review');
+      this.handleErrorResponse(response, 'Failed to submit review');
     } catch (error) {
       throw this.handleError(error, 'Failed to submit review');
     }
@@ -343,7 +358,7 @@ export class MarketplaceClient {
         return response.data.submissionId;
       }
       
-      throw new Error(response.error || 'Failed to submit theme');
+      this.handleErrorResponse(response, 'Failed to submit theme');
     } catch (error) {
       throw this.handleError(error, 'Failed to submit theme');
     }
@@ -370,7 +385,7 @@ export class MarketplaceClient {
         return response.data;
       }
       
-      throw new Error(response.error || 'User not found');
+      this.handleErrorResponse(response, 'User not found');
     } catch (error) {
       throw this.handleError(error, 'Failed to get user profile');
     }
@@ -389,7 +404,7 @@ export class MarketplaceClient {
         return response.data;
       }
       
-      throw new Error(response.error || 'Failed to get marketplace stats');
+      this.handleErrorResponse(response, 'Failed to get marketplace stats');
     } catch (error) {
       throw this.handleError(error, 'Failed to get marketplace stats');
     }
@@ -411,7 +426,7 @@ export class MarketplaceClient {
         return response.data;
       }
       
-      throw new Error(response.error || 'Failed to get categories');
+      this.handleErrorResponse(response, 'Failed to get categories');
     } catch (error) {
       throw this.handleError(error, 'Failed to get categories');
     }
@@ -430,7 +445,7 @@ export class MarketplaceClient {
         return response.data;
       }
       
-      throw new Error(response.error || 'Failed to get tags');
+      this.handleErrorResponse(response, 'Failed to get tags');
     } catch (error) {
       throw this.handleError(error, 'Failed to get tags');
     }
@@ -574,6 +589,13 @@ export class MarketplaceClient {
     const message = error instanceof Error ? error.message : String(error);
     return new MarketplaceError(`${context}: ${message}`);
   }
+
+  private handleErrorResponse(response: ApiResponse, defaultMessage: string): never {
+    const errorMessage = typeof response.error === 'string' 
+      ? response.error 
+      : response.error?.message || defaultMessage;
+    throw new Error(errorMessage);
+  }
 }
 
 /**
@@ -584,19 +606,45 @@ let defaultClient: MarketplaceClient | null = null;
 /**
  * Get the default marketplace client
  */
-export function getMarketplaceClient(config?: MarketplaceConfig): MarketplaceClient {
+export function getMarketplaceClient(config?: Partial<MarketplaceConfig>): MarketplaceClient {
   if (!defaultClient) {
-    defaultClient = new MarketplaceClient(config || {
-      baseUrl: 'https://marketplace.omnipanel.ai'
-    });
+    const defaultConfig: MarketplaceConfig = {
+      baseUrl: 'https://marketplace.omnipanel.ai',
+      apiUrl: 'https://api.marketplace.omnipanel.ai',
+      cdnUrl: 'https://cdn.marketplace.omnipanel.ai',
+      uploadUrl: 'https://upload.marketplace.omnipanel.ai',
+      maxFileSize: 10 * 1024 * 1024, // 10MB
+      allowedFormats: ['json', 'zip'],
+      reviewProcess: {
+        autoApprove: false,
+        requireManualReview: true,
+        reviewTimeoutDays: 7
+      },
+      pricing: {
+        commissionRate: 0.3,
+        minimumPrice: 0,
+        supportedCurrencies: ['USD', 'EUR']
+      },
+      features: {
+        reviews: true,
+        collections: true,
+        social: true,
+        analytics: true
+      },
+      ...config
+    };
+    
+    defaultClient = new MarketplaceClient(defaultConfig);
   }
+  
   return defaultClient;
 }
 
 /**
- * Initialize marketplace client with configuration
+ * Initialize marketplace with full configuration
  */
 export function initializeMarketplace(config: MarketplaceConfig): MarketplaceClient {
-  defaultClient = new MarketplaceClient(config);
-  return defaultClient;
+  const client = new MarketplaceClient(config);
+  defaultClient = client;
+  return client;
 } 

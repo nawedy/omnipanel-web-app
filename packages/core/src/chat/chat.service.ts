@@ -15,9 +15,9 @@ import type {
   PaginationOptions,
   DatabaseContentType
 } from '@omnipanel/types';
-import { DatabaseClient } from '@/database/client';
-import { CoreError, ErrorCodes } from '@/utils/errors';
-import { validateInput } from '@/utils/validation';
+import type { DatabaseClient } from '../database/client';
+import { CoreError, ErrorCodes } from '../utils/errors';
+import { validateInput } from '../utils/validation';
 import { sanitizeContent } from '../utils/sanitization';
 
 export class ChatService {
@@ -273,7 +273,7 @@ export class ChatService {
         : await this.db.chatSessions.findByUserId(userId);
 
       // Filter by search query (simple text search)
-      const filteredSessions = allSessions.filter(session =>
+      const filteredSessions = allSessions.filter((session: any) =>
         session.title.toLowerCase().includes(query.toLowerCase()) ||
         (session.system_prompt && session.system_prompt.toLowerCase().includes(query.toLowerCase()))
       );
@@ -507,7 +507,7 @@ export class ChatService {
 
       // Get recent sessions (last 5)
       const recentSessions = sessions
-        .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+        .sort((a: any, b: any) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
         .slice(0, 5);
 
       return {
@@ -555,7 +555,7 @@ export class ChatService {
       let allMessages: DatabaseMessage[] = [];
       for (const session of sessions) {
         const messages = await this.db.messages.findBySessionId(session.id);
-        const filteredMessages = messages.filter(message =>
+        const filteredMessages = messages.filter((message: any) =>
           message.content.toLowerCase().includes(query.toLowerCase())
         );
         allMessages = [...allMessages, ...filteredMessages];

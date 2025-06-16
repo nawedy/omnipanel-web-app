@@ -1,6 +1,8 @@
 // packages/database/src/client.ts
-// Universal database client supporting both NeonDB and Supabase
+// NeonDB database client for OmniPanel workspace
 
+import { neon, neonConfig, Pool } from '@neondatabase/serverless';
+import type { FullQueryResults } from '@neondatabase/serverless';
 import type { DatabaseConfig } from '@omnipanel/config';
 import type { 
   User as DatabaseUser, 
@@ -12,82 +14,157 @@ import type {
   DatabaseFileVersion
 } from '@omnipanel/types';
 
-// Import NeonDB client
-import {
-  NeonDatabase,
-  NeonPool,
-  createNeonClient,
-  createNeonPool,
-  getNeonClient,
-  getNeonPool,
-  testNeonConnection,
-  getNeonHealth,
-  executeNeonTransaction,
-  buildNeonQuery,
-  handleNeonError,
-  Database as NeonDatabase_Schema
-} from './neon-client';
+// Configure Neon for optimal performance
+neonConfig.fetchConnectionCache = true;
 
-// Import Supabase client (for migration/fallback)
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+// Database schema types for NeonDB
+export interface Database {
+  users: {
+    Row: DatabaseUser;
+    Insert: Omit<DatabaseUser, 'id' | 'created_at' | 'updated_at'>;
+    Update: Partial<Omit<DatabaseUser, 'id' | 'created_at' | 'updated_at'>>;
+  };
+  projects: {
+    Row: DatabaseProject;
+    Insert: Omit<DatabaseProject, 'id' | 'created_at' | 'updated_at'>;
+    Update: Partial<Omit<DatabaseProject, 'id' | 'created_at' | 'updated_at'>>;
+  };
+  project_members: {
+    Row: DatabaseProjectMember;
+    Insert: Omit<DatabaseProjectMember, 'id' | 'joined_at'>;
+    Update: Partial<Omit<DatabaseProjectMember, 'id' | 'joined_at'>>;
+  };
+  chat_sessions: {
+    Row: DatabaseChatSession;
+    Insert: Omit<DatabaseChatSession, 'id' | 'created_at' | 'updated_at'>;
+    Update: Partial<Omit<DatabaseChatSession, 'id' | 'created_at' | 'updated_at'>>;
+  };
+  messages: {
+    Row: DatabaseMessage;
+    Insert: Omit<DatabaseMessage, 'id' | 'created_at'>;
+    Update: Partial<Omit<DatabaseMessage, 'id' | 'created_at'>>;
+  };
+  files: {
+    Row: DatabaseFile;
+    Insert: Omit<DatabaseFile, 'id' | 'created_at' | 'updated_at'>;
+    Update: Partial<Omit<DatabaseFile, 'id' | 'created_at' | 'updated_at'>>;
+  };
+  file_versions: {
+    Row: DatabaseFileVersion;
+    Insert: Omit<DatabaseFileVersion, 'id' | 'created_at'>;
+    Update: Partial<Omit<DatabaseFileVersion, 'id' | 'created_at'>>;
+  };
+}
 
-// Re-export database schema
-export type Database = NeonDatabase_Schema;
-
-// Universal client type
-export type DatabaseClient = NeonDatabase | SupabaseClient<any>;
-export type DatabasePool = NeonPool;
+// NeonDB client types
+export type DatabaseClient = ReturnType<typeof neon<false, true>>;
+export type DatabasePool = Pool;
 
 // Client instances
 let primaryClient: DatabaseClient | null = null;
 let primaryPool: DatabasePool | null = null;
 let clientConfig: DatabaseConfig | null = null;
 
+// Helper functions to extract rows from neon result
+export function extractRows(result: FullQueryResults<false>): Record<string, unknown>[] {
+  return result.rows || [];
+}
+
+export function extractFirstRow(result: FullQueryResults<false>): Record<string, unknown> | null {
+  const rows = extractRows(result);
+  return rows.length > 0 ? rows[0] : null;
+}
+
 /**
- * Initialize database with automatic provider detection
+ * Create NeonDB client for serverless functions
+ */
+export const createNeonClient = (config: DatabaseConfig): DatabaseClient => {
+  if (!config.neon?.connectionString) {
+    throw new Error('NeonDB connection string is required');
+  }
+
+  const client = neon(config.neon.connectionString, {
+    fetchOptions: {
+      cache: 'no-store',
+    },
+    fullResults: true,
+  });
+
+  return client;
+};
+
+/**
+ * Create NeonDB connection pool for server environments
+ */
+export const createNeonPool = (config: DatabaseConfig): DatabasePool => {
+  if (!config.neon?.connectionString) {
+    throw new Error('NeonDB connection string is required');
+  }
+
+  const pool = new Pool({
+    connectionString: config.neon.connectionString,
+    max: 20, // Maximum number of clients in the pool
+    idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+    connectionTimeoutMillis: 5000, // Return an error after 5 seconds if connection cannot be established
+    maxUses: 7500, // Close (and replace) a connection after it has been used 7500 times
+  });
+
+  return pool;
+};
+
+/**
+ * Get or create the NeonDB client
+ */
+export const getNeonClient = (config?: DatabaseConfig): DatabaseClient => {
+  if (!primaryClient && config) {
+    primaryClient = createNeonClient(config);
+    clientConfig = config;
+  }
+  
+  if (!primaryClient) {
+    throw new Error('NeonDB client not initialized. Call getNeonClient with config first.');
+  }
+  
+  return primaryClient;
+};
+
+/**
+ * Get or create the NeonDB pool
+ */
+export const getNeonPool = (config?: DatabaseConfig): DatabasePool => {
+  if (!primaryPool && config) {
+    primaryPool = createNeonPool(config);
+    clientConfig = config;
+  }
+  
+  if (!primaryPool) {
+    throw new Error('NeonDB pool not initialized. Call getNeonPool with config first.');
+  }
+  
+  return primaryPool;
+};
+
+/**
+ * Initialize NeonDB database
  */
 export const initializeDatabase = (config: DatabaseConfig): {
   client: DatabaseClient;
-  pool?: DatabasePool;
+  pool: DatabasePool;
 } => {
   clientConfig = config;
   
-  if (config.provider === 'neon' && config.neon?.connectionString) {
-    console.log('🔗 Initializing NeonDB connection...');
-    primaryClient = createNeonClient(config);
-    primaryPool = createNeonPool(config);
-    
-    return {
-      client: primaryClient,
-      pool: primaryPool,
-    };
+  if (!config.neon?.connectionString) {
+    throw new Error('NeonDB connection string is required');
   }
   
-  if (config.provider === 'supabase' && config.supabase) {
-    console.log('🔗 Initializing Supabase connection (legacy mode)...');
-    primaryClient = createClient(
-      config.supabase.url,
-      config.supabase.anon_key,
-      {
-        auth: {
-          autoRefreshToken: true,
-          persistSession: true,
-          detectSessionInUrl: true,
-        },
-        global: {
-          headers: {
-            'X-Client-Info': 'omnipanel-database',
-          },
-        },
-      }
-    );
-    
-    return {
-      client: primaryClient,
-    };
-  }
+  console.log('🔗 Initializing NeonDB connection...');
+  primaryClient = createNeonClient(config);
+  primaryPool = createNeonPool(config);
   
-  throw new Error('No valid database configuration found');
+  return {
+    client: primaryClient,
+    pool: primaryPool,
+  };
 };
 
 /**
@@ -101,7 +178,7 @@ export const getDatabaseClient = (): DatabaseClient => {
 };
 
 /**
- * Get the active database pool (NeonDB only)
+ * Get the active database pool
  */
 export const getDatabasePool = (): DatabasePool => {
   if (!primaryPool) {
@@ -114,24 +191,13 @@ export const getDatabasePool = (): DatabasePool => {
  * Test database connection
  */
 export const testDatabaseConnection = async (): Promise<boolean> => {
-  if (!primaryClient || !clientConfig) {
+  if (!primaryClient) {
     return false;
   }
   
   try {
-    if (clientConfig.provider === 'neon') {
-      return await testNeonConnection(primaryClient as NeonDatabase);
-    }
-    
-    if (clientConfig.provider === 'supabase') {
-      const { error } = await (primaryClient as SupabaseClient<any>)
-        .from('users')
-        .select('id')
-        .limit(1);
-      return !error;
-    }
-    
-    return false;
+    const result = await primaryClient('SELECT 1 as test');
+    return Array.isArray(result) && result.length > 0;
   } catch (error) {
     console.error('Database connection test failed:', error);
     return false;
@@ -147,223 +213,188 @@ export const getDatabaseHealth = async (): Promise<{
   latency?: number;
   error?: string;
 }> => {
-  if (!primaryClient || !clientConfig) {
+  if (!primaryClient) {
     return {
       connected: false,
-      provider: 'none',
+      provider: 'neon',
       error: 'Database not initialized',
     };
   }
   
   try {
-    if (clientConfig.provider === 'neon') {
-      const health = await getNeonHealth(primaryClient as NeonDatabase);
-      return {
-        ...health,
-        provider: 'neon',
-      };
-    }
-    
-    if (clientConfig.provider === 'supabase') {
-      const start = Date.now();
-      const { error } = await (primaryClient as SupabaseClient<any>)
-        .from('users')
-        .select('id')
-        .limit(1);
-      
-      const latency = Date.now() - start;
-      
-      return {
-        connected: !error,
-        provider: 'supabase',
-        latency: !error ? latency : undefined,
-        error: error?.message,
-      };
-    }
+    const start = Date.now();
+    await primaryClient('SELECT 1');
+    const latency = Date.now() - start;
     
     return {
-      connected: false,
-      provider: clientConfig.provider,
-      error: 'Unknown provider',
+      connected: true,
+      provider: 'neon',
+      latency,
     };
   } catch (error) {
     return {
       connected: false,
-      provider: clientConfig.provider,
+      provider: 'neon',
       error: error instanceof Error ? error.message : 'Unknown error',
     };
   }
 };
 
 /**
- * Execute a transaction (NeonDB only)
+ * Execute a transaction
  */
 export const executeTransaction = async <T>(
   operations: (client: any) => Promise<T>
 ): Promise<T> => {
-  if (!clientConfig || clientConfig.provider !== 'neon' || !primaryPool) {
-    throw new Error('Transactions are only supported with NeonDB');
+  if (!primaryPool) {
+    throw new Error('Database pool not available');
   }
   
-  return executeNeonTransaction(primaryPool, operations);
+  const client = await primaryPool.connect();
+  
+  try {
+    await client.query('BEGIN');
+    const result = await operations(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
 };
 
 /**
- * Universal query builder
+ * Execute batch operations with concurrency control
+ */
+export const batchOperations = async (
+  operations: Array<() => Promise<any>>,
+  batchSize = 10
+): Promise<any[]> => {
+  const results: any[] = [];
+  
+  for (let i = 0; i < operations.length; i += batchSize) {
+    const batch = operations.slice(i, i + batchSize);
+    const batchResults = await Promise.all(batch.map(op => op()));
+    results.push(...batchResults);
+  }
+  
+  return results;
+};
+
+/**
+ * Query builder for type-safe queries
  */
 export const buildQuery = <T extends keyof Database>(table: T) => {
-  if (!primaryClient || !clientConfig) {
+  if (!primaryClient) {
     throw new Error('Database not initialized');
   }
   
-  if (clientConfig.provider === 'neon') {
-    return buildNeonQuery(primaryClient as NeonDatabase, table);
-  }
-  
-  if (clientConfig.provider === 'supabase') {
-    const client = primaryClient as SupabaseClient<any>;
-    return {
-      select: async (columns = '*', where?: string, params?: any[]) => {
-        let query = client.from(table).select(columns);
-        // Note: Supabase uses different query syntax - this is simplified
-        const { data, error } = await query;
-        if (error) throw error;
-        return data || [];
-      },
-      
-      insert: async (data: Database[T]['Insert']) => {
-        const { data: result, error } = await client
-          .from(table)
-          .insert(data)
-          .select()
-          .single();
-        if (error) throw error;
-        return result;
-      },
-      
-      update: async (data: Database[T]['Update'], where: string, params: any[]) => {
-        // Note: This is a simplified implementation
-        const { data: result, error } = await client
-          .from(table)
-          .update(data)
-          .select();
-        if (error) throw error;
-        return result || [];
-      },
-      
-      delete: async (where: string, params: any[]) => {
-        // Note: This is a simplified implementation
-        const { data: result, error } = await client
-          .from(table)
-          .delete()
-          .select();
-        if (error) throw error;
-        return result || [];
-      },
-    };
-  }
-  
-  throw new Error(`Unsupported database provider: ${clientConfig.provider}`);
+  return {
+    select: (columns?: string) => ({
+      from: table,
+      columns: columns || '*',
+      where: (condition: string, params: any[] = []) => ({
+        query: `SELECT ${columns || '*'} FROM ${String(table)} WHERE ${condition}`,
+        params,
+        execute: () => primaryClient!(`SELECT ${columns || '*'} FROM ${String(table)} WHERE ${condition}`, params)
+      }),
+      execute: () => primaryClient!(`SELECT ${columns || '*'} FROM ${String(table)}`)
+    }),
+    insert: (data: Database[T]['Insert']) => ({
+      query: `INSERT INTO ${String(table)}`,
+      data,
+      execute: async () => {
+        const keys = Object.keys(data);
+        const values = Object.values(data);
+        const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
+        
+        return primaryClient!(
+          `INSERT INTO ${String(table)} (${keys.join(', ')}) VALUES (${placeholders}) RETURNING *`,
+          values
+        );
+      }
+    }),
+    update: (data: Database[T]['Update']) => ({
+      where: (condition: string, params: any[] = []) => ({
+        execute: async () => {
+          const keys = Object.keys(data);
+          const values = Object.values(data);
+          const setClause = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
+          const conditionParams = params.map((_, i) => `$${values.length + i + 1}`);
+          
+          return primaryClient!(
+            `UPDATE ${String(table)} SET ${setClause} WHERE ${condition.replace(/\$(\d+)/g, (_, num) => conditionParams[parseInt(num) - 1])} RETURNING *`,
+            [...values, ...params]
+          );
+        }
+      })
+    }),
+    delete: () => ({
+      where: (condition: string, params: any[] = []) => ({
+        execute: () => primaryClient!(`DELETE FROM ${String(table)} WHERE ${condition}`, params)
+      })
+    })
+  };
 };
 
 /**
- * Handle database errors universally
+ * Handle database errors
  */
 export const handleDatabaseError = (error: any): never => {
-  if (!clientConfig) {
-    throw new Error('Database error: ' + (error.message || 'Unknown error'));
-  }
+  console.error('Database error:', error);
   
-  if (clientConfig.provider === 'neon') {
-    return handleNeonError(error);
-  }
-  
-  // Supabase error handling
   if (error.code) {
     switch (error.code) {
-      case '23505':
-        throw new Error('Record already exists');
-      case '23503':
-        throw new Error('Referenced record not found');
+      case '23505': // unique_violation
+        throw new Error('A record with this information already exists');
+      case '23503': // foreign_key_violation
+        throw new Error('Referenced record does not exist');
+      case '23502': // not_null_violation
+        throw new Error('Required field is missing');
+      case '42P01': // undefined_table
+        throw new Error('Database table not found');
+      case '42703': // undefined_column
+        throw new Error('Database column not found');
       default:
-        throw new Error(`Database error: ${error.message}`);
+        throw new Error(`Database error: ${error.message || 'Unknown error'}`);
     }
   }
   
-  throw new Error(error.message || 'Unknown database error');
+  throw new Error(error.message || 'Database operation failed');
 };
 
 /**
- * Setup real-time subscriptions
+ * Setup real-time subscriptions (placeholder for WebSocket implementation)
  */
-export const setupRealtimeSubscription = (
-  table: string,
-  callback: (payload: any) => void,
-  filter?: string
-) => {
-  if (!primaryClient || !clientConfig) {
-    throw new Error('Database not initialized');
-  }
+export const setupRealtimeSubscription = () => {
+  console.warn('Real-time subscriptions require custom WebSocket implementation with NeonDB');
   
-  if (clientConfig.provider === 'neon') {
-    console.warn('Real-time subscriptions require custom WebSocket implementation with NeonDB');
-    return {
-      unsubscribe: () => {
-        // Placeholder for WebSocket cleanup
-      }
-    };
-  }
-  
-  if (clientConfig.provider === 'supabase') {
-    const client = primaryClient as SupabaseClient<any>;
-    const subscription = client
-      .channel(`realtime:${table}`)
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table,
-          filter 
-        }, 
-        callback
-      )
-      .subscribe();
-    
-    return {
-      unsubscribe: () => {
-        client.removeChannel(subscription);
-      }
-    };
-  }
-  
-  throw new Error(`Real-time not supported for provider: ${clientConfig.provider}`);
+  return {
+    unsubscribe: () => {
+      // Placeholder for WebSocket cleanup
+    }
+  };
 };
 
 /**
- * Migrate data from Supabase to NeonDB
+ * Get database configuration
  */
-export const migrateToNeon = async (
-  supabaseConfig: any,
-  neonConfig: DatabaseConfig
-): Promise<void> => {
-  console.log('🚀 Starting migration from Supabase to NeonDB...');
-  
-  // Initialize Supabase client for data export
-  const supabaseClient = createClient(
-    supabaseConfig.url,
-    supabaseConfig.service_role_key
-  );
-  
-  // Initialize NeonDB client for data import
-  const neonClient = createNeonClient(neonConfig);
-  
-  // Migration logic would go here
-  // This is a placeholder for the actual migration implementation
-  
-  console.log('✅ Migration completed successfully!');
+export const getDatabaseConfig = (): DatabaseConfig | null => {
+  return clientConfig;
 };
 
-// Re-export types and utilities
+/**
+ * Reset database connection (useful for testing)
+ */
+export const resetDatabaseConnection = (): void => {
+  primaryClient = null;
+  primaryPool = null;
+  clientConfig = null;
+};
+
+// Re-export types for convenience
 export type {
   DatabaseUser,
   DatabaseProject,
@@ -372,13 +403,10 @@ export type {
   DatabaseFile,
   DatabaseProjectMember,
   DatabaseFileVersion,
-  NeonDatabase,
-  NeonPool,
-};
+} from '@omnipanel/types';
 
-export {
-  createNeonClient,
-  createNeonPool,
-  getNeonClient,
-  getNeonPool,
-};
+export async function subscribeToChanges(): Promise<void> {
+  console.log('Real-time subscriptions not implemented for NeonDB');
+  // Placeholder for future implementation
+  // Could use polling or webhook-based approach
+}

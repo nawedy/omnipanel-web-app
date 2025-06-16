@@ -88,10 +88,12 @@ Create `.env.local` files for each app:
 
 #### Web App (`apps/web/.env.local`)
 ```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_key
+# NeonDB
+NEON_DATABASE_URL=your_neon_database_url
+NEON_PROJECT_ID=your_neon_project_id
+STACK_PROJECT_ID=your_stack_project_id
+STACK_PUBLISHABLE_KEY=your_stack_publishable_key
+STACK_SECRET_KEY=your_stack_secret_key
 
 # OpenAI (optional)
 OPENAI_API_KEY=your_openai_api_key
@@ -432,4 +434,9 @@ Monitor key metrics:
 
 ---
 
-**This deployment strategy ensures OmniPanel is available globally with high performance, security, and reliability across all platforms.** 
+**This deployment strategy ensures OmniPanel is available globally with high performance, security, and reliability across all platforms.**
+
+# NeonDB
+NEON_DATABASE_URL=your_neon_database_url
+NEON_PROJECT_ID=your_neon_project_id
+STACK_PROJECT_ID=your_stack_project_id 

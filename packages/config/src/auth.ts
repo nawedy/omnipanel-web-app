@@ -84,8 +84,8 @@ export type AuthConfig = z.infer<typeof AuthConfigSchema>;
 export const createAuthConfig = (): AuthConfig => {
   const config = {
     jwt: {
-      secret: process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET || 'default-secret-key-change-in-production',
-      refreshSecret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || process.env.SUPABASE_JWT_SECRET || 'default-refresh-secret-change-in-production',
+      secret: process.env.JWT_SECRET || 'default-secret-key-change-in-production',
+      refreshSecret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'default-refresh-secret-change-in-production',
       algorithm: (process.env.JWT_ALGORITHM as any) || 'HS256',
       expires_in: process.env.JWT_EXPIRES_IN || '24h',
       refresh_expires_in: process.env.JWT_REFRESH_EXPIRES_IN || '7d',

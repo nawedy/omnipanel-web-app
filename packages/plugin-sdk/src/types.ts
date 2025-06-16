@@ -1,5 +1,20 @@
 import { ReactNode, ComponentType } from 'react';
 
+// Plugin Status
+export type PluginStatus = 
+  | 'registered'
+  | 'loading'
+  | 'loaded'
+  | 'unloading'
+  | 'error';
+
+// Plugin Configuration
+export interface PluginConfig {
+  enabled: boolean;
+  settings?: Record<string, any>;
+  permissions?: PluginPermission[];
+}
+
 // Plugin Metadata
 export interface PluginManifest {
   id: string;

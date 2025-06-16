@@ -5,7 +5,7 @@
 ## 🧠 Background
 
 ### Problem Statement
-- **Fragmented LLM UX:** Existing local LLM tools like WebUI and LM Studio have outdated, non-extensible UIs, lacking real “project/workspace” structure, code and notebook workflows, modern file management, and developer/data science features.
+- **Fragmented LLM UX:** Existing local LLM tools like WebUI and LM Studio have outdated, non-extensible UIs, lacking real "project/workspace" structure, code and notebook workflows, modern file management, and developer/data science features.
 - **Siloed Apps:** No single platform brings together chat, code, data science, and automation with seamless experience across web, desktop, and mobile.
 - **Growing Need for Privacy, Extensibility, and Productivity:** Tech teams, developers, and solo builders want powerful, private, extensible AI workspaces that work both offline and online and support a broad range of LLMs.
 - **Developer Pain:** Current solutions require complex setups, lack instant onboarding, and have poor model switching, plugin ecosystems, or real-time sync.
@@ -13,7 +13,7 @@
 ### Market Opportunity
 - **Demand for Local/Hybrid AI:** Surge in interest for local, private, and hybrid LLMs due to cost, privacy, and speed.
 - **Lack of Real Developer and Data Science Workflow:** Most competitors focus on simple chat or code gen, not full-featured IDE/data science workflows.
-- **OmniPanel’s Edge:** Notion + VSCode + Jupyter + ChatGPT + Terminal for any LLM (local or cloud), in a unified, extensible, beautifully designed workspace, cross-platform.
+- **OmniPanel's Edge:** Notion + VSCode + Jupyter + ChatGPT + Terminal for any LLM (local or cloud), in a unified, extensible, beautifully designed workspace, cross-platform.
 - **Broad User Base:** Developers, data scientists, tech leads, educators, students, enterprise IT, and AI hobbyists.
 
 ### User Personas
@@ -24,10 +24,10 @@
 - **Educators/Students:** Seek easy install, rich documentation, interactive demos, and project templates.
 
 ### Vision Statement
-Deliver the industry’s most modern, extensible, and enjoyable LLM workspace—combining project-based chat, code, notebooks, and automation, accessible from desktop, mobile, and web, with a best-in-class plugin ecosystem and broad LLM/model support.
+Deliver the industry's most modern, extensible, and enjoyable LLM workspace—combining project-based chat, code, notebooks, and automation, accessible from desktop, mobile, and web, with a best-in-class plugin ecosystem and broad LLM/model support.
 
 ### Product Origin
-OmniPanel arose from developer/data scientist frustration with piecemeal tools and UX. Confirmed via user research and competitive analysis, it evolved from a chat UI to a “super-app” for AI productivity, inspired by VSCode, Notion, and Jupyter.
+OmniPanel arose from developer/data scientist frustration with piecemeal tools and UX. Confirmed via user research and competitive analysis, it evolved from a chat UI to a "super-app" for AI productivity, inspired by VSCode, Notion, and Jupyter.
 
 ---
 
@@ -36,7 +36,7 @@ OmniPanel arose from developer/data scientist frustration with piecemeal tools a
 ### SMART Goals
 - **Specific:** Ship a unified LLM workspace—Desktop, Web, Mobile, Docs, and Website—using shared code/packages, supporting every major LLM and workflow.
 - **Measurable:** 10,000 MAU, <10s onboarding, <2s average response, 100+ plugin downloads/month in the first 6 months.
-- **Achievable:** Build on proven tech (Next.js, Electron, React Native, Supabase, Monaco, xterm.js, Tailwind, Framer Motion).
+- **Achievable:** Build on proven tech (Next.js, Electron, React Native, NeonDB, Monaco, xterm.js, Tailwind, Framer Motion).
 - **Relevant:** Addresses growing market for local/private/hybrid AI tools and real developer/data science workflows.
 - **Time-bound:** MVP for all platforms in 16 weeks; first public beta in 12 weeks.
 
@@ -48,8 +48,8 @@ OmniPanel arose from developer/data scientist frustration with piecemeal tools a
 - Conversion from free to pro/enterprise
 
 ### Qualitative Objectives
-- Users feel “at home” and productive immediately; zero-friction onboarding.
-- Real-world “aha moments” (e.g., seamless file/project import, model switching, AI-powered code review).
+- Users feel "at home" and productive immediately; zero-friction onboarding.
+- Real-world "aha moments" (e.g., seamless file/project import, model switching, AI-powered code review).
 - Developers praise extensibility, plugin SDK, and documentation.
 
 ### Strategic Alignment
@@ -76,7 +76,7 @@ OmniPanel arose from developer/data scientist frustration with piecemeal tools a
   - **Cloud:** OpenAI, Deepseek, Qwen, HuggingFace, Anthropic, Google (Gemini), Mistral, and more
 - **Plugin/Extension System:** Marketplace, SDK, install/manage from UI, plugin sandboxing.
 - **Theming & Customization:** Light/dark, glassmorphism, neon, custom themes, font/spacing controls.
-- **Real-time Sync & Offline Mode:** Supabase (cloud), IndexedDB/SQLite (local), auto-fallback.
+- **Real-time Sync & Offline Mode:** NeonDB (cloud), IndexedDB/SQLite (local), auto-fallback.
 - **Security & Permissions:** Project/user/workspace isolation, per-project secrets, permission controls.
 - **API/CLI Access:** Automate or integrate with external tools/workflows.
 
@@ -98,7 +98,7 @@ OmniPanel arose from developer/data scientist frustration with piecemeal tools a
 - **Sprint 0:** Monorepo + shared packages/types/config, CI/CD setup. - Completed
 - **Sprint 1:** Dashboard shell, sidebar, header, tab manager, global state.
 - **Sprint 2:** Chat (multi-tab), code editor, terminal, notebook, file tree.
-- **Sprint 3:** Real-time sync (Supabase), offline fallback (IndexedDB/SQLite).
+- **Sprint 3:** Real-time sync (NeonDB), offline fallback (IndexedDB/SQLite).
 - **Sprint 4:** Desktop (Electron) integration, native APIs, auto-update.
 - **Sprint 5:** Mobile (React Native/Expo) shell, sync, native features.
 - **Sprint 6:** Docs app (MDX/Next.js), API playground, examples, community guides.
@@ -110,15 +110,15 @@ OmniPanel arose from developer/data scientist frustration with piecemeal tools a
 ## ⚙️ Technical Requirements
 
 - **Frontend:** Next.js (App Router), React, TailwindCSS, DaisyUI/shadcn/ui, Framer Motion, Monaco Editor, xterm.js, React Native (Expo).
-- **Backend:** Next.js API routes, Supabase (Postgres, Auth, Storage, Functions), plugin adapter, LLM bridges.
+- **Backend:** Next.js API routes, NeonDB (Postgres, Auth, Storage, Functions), plugin adapter, LLM bridges.
 - **Packages:**  
   - `/packages/types`: Shared TypeScript types/interfaces  
   - `/packages/config`: Global/app/project configs, theming  
-  - `/packages/database`: DB models/helpers for Supabase/SQLite/IndexedDB  
+  - `/packages/database`: DB models/helpers for NeonDB/SQLite/IndexedDB  
   - `/packages/ui`: Shared UI components (Sidebar, TabManager, Modals, etc.)  
   - `/packages/llm-adapters`: Connectors for Ollama, llama.cpp, vLLM, OpenAI, Deepseek, Qwen, HuggingFace, Anthropic, Google Gemini, Mistral, etc.  
   - `/packages/core`: Business logic, state mgmt, helpers
-- **Infra:** Vercel (web), Electron (desktop), Expo/Play Store (mobile), Supabase (self-host/cloud).
+- **Infra:** Vercel (web), Electron (desktop), Expo/Play Store (mobile), NeonDB (self-host/cloud).
 - **Security:** JWT, project/workspace isolation, plugin sandboxing, encrypted secrets.
 - **Performance:** <2s cold start, <300ms navigation, <2s LLM response.
 
@@ -164,7 +164,7 @@ OmniPanel arose from developer/data scientist frustration with piecemeal tools a
 - Full-featured mobile LLM workspace for iOS/Android. Manage chats, code, notebooks, files, and projects from anywhere.
 
 ### **Key Features**
-- Real-time sync with Supabase (projects, chats, files)
+- Real-time sync with NeonDB (projects, chats, files)
 - Chat, code/markdown editing (Monaco lite), view/edit notebooks
 - Model selection and context switching: Ollama, OpenAI, Deepseek, Qwen, Huggingface, Anthropic, Google, Mistral, etc.
 - Voice input, camera/file upload, push notifications
@@ -200,7 +200,7 @@ OmniPanel arose from developer/data scientist frustration with piecemeal tools a
 - API/CLI access, webhook integration for automation
 
 ### **User Flows**
-- Auth (Supabase), onboarding, project creation/joining, switching
+- Auth (Stack Auth), onboarding, project creation/joining, switching
 - Chat, code, notebook, and terminal tabs—multi-window, resizable, reorderable
 - Install/manage plugins, project/team settings, export/import projects/files
 - Model selector: use any supported LLM via adapters with per-project context
@@ -256,7 +256,7 @@ OmniPanel arose from developer/data scientist frustration with piecemeal tools a
 ## **Shared Packages (/packages)**
 - **types**: Data, state, LLM, plugin, UI interfaces
 - **config**: App/global/project configs, theming, plugin registration
-- **database**: Models/helpers for Supabase/SQLite/IndexedDB
+- **database**: Models/helpers for NeonDB/SQLite/IndexedDB
 - **ui**: All UI components (Sidebar, TabManager, Modals, FileTree, Monaco, Terminal, etc.)
 - **llm-adapters**: Pluggable connectors:  
   - Ollama, llama.cpp, vLLM (local)  

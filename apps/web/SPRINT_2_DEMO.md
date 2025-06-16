@@ -166,7 +166,7 @@ npm run lint           # 🟨 ESLint may have warnings (expected)
 After testing Sprint 2, the roadmap includes:
 1. **Real LLM Integration**: Connect to actual AI models
 2. **File System**: Real file operations and project management
-3. **Cloud Sync**: Supabase integration for real-time collaboration
+3. **Cloud Sync**: NeonDB integration for real-time collaboration
 4. **Advanced Features**: Git integration, plugins, real terminal
 
 ---

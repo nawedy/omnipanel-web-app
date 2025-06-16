@@ -6,7 +6,7 @@ import { WelcomeScreen } from './WelcomeScreen';
 import { ChatInterface } from '../chat/ChatInterface';
 import { CodeEditor } from '../editor/CodeEditor';
 import { Terminal } from '../terminal/Terminal';
-import { Notebook } from '../notebook/Notebook';
+import Notebook from '../notebook/Notebook';
 import { fileService, type FileContent } from '@/services/fileService';
 import { Loader2 } from 'lucide-react';
 

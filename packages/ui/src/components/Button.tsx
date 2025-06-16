@@ -132,14 +132,16 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           <div className="relative flex items-center justify-center gap-2">
             {/* Left icon or loading spinner */}
           {loading ? (
-            <Loader2 className={clsx(
-              'animate-spin',
-              size === 'xs' && 'h-3 w-3',
-              size === 'sm' && 'h-4 w-4', 
-              size === 'md' && 'h-4 w-4',
-              size === 'lg' && 'h-5 w-5',
-              size === 'xl' && 'h-6 w-6'
-            )} />
+            React.createElement(Loader2, {
+              className: clsx(
+                'animate-spin',
+                size === 'xs' && 'h-3 w-3',
+                size === 'sm' && 'h-4 w-4', 
+                size === 'md' && 'h-4 w-4',
+                size === 'lg' && 'h-5 w-5',
+                size === 'xl' && 'h-6 w-6'
+              )
+            })
           ) : (
             leftIcon && (
               <span className={clsx(

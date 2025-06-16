@@ -1,6 +1,19 @@
 // packages/database/src/queries.ts
-import type { SupabaseDatabase } from './client';
-import { handleDatabaseError } from './client';
+import { getNeonClient, handleDatabaseError } from './client';
+import type { DatabaseConfig } from '@omnipanel/config';
+import type { DatabaseClient } from './client';
+
+// Helper function to extract rows from neon result
+const extractRows = (result: any): any[] => {
+  if (Array.isArray(result)) return result;
+  if (result && result.rows) return result.rows;
+  return [];
+};
+
+const extractFirstRow = (result: any): any | null => {
+  const rows = extractRows(result);
+  return rows.length > 0 ? rows[0] : null;
+};
 
 // Complex query results interfaces
 export interface ProjectWithStats {
@@ -75,47 +88,64 @@ export interface UserActivityAnalytics {
   activity_score: number;
 }
 
-// Complex queries class
+// Complex queries class for NeonDB
 export class DatabaseQueries {
-  constructor(private client: SupabaseDatabase) {}
+  private client: DatabaseClient;
+
+  constructor(config?: DatabaseConfig) {
+    this.client = getNeonClient(config);
+  }
 
   /**
    * Get projects with statistics
    */
   async getProjectsWithStats(userId?: string): Promise<ProjectWithStats[]> {
     try {
-      // For now, use a simpler query that works with Supabase
-      let query = this.client
-        .from('projects')
-        .select(`
-          *,
-          files(count),
-          project_members(count),
-          chat_sessions(count)
-        `);
+      let sql = `
+        SELECT 
+          p.*,
+          COALESCE(f.file_count, 0) as file_count,
+          COALESCE(pm.member_count, 0) as member_count,
+          COALESCE(cs.chat_session_count, 0) as chat_session_count,
+          COALESCE(m.total_messages, 0) as total_messages,
+          p.updated_at as last_activity
+        FROM projects p
+        LEFT JOIN (
+          SELECT project_id, COUNT(*) as file_count 
+          FROM files 
+          GROUP BY project_id
+        ) f ON p.id = f.project_id
+        LEFT JOIN (
+          SELECT project_id, COUNT(*) as member_count 
+          FROM project_members 
+          GROUP BY project_id
+        ) pm ON p.id = pm.project_id
+        LEFT JOIN (
+          SELECT project_id, COUNT(*) as chat_session_count 
+          FROM chat_sessions 
+          GROUP BY project_id
+        ) cs ON p.id = cs.project_id
+        LEFT JOIN (
+          SELECT cs.project_id, COUNT(m.id) as total_messages
+          FROM chat_sessions cs
+          LEFT JOIN messages m ON cs.id = m.session_id
+          GROUP BY cs.project_id
+        ) m ON p.id = m.project_id
+      `;
 
+      const params: any[] = [];
       if (userId) {
-        query = query.eq('user_id', userId);
+        sql += ' WHERE p.user_id = $1';
+        params.push(userId);
       }
 
-      const { data, error } = await query.order('updated_at', { ascending: false });
+      sql += ' ORDER BY p.updated_at DESC';
 
-      if (error) {
-        handleDatabaseError(error);
-      }
-
-      // Transform the data to match our interface
-      return (data || []).map((project: any) => ({
-        ...project,
-        file_count: project.files?.[0]?.count || 0,
-        member_count: project.project_members?.[0]?.count || 0,
-        chat_session_count: project.chat_sessions?.[0]?.count || 0,
-        total_messages: 0, // Would need a more complex query
-        last_activity: project.updated_at,
-      }));
+      const result = await this.client(sql, params);
+      return extractRows(result) as ProjectWithStats[];
     } catch (error) {
       handleDatabaseError(error);
-      return []; // Add explicit return for error case
+      return [];
     }
   }
 
@@ -124,27 +154,32 @@ export class DatabaseQueries {
    */
   async getUsersWithProjects(): Promise<UserWithProjects[]> {
     try {
-      const { data, error } = await this.client
-        .from('users')
-        .select(`
-          *,
-          projects(count)
-        `)
-        .order('updated_at', { ascending: false });
+      const sql = `
+        SELECT 
+          u.*,
+          COALESCE(p.project_count, 0) as project_count,
+          COALESCE(m.total_messages, 0) as total_messages,
+          u.updated_at as last_activity
+        FROM users u
+        LEFT JOIN (
+          SELECT user_id, COUNT(*) as project_count 
+          FROM projects 
+          GROUP BY user_id
+        ) p ON u.id = p.user_id
+        LEFT JOIN (
+          SELECT cs.user_id, COUNT(m.id) as total_messages
+          FROM chat_sessions cs
+          LEFT JOIN messages m ON cs.id = m.session_id
+          GROUP BY cs.user_id
+        ) m ON u.id = m.user_id
+        ORDER BY u.updated_at DESC
+      `;
 
-      if (error) {
-        handleDatabaseError(error);
-      }
-
-      return (data || []).map((user: any) => ({
-        ...user,
-        project_count: user.projects?.[0]?.count || 0,
-        total_messages: 0, // Would need a more complex query
-        last_activity: user.updated_at,
-      }));
+      const result = await this.client(sql);
+      return extractRows(result) as UserWithProjects[];
     } catch (error) {
       handleDatabaseError(error);
-      return []; // Add explicit return for error case
+      return [];
     }
   }
 
@@ -153,28 +188,31 @@ export class DatabaseQueries {
    */
   async getChatSessionsWithMessages(projectId: string): Promise<ChatSessionWithMessages[]> {
     try {
-      const { data, error } = await this.client
-        .from('chat_sessions')
-        .select(`
-          *,
-          messages(count)
-        `)
-        .eq('project_id', projectId)
-        .order('updated_at', { ascending: false });
+      const sql = `
+        SELECT 
+          cs.*,
+          COALESCE(m.message_count, 0) as message_count,
+          COALESCE(m.last_message_at, cs.updated_at) as last_message_at,
+          COALESCE(m.total_tokens, 0) as total_tokens
+        FROM chat_sessions cs
+        LEFT JOIN (
+          SELECT 
+            session_id, 
+            COUNT(*) as message_count,
+            MAX(created_at) as last_message_at,
+            SUM(COALESCE((metadata->>'tokens')::int, 0)) as total_tokens
+          FROM messages 
+          GROUP BY session_id
+        ) m ON cs.id = m.session_id
+        WHERE cs.project_id = $1
+        ORDER BY cs.updated_at DESC
+      `;
 
-      if (error) {
-        handleDatabaseError(error);
-      }
-
-      return (data || []).map((session: any) => ({
-        ...session,
-        message_count: session.messages?.[0]?.count || 0,
-        last_message_at: session.updated_at,
-        total_tokens: 0, // Would need metadata aggregation
-      }));
+      const result = await this.client(sql, [projectId]);
+      return extractRows(result) as ChatSessionWithMessages[];
     } catch (error) {
       handleDatabaseError(error);
-      return []; // Add explicit return for error case
+      return [];
     }
   }
 
@@ -183,28 +221,31 @@ export class DatabaseQueries {
    */
   async getFilesWithVersions(projectId: string): Promise<FileWithVersions[]> {
     try {
-      const { data, error } = await this.client
-        .from('files')
-        .select(`
-          *,
-          file_versions(count)
-        `)
-        .eq('project_id', projectId)
-        .order('updated_at', { ascending: false });
+      const sql = `
+        SELECT 
+          f.*,
+          COALESCE(fv.version_count, 0) as version_count,
+          COALESCE(fv.latest_version, 1) as latest_version,
+          COALESCE(u.name, 'Unknown') as last_modified_by
+        FROM files f
+        LEFT JOIN (
+          SELECT 
+            file_id, 
+            COUNT(*) as version_count,
+            MAX(version_number) as latest_version
+          FROM file_versions 
+          GROUP BY file_id
+        ) fv ON f.id = fv.file_id
+        LEFT JOIN users u ON f.user_id = u.id
+        WHERE f.project_id = $1
+        ORDER BY f.updated_at DESC
+      `;
 
-      if (error) {
-        handleDatabaseError(error);
-      }
-
-      return (data || []).map((file: any) => ({
-        ...file,
-        version_count: file.file_versions?.[0]?.count || 0,
-        latest_version: 1, // Would need max version query
-        last_modified_by: 'Unknown', // Would need user join
-      }));
+      const result = await this.client(sql, [projectId]);
+      return extractRows(result) as FileWithVersions[];
     } catch (error) {
       handleDatabaseError(error);
-      return []; // Add explicit return for error case
+      return [];
     }
   }
 
@@ -213,30 +254,29 @@ export class DatabaseQueries {
    */
   async getProjectAnalytics(): Promise<ProjectAnalytics> {
     try {
-      // Get counts from each table
-      const [projectsResult, filesResult, messagesResult, usersResult] = await Promise.all([
-        this.client.from('projects').select('*', { count: 'exact', head: true }),
-        this.client.from('files').select('*', { count: 'exact', head: true }),
-        this.client.from('messages').select('*', { count: 'exact', head: true }),
-        this.client.from('users').select('*', { count: 'exact', head: true }),
-      ]);
+      const sql = `
+        SELECT 
+          (SELECT COUNT(*) FROM projects) as total_projects,
+          (SELECT COUNT(*) FROM projects WHERE status = 'active') as active_projects,
+          (SELECT COUNT(*) FROM files) as total_files,
+          (SELECT COUNT(*) FROM messages) as total_messages,
+          (SELECT COUNT(*) FROM users) as total_users
+      `;
 
-      const activeProjectsResult = await this.client
-        .from('projects')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
-
+      const result = await this.client(sql);
+      const row = extractFirstRow(result);
+      
       return {
-        total_projects: projectsResult.count || 0,
-        active_projects: activeProjectsResult.count || 0,
-        total_files: filesResult.count || 0,
-        total_messages: messagesResult.count || 0,
-        total_users: usersResult.count || 0,
+        total_projects: parseInt(row?.total_projects || '0'),
+        active_projects: parseInt(row?.active_projects || '0'),
+        total_files: parseInt(row?.total_files || '0'),
+        total_messages: parseInt(row?.total_messages || '0'),
+        total_users: parseInt(row?.total_users || '0'),
         growth_rate: 0, // Would need time-based calculation
       };
     } catch (error) {
       handleDatabaseError(error);
-      return { // Add explicit return for error case
+      return {
         total_projects: 0,
         active_projects: 0,
         total_files: 0,
@@ -252,34 +292,41 @@ export class DatabaseQueries {
    */
   async getUserActivityAnalytics(limit = 50): Promise<UserActivityAnalytics[]> {
     try {
-      const { data, error } = await this.client
-        .from('users')
-        .select(`
-          id,
-          name,
-          updated_at,
-          projects(count),
-          chat_sessions(count)
-        `)
-        .order('updated_at', { ascending: false })
-        .limit(limit);
+      const sql = `
+        SELECT 
+          u.id as user_id,
+          u.name as user_name,
+          COALESCE(m.messages_sent, 0) as messages_sent,
+          COALESCE(f.files_created, 0) as files_created,
+          COALESCE(p.projects_created, 0) as projects_created,
+          u.updated_at as last_activity,
+          (COALESCE(m.messages_sent, 0) + COALESCE(f.files_created, 0) + COALESCE(p.projects_created, 0)) as activity_score
+        FROM users u
+        LEFT JOIN (
+          SELECT cs.user_id, COUNT(m.id) as messages_sent
+          FROM chat_sessions cs
+          LEFT JOIN messages m ON cs.id = m.session_id
+          GROUP BY cs.user_id
+        ) m ON u.id = m.user_id
+        LEFT JOIN (
+          SELECT user_id, COUNT(*) as files_created
+          FROM files
+          GROUP BY user_id
+        ) f ON u.id = f.user_id
+        LEFT JOIN (
+          SELECT user_id, COUNT(*) as projects_created
+          FROM projects
+          GROUP BY user_id
+        ) p ON u.id = p.user_id
+        ORDER BY activity_score DESC, u.updated_at DESC
+        LIMIT $1
+      `;
 
-      if (error) {
-        handleDatabaseError(error);
-      }
-
-      return (data || []).map((user: any) => ({
-        user_id: user.id,
-        user_name: user.name,
-        messages_sent: 0, // Would need complex join
-        files_created: 0, // Would need complex join
-        projects_created: user.projects?.[0]?.count || 0,
-        last_activity: user.updated_at,
-        activity_score: user.projects?.[0]?.count || 0,
-      }));
+      const result = await this.client(sql, [limit]);
+      return extractRows(result) as UserActivityAnalytics[];
     } catch (error) {
       handleDatabaseError(error);
-      return []; // Add explicit return for error case
+      return [];
     }
   }
 
@@ -297,54 +344,57 @@ export class DatabaseQueries {
   }> {
     try {
       const searchQuery = `%${query.toLowerCase()}%`;
+      const params: any[] = [searchQuery];
+      let userFilter = '';
+      
+      if (userId) {
+        userFilter = ' AND user_id = $2';
+        params.push(userId);
+      }
 
       // Search projects
-      let projectsQuery = this.client
-        .from('projects')
-        .select('*')
-        .or(`name.ilike.${searchQuery},description.ilike.${searchQuery}`)
-        .limit(limit);
-
-      if (userId) {
-        projectsQuery = projectsQuery.eq('user_id', userId);
-      }
+      const projectsSql = `
+        SELECT * FROM projects 
+        WHERE (LOWER(name) LIKE $1 OR LOWER(description) LIKE $1)${userFilter}
+        ORDER BY updated_at DESC
+        LIMIT ${limit}
+      `;
 
       // Search files
-      let filesQuery = this.client
-        .from('files')
-        .select('*, projects!inner(*)')
-        .or(`name.ilike.${searchQuery},content.ilike.${searchQuery}`)
-        .limit(limit);
-
-      if (userId) {
-        filesQuery = filesQuery.eq('projects.user_id', userId);
-      }
+      const filesSql = `
+        SELECT f.*, p.name as project_name 
+        FROM files f
+        JOIN projects p ON f.project_id = p.id
+        WHERE (LOWER(f.name) LIKE $1 OR LOWER(f.content) LIKE $1)${userId ? ' AND p.user_id = $2' : ''}
+        ORDER BY f.updated_at DESC
+        LIMIT ${limit}
+      `;
 
       // Search messages
-      let messagesQuery = this.client
-        .from('messages')
-        .select('*, chat_sessions!inner(*, projects!inner(*))')
-        .ilike('content', searchQuery)
-        .limit(limit);
-
-      if (userId) {
-        messagesQuery = messagesQuery.eq('chat_sessions.projects.user_id', userId);
-      }
+      const messagesSql = `
+        SELECT m.*, cs.title as session_title, p.name as project_name
+        FROM messages m
+        JOIN chat_sessions cs ON m.session_id = cs.id
+        JOIN projects p ON cs.project_id = p.id
+        WHERE LOWER(m.content) LIKE $1${userId ? ' AND p.user_id = $2' : ''}
+        ORDER BY m.created_at DESC
+        LIMIT ${limit}
+      `;
 
       const [projectsResult, filesResult, messagesResult] = await Promise.all([
-        projectsQuery,
-        filesQuery,
-        messagesQuery,
+        this.client(projectsSql, params),
+        this.client(filesSql, params),
+        this.client(messagesSql, params),
       ]);
 
       return {
-        projects: projectsResult.data || [],
-        files: filesResult.data || [],
-        messages: messagesResult.data || [],
+        projects: extractRows(projectsResult),
+        files: extractRows(filesResult),
+        messages: extractRows(messagesResult),
       };
     } catch (error) {
       handleDatabaseError(error);
-      return { // Add explicit return for error case
+      return {
         projects: [],
         files: [],
         messages: [],
@@ -357,33 +407,50 @@ export class DatabaseQueries {
    */
   async getTrendingProjects(limit = 10): Promise<ProjectWithStats[]> {
     try {
-      const { data, error } = await this.client
-        .from('projects')
-        .select(`
-          *,
-          files(count),
-          project_members(count),
-          chat_sessions(count)
-        `)
-        .eq('status', 'active')
-        .order('updated_at', { ascending: false })
-        .limit(limit);
+      const sql = `
+        SELECT 
+          p.*,
+          COALESCE(f.file_count, 0) as file_count,
+          COALESCE(pm.member_count, 0) as member_count,
+          COALESCE(cs.chat_session_count, 0) as chat_session_count,
+          COALESCE(m.total_messages, 0) as total_messages,
+          p.updated_at as last_activity,
+          (COALESCE(f.file_count, 0) + COALESCE(m.total_messages, 0)) as activity_score
+        FROM projects p
+        LEFT JOIN (
+          SELECT project_id, COUNT(*) as file_count 
+          FROM files 
+          WHERE created_at > NOW() - INTERVAL '30 days'
+          GROUP BY project_id
+        ) f ON p.id = f.project_id
+        LEFT JOIN (
+          SELECT project_id, COUNT(*) as member_count 
+          FROM project_members 
+          GROUP BY project_id
+        ) pm ON p.id = pm.project_id
+        LEFT JOIN (
+          SELECT project_id, COUNT(*) as chat_session_count 
+          FROM chat_sessions 
+          WHERE created_at > NOW() - INTERVAL '30 days'
+          GROUP BY project_id
+        ) cs ON p.id = cs.project_id
+        LEFT JOIN (
+          SELECT cs.project_id, COUNT(m.id) as total_messages
+          FROM chat_sessions cs
+          LEFT JOIN messages m ON cs.id = m.session_id
+          WHERE m.created_at > NOW() - INTERVAL '30 days'
+          GROUP BY cs.project_id
+        ) m ON p.id = m.project_id
+        WHERE p.status = 'active'
+        ORDER BY activity_score DESC, p.updated_at DESC
+        LIMIT $1
+      `;
 
-      if (error) {
-        handleDatabaseError(error);
-      }
-
-      return (data || []).map((project: any) => ({
-        ...project,
-        file_count: project.files?.[0]?.count || 0,
-        member_count: project.project_members?.[0]?.count || 0,
-        chat_session_count: project.chat_sessions?.[0]?.count || 0,
-        total_messages: 0,
-        last_activity: project.updated_at,
-      }));
+      const result = await this.client(sql, [limit]);
+      return extractRows(result) as ProjectWithStats[];
     } catch (error) {
       handleDatabaseError(error);
-      return []; // Add explicit return for error case
+      return [];
     }
   }
 
@@ -397,21 +464,24 @@ export class DatabaseQueries {
     connection_count: number;
   }> {
     try {
-      // Get table counts
-      const [usersCount, projectsCount, filesCount, messagesCount, sessionsCount] = await Promise.all([
-        this.client.from('users').select('*', { count: 'exact', head: true }),
-        this.client.from('projects').select('*', { count: 'exact', head: true }),
-        this.client.from('files').select('*', { count: 'exact', head: true }),
-        this.client.from('messages').select('*', { count: 'exact', head: true }),
-        this.client.from('chat_sessions').select('*', { count: 'exact', head: true }),
-      ]);
+      const sql = `
+        SELECT 
+          (SELECT COUNT(*) FROM users) as users_count,
+          (SELECT COUNT(*) FROM projects) as projects_count,
+          (SELECT COUNT(*) FROM files) as files_count,
+          (SELECT COUNT(*) FROM messages) as messages_count,
+          (SELECT COUNT(*) FROM chat_sessions) as sessions_count
+      `;
+
+      const result = await this.client(sql);
+      const row = extractFirstRow(result);
 
       const tableSizes = {
-        users: usersCount.count || 0,
-        projects: projectsCount.count || 0,
-        files: filesCount.count || 0,
-        messages: messagesCount.count || 0,
-        chat_sessions: sessionsCount.count || 0,
+        users: parseInt(row?.users_count || '0'),
+        projects: parseInt(row?.projects_count || '0'),
+        files: parseInt(row?.files_count || '0'),
+        messages: parseInt(row?.messages_count || '0'),
+        chat_sessions: parseInt(row?.sessions_count || '0'),
       };
 
       const totalSize = Object.values(tableSizes).reduce((sum: number, count: number) => sum + count, 0);
@@ -428,7 +498,7 @@ export class DatabaseQueries {
       };
     } catch (error) {
       handleDatabaseError(error);
-      return { // Add explicit return for error case
+      return {
         total_size: 0,
         table_sizes: {},
         query_performance: {
@@ -443,6 +513,6 @@ export class DatabaseQueries {
 }
 
 // Create database queries instance
-export const createDatabaseQueries = (client: SupabaseDatabase): DatabaseQueries => {
-  return new DatabaseQueries(client);
+export const createDatabaseQueries = (config?: DatabaseConfig): DatabaseQueries => {
+  return new DatabaseQueries(config);
 };

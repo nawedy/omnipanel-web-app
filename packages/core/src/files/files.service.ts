@@ -6,10 +6,10 @@ import type {
   FileSearchRequest,
   FileSearchResponse
 } from '@omnipanel/types';
-import { DatabaseClient } from '@/database/client';
-import { CoreError, ErrorCodes } from '@/utils/errors';
-import { validateInput } from '@/utils/validation';
-import { sanitizeFilename, sanitizeInput } from '@/utils/sanitization';
+import type { DatabaseClient } from '../database/client';
+import { CoreError, ErrorCodes } from '../utils/errors';
+import { validateInput } from '../utils/validation';
+import { sanitizeFilename, sanitizeInput } from '../utils/sanitization';
 
 export interface PaginationOptions {
   offset?: number;
@@ -84,7 +84,7 @@ export class FilesService {
 
       // Check if file with same name exists in project
       const existingFiles = await this.db.files.findByProjectId(data.project_id);
-      const nameExists = existingFiles.some(file => file.name === sanitizedName);
+      const nameExists = existingFiles.some((file: any) => file.name === sanitizedName);
       if (nameExists) {
         throw new CoreError(
           'File with this name already exists in project',
@@ -199,7 +199,7 @@ export class FilesService {
 
         // Check if new name conflicts with existing files
         const existingFiles = await this.db.files.findByProjectId(file.project_id);
-        const nameExists = existingFiles.some(f => f.id !== fileId && f.name === sanitizedName);
+        const nameExists = existingFiles.some((f: any) => f.id !== fileId && f.name === sanitizedName);
         if (nameExists) {
           throw new CoreError(
             'File with this name already exists in project',

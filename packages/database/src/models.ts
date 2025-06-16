@@ -1,6 +1,6 @@
 // packages/database/src/models.ts
-import type { SupabaseDatabase } from './client';
-import { handleDatabaseError } from './client';
+import { getNeonClient } from './client';
+import type { DatabaseConfig } from '@omnipanel/config';
 import type {
   DatabaseUser,
   DatabaseProject,
@@ -28,31 +28,40 @@ export interface BaseModelMember {
   joined_at: string;
 }
 
-// Generic CRUD operations
+// Helper function to extract rows from neon result
+const extractRows = (result: any): any[] => {
+  if (Array.isArray(result)) return result;
+  if (result && result.rows) return result.rows;
+  return [];
+};
+
+const extractFirstRow = (result: any): any | null => {
+  const rows = extractRows(result);
+  return rows.length > 0 ? rows[0] : null;
+};
+
+// Generic CRUD operations for NeonDB
 export class BaseRepository<T extends BaseModel, InsertT, UpdateT> {
+  protected client;
+
   constructor(
-    protected client: SupabaseDatabase,
-    protected tableName: string
-  ) {}
+    config?: DatabaseConfig,
+    protected tableName: string = ''
+  ) {
+    this.client = getNeonClient(config);
+  }
 
   async findById(id: string): Promise<T | null> {
     try {
-      const { data, error } = await this.client
-        .from(this.tableName)
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') return null;
-        handleDatabaseError(error);
-      }
-
-      return data as T;
+      const result = await this.client(
+        `SELECT * FROM ${this.tableName} WHERE id = $1`,
+        [id]
+      );
+      return extractFirstRow(result) as T || null;
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error finding ${this.tableName} by id:`, error);
+      return null;
     }
-    return null;
   }
 
   async findMany(
@@ -65,104 +74,113 @@ export class BaseRepository<T extends BaseModel, InsertT, UpdateT> {
     } = {}
   ): Promise<T[]> {
     try {
-      let query = this.client.from(this.tableName).select('*');
+      let sql = `SELECT * FROM ${this.tableName}`;
+      const values: any[] = [];
+      let paramCount = 1;
 
       // Apply filters
-      Object.entries(filters).forEach(([key, value]) => {
-        query = query.eq(key, value);
-      });
+      if (Object.keys(filters).length > 0) {
+        const filterClauses = Object.entries(filters).map(([key, value]) => {
+          values.push(value);
+          return `${key} = $${paramCount++}`;
+        });
+        sql += ` WHERE ${filterClauses.join(' AND ')}`;
+      }
 
       // Apply ordering
       if (options.orderBy) {
-        query = query.order(options.orderBy, { ascending: options.ascending ?? true });
+        sql += ` ORDER BY ${options.orderBy} ${options.ascending ? 'ASC' : 'DESC'}`;
       }
 
       // Apply pagination
       if (options.limit) {
-        query = query.limit(options.limit);
+        sql += ` LIMIT $${paramCount++}`;
+        values.push(options.limit);
       }
       if (options.offset) {
-        query = query.range(options.offset, (options.offset + (options.limit || 50)) - 1);
+        sql += ` OFFSET $${paramCount++}`;
+        values.push(options.offset);
       }
 
-      const { data, error } = await query;
-
-      if (error) handleDatabaseError(error);
-
-      return (data as T[]) || [];
+      const result = await this.client(sql, values);
+      return extractRows(result) as T[];
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error finding ${this.tableName}:`, error);
+      return [];
     }
-    return [];
   }
 
   async create(data: InsertT): Promise<T> {
     try {
-      const { data: result, error } = await this.client
-        .from(this.tableName)
-        .insert(data as any)
-        .select()
-        .single();
+      const keys = Object.keys(data as any);
+      const values = Object.values(data as any);
+      const placeholders = keys.map((_, index) => `$${index + 1}`).join(', ');
+      
+      const sql = `
+        INSERT INTO ${this.tableName} (${keys.join(', ')})
+        VALUES (${placeholders})
+        RETURNING *
+      `;
 
-      if (error) handleDatabaseError(error);
-
-      return result as T;
+      const result = await this.client(sql, values);
+      return extractFirstRow(result) as T;
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error creating ${this.tableName}:`, error);
+      throw new Error(`Failed to create ${this.tableName}`);
     }
-    throw new Error('Failed to create record');
   }
 
   async update(id: string, data: UpdateT): Promise<T> {
     try {
-      const { data: result, error } = await this.client
-        .from(this.tableName)
-        .update(data as any)
-        .eq('id', id)
-        .select()
-        .single();
+      const entries = Object.entries(data as any).filter(([, value]) => value !== undefined);
+      const setClause = entries.map(([key], index) => `${key} = $${index + 2}`).join(', ');
+              const values = [id, ...entries.map(([, value]) => value)];
 
-      if (error) handleDatabaseError(error);
+      const sql = `
+        UPDATE ${this.tableName} 
+        SET ${setClause}, updated_at = NOW()
+        WHERE id = $1
+        RETURNING *
+      `;
 
-      return result as T;
+      const result = await this.client(sql, values);
+      return extractFirstRow(result) as T;
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error updating ${this.tableName}:`, error);
+      throw new Error(`Failed to update ${this.tableName}`);
     }
-    throw new Error('Failed to update record');
   }
 
   async delete(id: string): Promise<void> {
     try {
-      const { error } = await this.client
-        .from(this.tableName)
-        .delete()
-        .eq('id', id);
-
-      if (error) handleDatabaseError(error);
+      await this.client(`DELETE FROM ${this.tableName} WHERE id = $1`, [id]);
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error deleting ${this.tableName}:`, error);
+      throw new Error(`Failed to delete ${this.tableName}`);
     }
   }
 
   async count(filters: Record<string, any> = {}): Promise<number> {
     try {
-      let query = this.client
-        .from(this.tableName)
-        .select('*', { count: 'exact', head: true });
+      let sql = `SELECT COUNT(*) as count FROM ${this.tableName}`;
+      const values: any[] = [];
+      let paramCount = 1;
 
-      Object.entries(filters).forEach(([key, value]) => {
-        query = query.eq(key, value);
-      });
+      if (Object.keys(filters).length > 0) {
+        const filterClauses = Object.entries(filters).map(([key, value]) => {
+          values.push(value);
+          return `${key} = $${paramCount++}`;
+        });
+        sql += ` WHERE ${filterClauses.join(' AND ')}`;
+      }
 
-      const { count, error } = await query;
-
-      if (error) handleDatabaseError(error);
-
-      return count || 0;
+      const result = await this.client(sql, values);
+      const row = extractFirstRow(result);
+      return parseInt(row?.count || '0');
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error counting ${this.tableName}:`, error);
+      return 0;
     }
-    return 0;
   }
 }
 
@@ -172,42 +190,35 @@ export class UserRepository extends BaseRepository<
   Omit<DatabaseUser, 'id' | 'created_at' | 'updated_at'>,
   Partial<Omit<DatabaseUser, 'id' | 'created_at' | 'updated_at'>>
 > {
-  constructor(client: SupabaseDatabase) {
-    super(client, 'users');
+  constructor(config?: DatabaseConfig) {
+    super(config, 'users');
   }
 
   async findByEmail(email: string): Promise<DatabaseUser | null> {
     try {
-      const { data, error } = await this.client
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') return null;
-        handleDatabaseError(error);
-      }
-
-      return data;
+      const result = await this.client(
+        'SELECT * FROM users WHERE email = $1',
+        [email]
+      );
+      return extractFirstRow(result) as DatabaseUser || null;
     } catch (error) {
-      handleDatabaseError(error);
+      console.error('Error finding user by email:', error);
+      return null;
     }
-    return null;
   }
 
   async updatePreferences(
     userId: string, 
     preferences: DatabaseUser['preferences']
   ): Promise<DatabaseUser> {
-    return this.update(userId, { preferences });
+    return this.update(userId, { preferences } as any);
   }
 
   async updateSubscriptionTier(
     userId: string, 
     tier: DatabaseUser['subscription_tier']
   ): Promise<DatabaseUser> {
-    return this.update(userId, { subscription_tier: tier });
+    return this.update(userId, { subscription_tier: tier } as any);
   }
 }
 
@@ -217,8 +228,8 @@ export class ProjectRepository extends BaseRepository<
   Omit<DatabaseProject, 'id' | 'created_at' | 'updated_at'>,
   Partial<Omit<DatabaseProject, 'id' | 'created_at' | 'updated_at'>>
 > {
-  constructor(client: SupabaseDatabase) {
-    super(client, 'projects');
+  constructor(config?: DatabaseConfig) {
+    super(config, 'projects');
   }
 
   async findByUserId(userId: string): Promise<DatabaseProject[]> {
@@ -233,35 +244,32 @@ export class ProjectRepository extends BaseRepository<
     projectId: string, 
     settings: DatabaseProject['settings']
   ): Promise<DatabaseProject> {
-    return this.update(projectId, { settings });
+    return this.update(projectId, { settings } as any);
   }
 }
 
-// Project member repository - using separate base class
+// Base repository for member tables (with joined_at instead of updated_at)
 export class BaseRepositoryMember<T extends BaseModelMember, InsertT, UpdateT> {
+  protected client;
+
   constructor(
-    protected client: SupabaseDatabase,
-    protected tableName: string
-  ) {}
+    config?: DatabaseConfig,
+    protected tableName: string = ''
+  ) {
+    this.client = getNeonClient(config);
+  }
 
   async findById(id: string): Promise<T | null> {
     try {
-      const { data, error } = await this.client
-        .from(this.tableName)
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') return null;
-        handleDatabaseError(error);
-      }
-
-      return data as T;
+      const result = await this.client(
+        `SELECT * FROM ${this.tableName} WHERE id = $1`,
+        [id]
+      );
+      return extractFirstRow(result) as T || null;
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error finding ${this.tableName} by id:`, error);
+      return null;
     }
-    return null;
   }
 
   async findMany(
@@ -274,111 +282,121 @@ export class BaseRepositoryMember<T extends BaseModelMember, InsertT, UpdateT> {
     } = {}
   ): Promise<T[]> {
     try {
-      let query = this.client.from(this.tableName).select('*');
+      let sql = `SELECT * FROM ${this.tableName}`;
+      const values: any[] = [];
+      let paramCount = 1;
 
-      Object.entries(filters).forEach(([key, value]) => {
-        query = query.eq(key, value);
-      });
+      if (Object.keys(filters).length > 0) {
+        const filterClauses = Object.entries(filters).map(([key, value]) => {
+          values.push(value);
+          return `${key} = $${paramCount++}`;
+        });
+        sql += ` WHERE ${filterClauses.join(' AND ')}`;
+      }
 
       if (options.orderBy) {
-        query = query.order(options.orderBy, { ascending: options.ascending ?? true });
+        sql += ` ORDER BY ${options.orderBy} ${options.ascending ? 'ASC' : 'DESC'}`;
       }
 
       if (options.limit) {
-        query = query.limit(options.limit);
+        sql += ` LIMIT $${paramCount++}`;
+        values.push(options.limit);
       }
       if (options.offset) {
-        query = query.range(options.offset, (options.offset + (options.limit || 50)) - 1);
+        sql += ` OFFSET $${paramCount++}`;
+        values.push(options.offset);
       }
 
-      const { data, error } = await query;
-
-      if (error) handleDatabaseError(error);
-
-      return (data as T[]) || [];
+      const result = await this.client(sql, values);
+      return extractRows(result) as T[];
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error finding ${this.tableName}:`, error);
+      return [];
     }
-    return [];
   }
 
   async create(data: InsertT): Promise<T> {
     try {
-      const { data: result, error } = await this.client
-        .from(this.tableName)
-        .insert(data as any)
-        .select()
-        .single();
+      const keys = Object.keys(data as any);
+      const values = Object.values(data as any);
+      const placeholders = keys.map((_, index) => `$${index + 1}`).join(', ');
+      
+      const sql = `
+        INSERT INTO ${this.tableName} (${keys.join(', ')})
+        VALUES (${placeholders})
+        RETURNING *
+      `;
 
-      if (error) handleDatabaseError(error);
-
-      return result as T;
+      const result = await this.client(sql, values);
+      return extractFirstRow(result) as T;
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error creating ${this.tableName}:`, error);
+      throw new Error(`Failed to create ${this.tableName}`);
     }
-    throw new Error('Failed to create record');
   }
 
   async update(id: string, data: UpdateT): Promise<T> {
     try {
-      const { data: result, error } = await this.client
-        .from(this.tableName)
-        .update(data as any)
-        .eq('id', id)
-        .select()
-        .single();
+      const entries = Object.entries(data as any).filter(([, value]) => value !== undefined);
+      const setClause = entries.map(([key], index) => `${key} = $${index + 2}`).join(', ');
+      const values = [id, ...entries.map(([, value]) => value)];
 
-      if (error) handleDatabaseError(error);
+      const sql = `
+        UPDATE ${this.tableName} 
+        SET ${setClause}
+        WHERE id = $1
+        RETURNING *
+      `;
 
-      return result as T;
+      const result = await this.client(sql, values);
+      return extractFirstRow(result) as T;
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error updating ${this.tableName}:`, error);
+      throw new Error(`Failed to update ${this.tableName}`);
     }
-    throw new Error('Failed to update record');
   }
 
   async delete(id: string): Promise<void> {
     try {
-      const { error } = await this.client
-        .from(this.tableName)
-        .delete()
-        .eq('id', id);
-
-      if (error) handleDatabaseError(error);
+      await this.client(`DELETE FROM ${this.tableName} WHERE id = $1`, [id]);
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error deleting ${this.tableName}:`, error);
+      throw new Error(`Failed to delete ${this.tableName}`);
     }
   }
 
   async count(filters: Record<string, any> = {}): Promise<number> {
     try {
-      let query = this.client
-        .from(this.tableName)
-        .select('*', { count: 'exact', head: true });
+      let sql = `SELECT COUNT(*) as count FROM ${this.tableName}`;
+      const values: any[] = [];
+      let paramCount = 1;
 
-      Object.entries(filters).forEach(([key, value]) => {
-        query = query.eq(key, value);
-      });
+      if (Object.keys(filters).length > 0) {
+        const filterClauses = Object.entries(filters).map(([key, value]) => {
+          values.push(value);
+          return `${key} = $${paramCount++}`;
+        });
+        sql += ` WHERE ${filterClauses.join(' AND ')}`;
+      }
 
-      const { count, error } = await query;
-
-      if (error) handleDatabaseError(error);
-
-      return count || 0;
+      const result = await this.client(sql, values);
+      const row = extractFirstRow(result);
+      return parseInt(row?.count || '0');
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error counting ${this.tableName}:`, error);
+      return 0;
     }
-    return 0;
   }
 }
 
+// Project member repository
 export class ProjectMemberRepository extends BaseRepositoryMember<
   DatabaseProjectMember,
   Omit<DatabaseProjectMember, 'id' | 'joined_at'>,
   Partial<Omit<DatabaseProjectMember, 'id' | 'joined_at'>>
 > {
-  constructor(client: SupabaseDatabase) {
-    super(client, 'project_members');
+  constructor(config?: DatabaseConfig) {
+    super(config, 'project_members');
   }
 
   async findByProjectId(projectId: string): Promise<DatabaseProjectMember[]> {
@@ -394,23 +412,15 @@ export class ProjectMemberRepository extends BaseRepositoryMember<
     userId: string
   ): Promise<DatabaseProjectMember | null> {
     try {
-      const { data, error } = await this.client
-        .from('project_members')
-        .select('*')
-        .eq('project_id', projectId)
-        .eq('user_id', userId)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') return null;
-        handleDatabaseError(error);
-      }
-
-      return data;
+      const result = await this.client(
+        'SELECT * FROM project_members WHERE project_id = $1 AND user_id = $2',
+        [projectId, userId]
+      );
+      return extractFirstRow(result) as DatabaseProjectMember || null;
     } catch (error) {
-      handleDatabaseError(error);
+      console.error('Error finding project member:', error);
+      return null;
     }
-    return null;
   }
 
   async updateRole(
@@ -419,21 +429,15 @@ export class ProjectMemberRepository extends BaseRepositoryMember<
     role: DatabaseProjectMember['role']
   ): Promise<DatabaseProjectMember> {
     try {
-      const { data, error } = await this.client
-        .from('project_members')
-        .update({ role })
-        .eq('project_id', projectId)
-        .eq('user_id', userId)
-        .select()
-        .single();
-
-      if (error) handleDatabaseError(error);
-
-      return data;
+      const result = await this.client(
+        'UPDATE project_members SET role = $3 WHERE project_id = $1 AND user_id = $2 RETURNING *',
+        [projectId, userId, role]
+      );
+      return extractFirstRow(result) as DatabaseProjectMember;
     } catch (error) {
-      handleDatabaseError(error);
+      console.error('Error updating member role:', error);
+      throw new Error('Failed to update member role');
     }
-    throw new Error('Failed to update role');
   }
 }
 
@@ -443,8 +447,8 @@ export class ChatSessionRepository extends BaseRepository<
   Omit<DatabaseChatSession, 'id' | 'created_at' | 'updated_at'>,
   Partial<Omit<DatabaseChatSession, 'id' | 'created_at' | 'updated_at'>>
 > {
-  constructor(client: SupabaseDatabase) {
-    super(client, 'chat_sessions');
+  constructor(config?: DatabaseConfig) {
+    super(config, 'chat_sessions');
   }
 
   async findByProjectId(projectId: string): Promise<DatabaseChatSession[]> {
@@ -456,35 +460,32 @@ export class ChatSessionRepository extends BaseRepository<
   }
 
   async updateTitle(sessionId: string, title: string): Promise<DatabaseChatSession> {
-    return this.update(sessionId, { title });
+    return this.update(sessionId, { title } as any);
   }
 }
 
-// Message repository - using separate base class for models without updated_at
+// Base repository for tables without updated_at
 export class BaseRepositoryWithoutUpdate<T extends BaseModelWithoutUpdate, InsertT, UpdateT> {
+  protected client;
+
   constructor(
-    protected client: SupabaseDatabase,
-    protected tableName: string
-  ) {}
+    config?: DatabaseConfig,
+    protected tableName: string = ''
+  ) {
+    this.client = getNeonClient(config);
+  }
 
   async findById(id: string): Promise<T | null> {
     try {
-      const { data, error } = await this.client
-        .from(this.tableName)
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') return null;
-        handleDatabaseError(error);
-      }
-
-      return data as T;
+      const result = await this.client(
+        `SELECT * FROM ${this.tableName} WHERE id = $1`,
+        [id]
+      );
+      return extractFirstRow(result) as T || null;
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error finding ${this.tableName} by id:`, error);
+      return null;
     }
-    return null;
   }
 
   async findMany(
@@ -497,101 +498,110 @@ export class BaseRepositoryWithoutUpdate<T extends BaseModelWithoutUpdate, Inser
     } = {}
   ): Promise<T[]> {
     try {
-      let query = this.client.from(this.tableName).select('*');
+      let sql = `SELECT * FROM ${this.tableName}`;
+      const values: any[] = [];
+      let paramCount = 1;
 
-      Object.entries(filters).forEach(([key, value]) => {
-        query = query.eq(key, value);
-      });
+      if (Object.keys(filters).length > 0) {
+        const filterClauses = Object.entries(filters).map(([key, value]) => {
+          values.push(value);
+          return `${key} = $${paramCount++}`;
+        });
+        sql += ` WHERE ${filterClauses.join(' AND ')}`;
+      }
 
       if (options.orderBy) {
-        query = query.order(options.orderBy, { ascending: options.ascending ?? true });
+        sql += ` ORDER BY ${options.orderBy} ${options.ascending ? 'ASC' : 'DESC'}`;
       }
 
       if (options.limit) {
-        query = query.limit(options.limit);
+        sql += ` LIMIT $${paramCount++}`;
+        values.push(options.limit);
       }
       if (options.offset) {
-        query = query.range(options.offset, (options.offset + (options.limit || 50)) - 1);
+        sql += ` OFFSET $${paramCount++}`;
+        values.push(options.offset);
       }
 
-      const { data, error } = await query;
-
-      if (error) handleDatabaseError(error);
-
-      return (data as T[]) || [];
+      const result = await this.client(sql, values);
+      return extractRows(result) as T[];
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error finding ${this.tableName}:`, error);
+      return [];
     }
-    return [];
   }
 
   async create(data: InsertT): Promise<T> {
     try {
-      const { data: result, error } = await this.client
-        .from(this.tableName)
-        .insert(data as any)
-        .select()
-        .single();
+      const keys = Object.keys(data as any);
+      const values = Object.values(data as any);
+      const placeholders = keys.map((_, index) => `$${index + 1}`).join(', ');
+      
+      const sql = `
+        INSERT INTO ${this.tableName} (${keys.join(', ')})
+        VALUES (${placeholders})
+        RETURNING *
+      `;
 
-      if (error) handleDatabaseError(error);
-
-      return result as T;
+      const result = await this.client(sql, values);
+      return extractFirstRow(result) as T;
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error creating ${this.tableName}:`, error);
+      throw new Error(`Failed to create ${this.tableName}`);
     }
-    throw new Error('Failed to create record');
   }
 
   async update(id: string, data: UpdateT): Promise<T> {
     try {
-      const { data: result, error } = await this.client
-        .from(this.tableName)
-        .update(data as any)
-        .eq('id', id)
-        .select()
-        .single();
+      const entries = Object.entries(data as any).filter(([, value]) => value !== undefined);
+      const setClause = entries.map(([key], index) => `${key} = $${index + 2}`).join(', ');
+      const values = [id, ...entries.map(([, value]) => value)];
 
-      if (error) handleDatabaseError(error);
+      const sql = `
+        UPDATE ${this.tableName} 
+        SET ${setClause}
+        WHERE id = $1
+        RETURNING *
+      `;
 
-      return result as T;
+      const result = await this.client(sql, values);
+      return extractFirstRow(result) as T;
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error updating ${this.tableName}:`, error);
+      throw new Error(`Failed to update ${this.tableName}`);
     }
-    throw new Error('Failed to update record');
   }
 
   async delete(id: string): Promise<void> {
     try {
-      const { error } = await this.client
-        .from(this.tableName)
-        .delete()
-        .eq('id', id);
-
-      if (error) handleDatabaseError(error);
+      await this.client(`DELETE FROM ${this.tableName} WHERE id = $1`, [id]);
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error deleting ${this.tableName}:`, error);
+      throw new Error(`Failed to delete ${this.tableName}`);
     }
   }
 
   async count(filters: Record<string, any> = {}): Promise<number> {
     try {
-      let query = this.client
-        .from(this.tableName)
-        .select('*', { count: 'exact', head: true });
+      let sql = `SELECT COUNT(*) as count FROM ${this.tableName}`;
+      const values: any[] = [];
+      let paramCount = 1;
 
-      Object.entries(filters).forEach(([key, value]) => {
-        query = query.eq(key, value);
-      });
+      if (Object.keys(filters).length > 0) {
+        const filterClauses = Object.entries(filters).map(([key, value]) => {
+          values.push(value);
+          return `${key} = $${paramCount++}`;
+        });
+        sql += ` WHERE ${filterClauses.join(' AND ')}`;
+      }
 
-      const { count, error } = await query;
-
-      if (error) handleDatabaseError(error);
-
-      return count || 0;
+      const result = await this.client(sql, values);
+      const row = extractFirstRow(result);
+      return parseInt(row?.count || '0');
     } catch (error) {
-      handleDatabaseError(error);
+      console.error(`Error counting ${this.tableName}:`, error);
+      return 0;
     }
-    return 0;
   }
 }
 
@@ -601,12 +611,12 @@ export class MessageRepository extends BaseRepositoryWithoutUpdate<
   Omit<DatabaseMessage, 'id' | 'created_at'>,
   Partial<Omit<DatabaseMessage, 'id' | 'created_at'>>
 > {
-  constructor(client: SupabaseDatabase) {
-    super(client, 'messages');
+  constructor(config?: DatabaseConfig) {
+    super(config, 'messages');
   }
 
   async findBySessionId(sessionId: string): Promise<DatabaseMessage[]> {
-    return this.findMany({ session_id: sessionId }, { orderBy: 'created_at' });
+    return this.findMany({ session_id: sessionId }, { orderBy: 'created_at', ascending: true });
   }
 
   async findByRole(
@@ -623,8 +633,8 @@ export class FileRepository extends BaseRepository<
   Omit<DatabaseFile, 'id' | 'created_at' | 'updated_at'>,
   Partial<Omit<DatabaseFile, 'id' | 'created_at' | 'updated_at'>>
 > {
-  constructor(client: SupabaseDatabase) {
-    super(client, 'files');
+  constructor(config?: DatabaseConfig) {
+    super(config, 'files');
   }
 
   async findByProjectId(projectId: string): Promise<DatabaseFile[]> {
@@ -633,23 +643,15 @@ export class FileRepository extends BaseRepository<
 
   async findByPath(projectId: string, path: string): Promise<DatabaseFile | null> {
     try {
-      const { data, error } = await this.client
-        .from('files')
-        .select('*')
-        .eq('project_id', projectId)
-        .eq('path', path)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') return null;
-        handleDatabaseError(error);
-      }
-
-      return data;
+      const result = await this.client(
+        'SELECT * FROM files WHERE project_id = $1 AND path = $2',
+        [projectId, path]
+      );
+      return extractFirstRow(result) as DatabaseFile || null;
     } catch (error) {
-      handleDatabaseError(error);
+      console.error('Error finding file by path:', error);
+      return null;
     }
-    return null;
   }
 
   async findByParentId(parentId: string): Promise<DatabaseFile[]> {
@@ -657,7 +659,7 @@ export class FileRepository extends BaseRepository<
   }
 
   async updateContent(fileId: string, content: string): Promise<DatabaseFile> {
-    return this.update(fileId, { content });
+    return this.update(fileId, { content } as any);
   }
 }
 
@@ -667,8 +669,8 @@ export class FileVersionRepository extends BaseRepositoryWithoutUpdate<
   Omit<DatabaseFileVersion, 'id' | 'created_at'>,
   Partial<Omit<DatabaseFileVersion, 'id' | 'created_at'>>
 > {
-  constructor(client: SupabaseDatabase) {
-    super(client, 'file_versions');
+  constructor(config?: DatabaseConfig) {
+    super(config, 'file_versions');
   }
 
   async findByFileId(fileId: string): Promise<DatabaseFileVersion[]> {
@@ -677,61 +679,51 @@ export class FileVersionRepository extends BaseRepositoryWithoutUpdate<
 
   async getLatestVersion(fileId: string): Promise<DatabaseFileVersion | null> {
     try {
-      const { data, error } = await this.client
-        .from('file_versions')
-        .select('*')
-        .eq('file_id', fileId)
-        .order('version_number', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (error) {
-        if (error.code === 'PGRST116') return null;
-        handleDatabaseError(error);
-      }
-
-      return data;
+      const result = await this.client(
+        'SELECT * FROM file_versions WHERE file_id = $1 ORDER BY version_number DESC LIMIT 1',
+        [fileId]
+      );
+      return extractFirstRow(result) as DatabaseFileVersion || null;
     } catch (error) {
-      handleDatabaseError(error);
+      console.error('Error getting latest file version:', error);
+      return null;
     }
-    return null;
   }
 }
 
-// Repository factory
+// Repository factory for NeonDB
 export class RepositoryFactory {
-  constructor(private client: SupabaseDatabase) {}
+  constructor(private config?: DatabaseConfig) {}
 
   get users(): UserRepository {
-    return new UserRepository(this.client);
+    return new UserRepository(this.config);
   }
 
   get projects(): ProjectRepository {
-    return new ProjectRepository(this.client);
+    return new ProjectRepository(this.config);
   }
 
   get projectMembers(): ProjectMemberRepository {
-    return new ProjectMemberRepository(this.client);
+    return new ProjectMemberRepository(this.config);
   }
 
   get chatSessions(): ChatSessionRepository {
-    return new ChatSessionRepository(this.client);
+    return new ChatSessionRepository(this.config);
   }
 
   get messages(): MessageRepository {
-    return new MessageRepository(this.client);
+    return new MessageRepository(this.config);
   }
 
   get files(): FileRepository {
-    return new FileRepository(this.client);
+    return new FileRepository(this.config);
   }
 
   get fileVersions(): FileVersionRepository {
-    return new FileVersionRepository(this.client);
+    return new FileVersionRepository(this.config);
   }
 }
 
-// Create repository factory
-export const createRepositoryFactory = (client: SupabaseDatabase): RepositoryFactory => {
-  return new RepositoryFactory(client);
+export const createRepositoryFactory = (config?: DatabaseConfig): RepositoryFactory => {
+  return new RepositoryFactory(config);
 };

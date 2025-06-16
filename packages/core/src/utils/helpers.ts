@@ -1,5 +1,9 @@
 // packages/core/src/utils/helpers.ts
 import { format, formatDistanceToNow, isValid, parseISO } from 'date-fns';
+import { nanoid } from 'nanoid';
+
+// Export nanoid for use in other packages
+export { nanoid };
 
 /**
  * Generate a URL-friendly slug from a string

@@ -45,7 +45,7 @@
 | Documentation | ✅ Comprehensive docs site | ✅ Basic docs | **Minor** |
 | **Enterprise Features** |
 | Self-hosting | ✅ Complete deployment guides | ✅ Docker setup | **Minor** |
-| User Management | ✅ Supabase auth + custom | ✅ Basic auth | **Minor** |
+| User Management | ✅ NeonDB auth + Stack Auth | ✅ Basic auth | **Minor** |
 | Data Security | ✅ End-to-end encryption | ✅ Basic security | **Minor** |
 | Backup/Export | ✅ Full project export | ❌ Limited export | **Major** |
 | **Extensibility** |

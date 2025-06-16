@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
+import { Providers } from '@/components/providers/Providers';
 import './globals.css';
 
 const inter = Inter({ 
@@ -101,9 +102,11 @@ export default function RootLayout({
         <meta name="msapplication-TileImage" content="/logo.png" />
       </head>
       <body className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}>
-        <div id="root" className="h-screen w-full overflow-hidden">
-          {children}
-        </div>
+        <Providers>
+          <div id="root" className="h-screen w-full overflow-hidden">
+            {children}
+          </div>
+        </Providers>
       </body>
     </html>
   );

@@ -5,6 +5,186 @@ import { MarketplaceUser } from '../marketplace/types';
  * Community Types for Theme Sharing and Collaboration
  */
 
+// Re-export common types for convenience
+export interface CommunityTheme extends Theme {
+  community?: CommunityMetadata;
+}
+
+export interface CommunityMetadata {
+  featured: boolean;
+  showcased: boolean;
+  likes: number;
+  downloads: number;
+  forks: number;
+  comments: number;
+}
+
+export interface UserProfile extends MarketplaceUser {
+  preferences: UserPreferences;
+  activity: UserActivity[];
+  contributions: UserContribution[];
+}
+
+export interface UserPreferences {
+  theme: string;
+  notifications: NotificationSettings;
+  privacy: PrivacySettings;
+}
+
+export interface NotificationSettings {
+  email: boolean;
+  push: boolean;
+  mentions: boolean;
+  follows: boolean;
+  likes: boolean;
+  comments: boolean;
+}
+
+export interface PrivacySettings {
+  profileVisible: boolean;
+  activityVisible: boolean;
+  emailVisible: boolean;
+}
+
+export interface UserContribution {
+  type: 'theme' | 'post' | 'comment' | 'tutorial' | 'showcase';
+  id: string;
+  title: string;
+  createdAt: string;
+  stats: ContributionStats;
+}
+
+export interface ContributionStats {
+  views: number;
+  likes: number;
+  comments: number;
+  shares: number;
+}
+
+export interface ThemeCollection {
+  id: string;
+  name: string;
+  description: string;
+  themes: string[];
+  author: MarketplaceUser;
+  createdAt: string;
+  updatedAt: string;
+  featured: boolean;
+  stats: CollectionStats;
+}
+
+export interface CollectionStats {
+  views: number;
+  likes: number;
+  follows: number;
+  themes: number;
+}
+
+export interface SocialInteraction {
+  id: string;
+  type: 'like' | 'follow' | 'share' | 'comment' | 'mention';
+  userId: string;
+  targetId: string;
+  targetType: 'theme' | 'post' | 'user' | 'collection';
+  createdAt: string;
+  metadata?: Record<string, any>;
+}
+
+export interface CommunityEvent {
+  id: string;
+  type: 'challenge' | 'contest' | 'workshop' | 'showcase' | 'announcement';
+  title: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  organizer: MarketplaceUser;
+  participants: string[];
+  status: 'upcoming' | 'active' | 'completed' | 'cancelled';
+}
+
+export interface ThemeContribution {
+  themeId: string;
+  contributorId: string;
+  type: 'code' | 'design' | 'testing' | 'documentation';
+  contribution: string;
+  approved: boolean;
+  createdAt: string;
+}
+
+export interface CollaborationRequest {
+  id: string;
+  projectId: string;
+  requesterId: string;
+  targetId: string;
+  type: 'theme' | 'collection' | 'tutorial';
+  message: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
+}
+
+export interface CommunityNotification extends Notification {
+  community?: boolean;
+  priority: 'low' | 'medium' | 'high';
+}
+
+export interface ThemeChallenge extends CommunityChallenge {
+  theme?: Theme;
+  requirements: ChallengeRequirement[];
+}
+
+export interface CommunityForum {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  posts: CommunityPost[];
+  moderators: MarketplaceUser[];
+  rules: string[];
+  stats: ForumStats;
+}
+
+export interface ForumStats {
+  posts: number;
+  topics: number;
+  members: number;
+  activeMembers: number;
+}
+
+export interface ForumPost extends CommunityPost {
+  forumId: string;
+  topic: string;
+  sticky: boolean;
+}
+
+export interface UserBadge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  earnedAt: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+}
+
+export class CommunityError extends Error {
+  public code: string;
+  public context?: Record<string, any>;
+  public recoverable: boolean;
+
+  constructor(
+    message: string,
+    code?: string,
+    context?: Record<string, any>,
+    recoverable: boolean = true
+  ) {
+    super(message);
+    this.name = 'CommunityError';
+    this.code = code || 'UNKNOWN';
+    this.context = context;
+    this.recoverable = recoverable;
+  }
+}
+
 // Community Post
 export interface CommunityPost {
   id: string;
@@ -319,6 +499,9 @@ export interface CommunitySearchResult {
 
 // Community Configuration
 export interface CommunityConfig {
+  baseUrl?: string;
+  apiKey?: string;
+  userId?: string;
   features: {
     posts: boolean;
     showcases: boolean;

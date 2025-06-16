@@ -372,10 +372,11 @@ export class ThemeInstaller extends EventEmitter {
    * Check theme compatibility
    */
   private checkCompatibility(theme: Theme): void {
-    // Check if theme is compatible with current platform
+    // Check platform compatibility
     const currentPlatform = this.getCurrentPlatform();
-    if (!theme.metadata.compatibility.includes(currentPlatform)) {
-      throw new Error(`Theme is not compatible with ${currentPlatform}`);
+    if (theme.metadata.compatibility.requiredFeatures && 
+        !theme.metadata.compatibility.requiredFeatures.includes(currentPlatform)) {
+      throw new Error(`Theme is not compatible with platform: ${currentPlatform}`);
     }
   }
 

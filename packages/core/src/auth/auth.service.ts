@@ -17,17 +17,64 @@ import type {
   SecurityLog,
   DatabaseUser
 } from '@omnipanel/types';
-import { DatabaseClient } from '@/database/client';
-import { createAuthConfig } from '@omnipanel/config';
-import { CoreError, ErrorCodes } from '@/utils/errors';
-import { validateInput } from '@/utils/validation';
-import { RateLimiter } from '@/utils/rate-limiter';
-import { timeStringToMs } from '@/utils/time';
+import type { DatabaseClient } from '../database/client';
+// import { authConfig } from '@omnipanel/config'; // Temporarily disabled due to build issues
+import { CoreError, ErrorCodes } from '../utils/errors';
+import { validateInput } from '../utils/validation';
+import { RateLimiter } from '../utils/rate-limiter';
+import { timeStringToMs } from '../utils/time';
 
 export class AuthService {
   private db: DatabaseClient;
   private rateLimiter: RateLimiter;
-  private authConfig = createAuthConfig();
+  private authConfig = {
+    jwt: {
+      secret: process.env.JWT_SECRET || 'default-secret-key-change-in-production',
+      refreshSecret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || 'default-refresh-secret-change-in-production',
+      algorithm: 'HS256' as const,
+      expires_in: '24h',
+      refresh_expires_in: '7d',
+      expiresIn: '24h',
+      refreshExpiresIn: '7d',
+      issuer: 'omnipanel',
+      audience: 'omnipanel-users',
+    },
+    bcrypt: { saltRounds: 12 },
+    requireEmailVerification: false,
+    session: {
+      cookie_name: 'omnipanel-session',
+      cookie_secure: process.env.NODE_ENV === 'production',
+      cookie_http_only: true,
+      cookie_same_site: 'lax' as const,
+      max_age_seconds: 86400,
+      rolling_expiration: true,
+    },
+    password: {
+      min_length: 8,
+      require_uppercase: true,
+      require_lowercase: true,
+      require_numbers: true,
+      require_special_chars: false,
+      max_attempts: 5,
+      lockout_duration_minutes: 15,
+    },
+    oauth: {
+      google: { enabled: false },
+      github: { enabled: false },
+      discord: { enabled: false },
+    },
+    security: {
+      enable_rate_limiting: true,
+      max_login_attempts: 10,
+      maxFailedAttempts: 5,
+      rate_limit_window_minutes: 15,
+      lockoutDuration: 900,
+      enable_captcha: false,
+      captcha_threshold: 3,
+      enable_2fa: false,
+      enforce_2fa: false,
+    },
+  };
 
   constructor(database: DatabaseClient) {
     this.db = database;

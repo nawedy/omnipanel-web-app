@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import type { User, UserRole, Resource, Action, DatabaseUser } from '@omnipanel/types';
 import { AuthService } from './auth.service';
 import { PermissionsService } from './permissions';
-import { DatabaseClient } from '@/database/client';
-import { CoreError, ErrorCodes } from '@/utils/errors';
+import type { DatabaseClient } from '../database/client';
+import { CoreError, ErrorCodes } from '../utils/errors';
 
 export interface AuthContext {
   user: DatabaseUser;

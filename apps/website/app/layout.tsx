@@ -3,7 +3,7 @@ import { Inter, JetBrains_Mono } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/react';
 import { Toaster } from 'sonner';
 
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import './globals.css';
 
 const inter = Inter({
@@ -130,7 +130,7 @@ export default function RootLayout({ children }: RootLayoutProps): JSX.Element {
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className="min-h-screen bg-white font-sans text-gray-900 antialiased dark:bg-gray-900 dark:text-gray-100">
+      <body className="min-h-screen font-sans antialiased">
         <ThemeProvider>
           {children}
           <Analytics />

@@ -119,26 +119,11 @@ const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
         
         <div className="relative">
           <motion.textarea
-            ref={ref}
-            className={clsx(textareaClasses, className)}
-            disabled={disabled}
-            maxLength={maxLength}
-            value={value}
-            onFocus={(e: React.FocusEvent<HTMLTextAreaElement>) => {
-              setIsFocused(true);
-              props.onFocus?.(e);
-            }}
-            onBlur={(e: React.FocusEvent<HTMLTextAreaElement>) => {
-              setIsFocused(false);
-              props.onBlur?.(e);
-            }}
-            animate={neonFocus && isFocused ? {
-              boxShadow: hasError ? '0 0 20px rgba(239, 68, 68, 0.3)' :
-                        hasSuccess ? '0 0 20px rgba(34, 197, 94, 0.3)' :
-                        '0 0 20px rgba(59, 130, 246, 0.3)'
-            } : {}}
-            transition={{ duration: 0.2 }}
             {...(props as any)}
+            ref={ref}
+            className={textareaClasses}
+            disabled={disabled}
+            transition={{ duration: 0.2 }}
           />
           
           {glassmorphism && isFocused && (
@@ -170,7 +155,7 @@ const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
             animate={{ opacity: 1, y: 0 }}
             className="mt-1 flex items-center gap-1 text-xs text-red-600 dark:text-red-400"
           >
-            <AlertCircle className="w-3 h-3" />
+            {React.createElement(AlertCircle, { className: "w-3 h-3" })}
             {error}
           </motion.div>
         )}
@@ -181,7 +166,7 @@ const TextArea = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(
             animate={{ opacity: 1, y: 0 }}
             className="mt-1 flex items-center gap-1 text-xs text-green-600 dark:text-green-400"
           >
-            <CheckCircle className="w-3 h-3" />
+            {React.createElement(CheckCircle, { className: "w-3 h-3" })}
             {success}
           </motion.div>
         )}

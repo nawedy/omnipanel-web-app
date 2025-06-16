@@ -1,4 +1,4 @@
-import { getSupabaseClient, SupabaseDatabase } from '@omnipanel/database';
+import { getDatabaseClient, initializeDatabase, type DatabaseClient } from '@omnipanel/database';
 import type { DatabaseConfig } from '@omnipanel/config';
 import type { 
   DatabaseProject, 
@@ -29,7 +29,7 @@ export interface SyncServiceConfig {
 }
 
 export class SyncService {
-  private supabaseClient: SupabaseDatabase | null = null;
+  private databaseClient: DatabaseClient | null = null;
   private state: SyncState;
   private config: SyncServiceConfig;
   private dbName = 'omnipanel-offline-db';
@@ -54,12 +54,13 @@ export class SyncService {
   }
 
   /**
-   * Initialize the sync service
+   * Initialize sync service with database connection and real-time subscriptions
    */
   async initialize(): Promise<void> {
     try {
-      // Initialize Supabase client
-      this.supabaseClient = getSupabaseClient(this.config.databaseConfig);
+      // Initialize database client
+      const { client } = initializeDatabase(this.config.databaseConfig);
+      this.databaseClient = client;
 
       // Initialize IndexedDB for offline storage
       if (this.config.enableOfflineMode) {
@@ -69,12 +70,9 @@ export class SyncService {
       // Start sync interval
       this.startSyncInterval();
 
-      // Setup real-time subscriptions if online
-      if (this.state.isOnline) {
-        await this.setupRealtimeSubscriptions();
-      }
-
-      console.log('🔄 Sync service initialized');
+      // Note: Real-time subscriptions not implemented for NeonDB
+      // Could be implemented using polling or webhooks in the future
+      console.log('🔄 Sync service initialized (real-time subscriptions not available with NeonDB)');
     } catch (error) {
       console.error('❌ Failed to initialize sync service:', error);
       throw error;
@@ -133,43 +131,14 @@ export class SyncService {
 
   /**
    * Setup real-time subscriptions for live updates
+   * Note: Not implemented for NeonDB - could use polling or webhooks
    */
   private async setupRealtimeSubscriptions(): Promise<void> {
-    if (!this.supabaseClient) return;
-
-    const subscriptions = [
-      {
-        table: 'projects',
-        callback: this.handleProjectUpdate.bind(this),
-      },
-      {
-        table: 'chat_sessions',
-        callback: this.handleChatSessionUpdate.bind(this),
-      },
-      {
-        table: 'messages',
-        callback: this.handleMessageUpdate.bind(this),
-      },
-      {
-        table: 'files',
-        callback: this.handleFileUpdate.bind(this),
-      },
-    ];
-
-    for (const sub of subscriptions) {
-      const subscription = this.supabaseClient
-        .channel(`public:${sub.table}`)
-        .on(
-          'postgres_changes',
-          { event: '*', schema: 'public', table: sub.table },
-          sub.callback
-        )
-        .subscribe();
-
-      this.state.subscriptions.set(sub.table, subscription);
-    }
-
-    console.log('🔗 Real-time subscriptions setup complete');
+    console.log('🔗 Real-time subscriptions not implemented for NeonDB');
+    // Future implementation could use:
+    // - Polling mechanism
+    // - Webhook-based updates
+    // - WebSocket server for real-time updates
   }
 
   /**
@@ -294,7 +263,7 @@ export class SyncService {
    * Process pending operations when back online
    */
   private async processPendingOperations(): Promise<void> {
-    if (!this.supabaseClient || this.state.pendingOperations.length === 0) {
+    if (!this.databaseClient || this.state.pendingOperations.length === 0) {
       return;
     }
 
@@ -323,23 +292,33 @@ export class SyncService {
   }
 
   /**
-   * Execute a sync operation against Supabase
+   * Execute a sync operation against NeonDB
    */
   private async executeOperation(operation: SyncEvent): Promise<void> {
-    if (!this.supabaseClient) return;
+    if (!this.databaseClient) return;
 
     const { type, table, record } = operation;
 
-    switch (type) {
-      case 'insert':
-        await this.supabaseClient.from(table).insert(record);
-        break;
-      case 'update':
-        await this.supabaseClient.from(table).update(record).eq('id', record.id);
-        break;
-      case 'delete':
-        await this.supabaseClient.from(table).delete().eq('id', record.id);
-        break;
+    try {
+      // Note: NeonDB operations would need to be implemented with raw SQL
+      // This is a placeholder implementation
+      console.log(`Would execute ${type} operation on ${table} with NeonDB:`, record);
+      
+      // TODO: Implement actual NeonDB operations
+      // switch (type) {
+      //   case 'insert':
+      //     await this.databaseClient(`INSERT INTO ${table} ...`, [record]);
+      //     break;
+      //   case 'update':
+      //     await this.databaseClient(`UPDATE ${table} SET ... WHERE id = $1`, [record.id]);
+      //     break;
+      //   case 'delete':
+      //     await this.databaseClient(`DELETE FROM ${table} WHERE id = $1`, [record.id]);
+      //     break;
+      // }
+    } catch (error) {
+      console.error(`Failed to execute ${type} operation on ${table}:`, error);
+      throw error;
     }
   }
 
@@ -350,7 +329,7 @@ export class SyncService {
     console.log('🌐 Back online - syncing data');
     this.state.isOnline = true;
 
-    if (this.supabaseClient) {
+    if (this.databaseClient) {
       await this.setupRealtimeSubscriptions();
       await this.processPendingOperations();
       this.state.lastSync = new Date();

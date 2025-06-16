@@ -195,7 +195,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
                   className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                   tabIndex={-1}
                 >
-                  {showPassword ? <EyeOff /> : <Eye />}
+                  {showPassword ? React.createElement(EyeOff) : React.createElement(Eye)}
                 </button>
               ) : (
                 rightIcon
@@ -220,7 +220,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             animate={{ opacity: 1, y: 0 }}
             className="mt-1 flex items-center gap-1 text-xs text-red-600 dark:text-red-400"
           >
-            <AlertCircle className="w-3 h-3" />
+            {React.createElement(AlertCircle, { className: "w-3 h-3" })}
             {error}
           </motion.div>
         )}
@@ -231,7 +231,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             animate={{ opacity: 1, y: 0 }}
             className="mt-1 flex items-center gap-1 text-xs text-green-600 dark:text-green-400"
           >
-            <CheckCircle className="w-3 h-3" />
+            {React.createElement(CheckCircle, { className: "w-3 h-3" })}
             {success}
           </motion.div>
         )}

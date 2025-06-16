@@ -24,7 +24,9 @@ export class ThemeBuilder implements IThemeBuilder {
         tags: ['custom'],
         preview: '',
         screenshots: [],
-        compatibility: ['web', 'desktop', 'mobile'],
+        compatibility: {
+          requiredFeatures: ['web', 'desktop', 'mobile']
+        },
         license: 'MIT'
       },
       ...config
@@ -198,7 +200,9 @@ export class ThemeBuilder implements IThemeBuilder {
       tags: metadata.tags || [],
       preview: metadata.preview || '',
       screenshots: metadata.screenshots || [],
-      compatibility: metadata.compatibility || [],
+      compatibility: metadata.compatibility || {
+        requiredFeatures: ['web', 'desktop', 'mobile']
+      },
       license: metadata.license || 'MIT',
       homepage: metadata.homepage,
       repository: metadata.repository,

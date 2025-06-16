@@ -16,12 +16,12 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "dotenv": "^16.3.0",
-    "zod": "^3.22.0"
+    "dotenv": "^16.4.7",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@types/node": "^20.17.50",
-    "tsup": "^7.0.0",
-    "typescript": "^5.0.0"
+    "@types/node": "^22.13.10",
+    "tsup": "^8.3.5",
+    "typescript": "^5.8.2"
   }
 }

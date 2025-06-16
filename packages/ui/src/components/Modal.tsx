@@ -170,7 +170,7 @@ const Modal: React.FC<ModalProps> = ({
                     onClick={onClose}
                     className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   >
-                    <X className="w-5 h-5" />
+                    {React.createElement(X, { className: "w-5 h-5" })}
                   </Button>
                 )}
               </div>

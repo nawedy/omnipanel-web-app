@@ -1,183 +1,154 @@
 // packages/config/src/database.ts
 import { z } from 'zod';
 
-// Database provider enum
-export const DatabaseProvider = z.enum(['neon', 'supabase']);
-export type DatabaseProvider = z.infer<typeof DatabaseProvider>;
+// Database provider - only NeonDB now
+export const DatabaseProvider = z.enum(['neon']);
 
 // Database configuration schema
 export const DatabaseConfigSchema = z.object({
-  // Database provider selection
+  // Database provider selection - only neon
   provider: DatabaseProvider.default('neon'),
   
-  // NeonDB configuration (primary)
+  // NeonDB configuration
   neon: z.object({
     connectionString: z.string().min(1),
     projectId: z.string().min(1).optional(),
     branchId: z.string().min(1).optional(),
     database: z.string().default('neondb'),
     pooling: z.boolean().default(true),
-  }).optional(),
-  
-  // Supabase configuration (legacy support)
-  supabase: z.object({
-    url: z.string().url(),
-    anon_key: z.string().min(1),
-    service_role_key: z.string().min(1).optional(),
-    project_id: z.string().min(1).optional(),
-  }).optional(),
+  }),
   
   // Authentication configuration
   auth: z.object({
     stack_project_id: z.string().min(1).optional(),
     stack_publishable_key: z.string().min(1).optional(),
     stack_secret_key: z.string().min(1).optional(),
-    jwks_url: z.string().url().optional(),
-  }).default({}),
+    jwt_secret: z.string().min(1).optional(),
+    session_duration: z.number().default(7 * 24 * 60 * 60), // 7 days in seconds
+  }).optional(),
   
-  // Connection settings
-  connection: z.object({
-    pool_size: z.number().positive().default(20),
-    timeout_ms: z.number().positive().default(5000),
-    idle_timeout_ms: z.number().positive().default(30000),
-    max_retries: z.number().nonnegative().default(3),
-    retry_delay_ms: z.number().positive().default(1000),
-    max_uses: z.number().positive().default(7500),
-  }).default({}),
+  // Connection pool settings
+  pool: z.object({
+    min: z.number().default(0),
+    max: z.number().default(10),
+    idleTimeoutMillis: z.number().default(30000),
+    connectionTimeoutMillis: z.number().default(2000),
+  }).optional(),
   
-  // Performance settings
-  performance: z.object({
-    enable_realtime: z.boolean().default(false), // Custom implementation needed for Neon
-    enable_row_level_security: z.boolean().default(true),
-    enable_query_logging: z.boolean().default(false),
-    slow_query_threshold_ms: z.number().positive().default(1000),
-    enable_connection_pooling: z.boolean().default(true),
-    cache_connections: z.boolean().default(true),
-  }).default({}),
+  // SSL configuration
+  ssl: z.object({
+    rejectUnauthorized: z.boolean().default(true),
+    ca: z.string().optional(),
+    cert: z.string().optional(),
+    key: z.string().optional(),
+  }).optional(),
   
-  // Backup and monitoring
-  backup: z.object({
-    enable_auto_backup: z.boolean().default(false),
-    backup_interval_hours: z.number().positive().default(24),
-    retention_days: z.number().positive().default(30),
-    backup_location: z.string().optional(),
-  }).default({}),
+  // Migration settings
+  migrations: z.object({
+    directory: z.string().default('./migrations'),
+    tableName: z.string().default('migrations'),
+    schemaName: z.string().default('public'),
+  }).optional(),
+}).refine((data) => {
+  // Ensure NeonDB configuration is provided
+  return data.neon?.connectionString;
+}, {
+  message: "NeonDB connection string is required",
+  path: ["neon", "connectionString"]
 });
 
 export type DatabaseConfig = z.infer<typeof DatabaseConfigSchema>;
 
+// Default database configuration
+export const getDefaultDatabaseConfig = (): DatabaseConfig => ({
+  provider: 'neon',
+  neon: {
+    connectionString: process.env.NEON_DATABASE_URL || process.env.DATABASE_URL || '',
+    projectId: process.env.NEON_PROJECT_ID,
+    branchId: process.env.NEON_BRANCH_ID,
+    database: process.env.NEON_DATABASE || 'neondb',
+    pooling: process.env.NEON_POOLING !== 'false',
+  },
+  auth: {
+    stack_project_id: process.env.NEXT_PUBLIC_STACK_PROJECT_ID,
+    stack_publishable_key: process.env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY,
+    stack_secret_key: process.env.STACK_SECRET_SERVER_KEY,
+    jwt_secret: process.env.JWT_SECRET || 'default-secret-key-change-in-production',
+    session_duration: parseInt(process.env.SESSION_DURATION || '604800'), // 7 days
+  },
+  pool: {
+    min: parseInt(process.env.DB_POOL_MIN || '0'),
+    max: parseInt(process.env.DB_POOL_MAX || '10'),
+    idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'),
+    connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000'),
+  },
+  ssl: {
+    rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
+  },
+  migrations: {
+    directory: process.env.MIGRATIONS_DIR || './migrations',
+    tableName: process.env.MIGRATIONS_TABLE || 'migrations',
+    schemaName: process.env.MIGRATIONS_SCHEMA || 'public',
+  },
+});
+
 // Create database configuration from environment variables
 export const createDatabaseConfig = (): DatabaseConfig => {
-  const provider = (process.env.DATABASE_PROVIDER || 'neon') as DatabaseProvider;
-  
-  const config = {
-    provider,
-    
-    neon: {
-      connectionString: process.env.NEON_DATABASE_URL || process.env.DATABASE_URL,
-      projectId: process.env.NEON_PROJECT_ID,
-      branchId: process.env.NEON_BRANCH_ID,
-      database: process.env.NEON_DATABASE || 'neondb',
-      pooling: process.env.NEON_POOLING !== 'false',
-    },
-    
-    supabase: {
-      url: process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL,
-      anon_key: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY,
-      service_role_key: process.env.SUPABASE_SERVICE_ROLE_KEY,
-      project_id: process.env.SUPABASE_PROJECT_ID,
-    },
-    
-    auth: {
-      stack_project_id: process.env.NEXT_PUBLIC_STACK_PROJECT_ID,
-      stack_publishable_key: process.env.NEXT_PUBLIC_STACK_PUBLISHABLE_CLIENT_KEY,
-      stack_secret_key: process.env.STACK_SECRET_SERVER_KEY,
-      jwks_url: process.env.STACK_JWKS_URL,
-    },
-    
-    connection: {
-      pool_size: parseInt(process.env.DB_POOL_SIZE || '20'),
-      timeout_ms: parseInt(process.env.DB_TIMEOUT_MS || '5000'),
-      idle_timeout_ms: parseInt(process.env.DB_IDLE_TIMEOUT_MS || '30000'),
-      max_retries: parseInt(process.env.DB_MAX_RETRIES || '3'),
-      retry_delay_ms: parseInt(process.env.DB_RETRY_DELAY_MS || '1000'),
-      max_uses: parseInt(process.env.DB_MAX_USES || '7500'),
-    },
-    
-    performance: {
-      enable_realtime: process.env.DB_ENABLE_REALTIME === 'true',
-      enable_row_level_security: process.env.DB_ENABLE_RLS !== 'false',
-      enable_query_logging: process.env.DB_ENABLE_QUERY_LOGGING === 'true',
-      slow_query_threshold_ms: parseInt(process.env.DB_SLOW_QUERY_THRESHOLD_MS || '1000'),
-      enable_connection_pooling: process.env.DB_ENABLE_POOLING !== 'false',
-      cache_connections: process.env.DB_CACHE_CONNECTIONS !== 'false',
-    },
-    
-    backup: {
-      enable_auto_backup: process.env.DB_ENABLE_AUTO_BACKUP === 'true',
-      backup_interval_hours: parseInt(process.env.DB_BACKUP_INTERVAL_HOURS || '24'),
-      retention_days: parseInt(process.env.DB_RETENTION_DAYS || '30'),
-      backup_location: process.env.DB_BACKUP_LOCATION,
-    },
-  };
-
-  return DatabaseConfigSchema.parse(config);
+  return getDefaultDatabaseConfig();
 };
 
 // Validate database configuration
 export const validateDatabaseConfig = (config: unknown): DatabaseConfig => {
-  try {
-    return DatabaseConfigSchema.parse(config);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      console.error('Database configuration validation failed:');
-      error.errors.forEach(err => {
-        console.error(`  ${err.path.join('.')}: ${err.message}`);
-      });
-    }
-    throw new Error('Invalid database configuration');
-  }
+  return DatabaseConfigSchema.parse(config);
 };
 
-// Get database URL for different environments
+// Get database URL from configuration
 export const getDatabaseUrl = (config: DatabaseConfig): string => {
-  if (config.provider === 'neon' && config.neon?.connectionString) {
-    return config.neon.connectionString;
-  }
-  
-  if (config.provider === 'supabase' && config.supabase?.url) {
-    return config.supabase.url;
-  }
-  
-  throw new Error(`No connection URL found for provider: ${config.provider}`);
+  return config.neon.connectionString;
 };
 
-// Check if configuration is for production
-export const isProductionDatabase = (config: DatabaseConfig): boolean => {
+// Check if database is in production mode
+export const isDatabaseProduction = (config: DatabaseConfig): boolean => {
   const url = getDatabaseUrl(config);
-  
-  if (config.provider === 'neon') {
-    return url.includes('neon.tech') && !url.includes('localhost');
-  }
-  
-  if (config.provider === 'supabase') {
-    return url.includes('supabase.co') && !url.includes('localhost');
-  }
-  
-  return false;
+  return url.includes('neon.tech') && !url.includes('localhost');
 };
 
-// Get authentication configuration
-export const getAuthConfig = (config: DatabaseConfig) => {
-  return config.auth;
+// Get database name from configuration
+export const getDatabaseName = (config: DatabaseConfig): string => {
+  return config.neon.database;
 };
 
 // Check if NeonDB is configured
 export const isNeonConfigured = (config: DatabaseConfig): boolean => {
-  return config.provider === 'neon' && !!config.neon?.connectionString;
+  return !!config.neon?.connectionString;
 };
 
-// Check if Supabase is configured
-export const isSupabaseConfigured = (config: DatabaseConfig): boolean => {
-  return config.provider === 'supabase' && !!config.supabase?.url && !!config.supabase?.anon_key;
+// Database connection status
+export type DatabaseStatus = 'connected' | 'disconnected' | 'error' | 'connecting';
+
+// Database connection info
+export interface DatabaseConnectionInfo {
+  status: DatabaseStatus;
+  provider: 'neon';
+  database: string;
+  host?: string;
+  port?: number;
+  ssl?: boolean;
+  poolSize?: number;
+  lastConnected?: Date;
+  error?: string;
+}
+
+// Get connection info from config
+export const getConnectionInfo = (config: DatabaseConfig): Omit<DatabaseConnectionInfo, 'status' | 'lastConnected' | 'error'> => {
+  const url = new URL(config.neon.connectionString);
+  
+  return {
+    provider: 'neon',
+    database: config.neon.database,
+    host: url.hostname,
+    port: parseInt(url.port) || 5432,
+    ssl: config.ssl?.rejectUnauthorized !== false,
+    poolSize: config.pool?.max || 10,
+  };
 };

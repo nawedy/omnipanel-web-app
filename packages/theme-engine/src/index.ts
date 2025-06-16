@@ -4,8 +4,25 @@ export { ThemeBuilder } from './builder';
 export { ThemeValidator } from './validator';
 export { ThemeCompiler } from './compiler';
 
-// Types
-export * from './types';
+// Types - specific exports to avoid conflicts
+export type {
+  Theme,
+  ThemeMetadata,
+  ColorSystem,
+  ColorPalette,
+  TypographySystem,
+  SpacingSystem,
+  ComponentStyles,
+  LayoutSystem,
+  EffectsSystem,
+  CompiledTheme,
+  ThemeValidationResult,
+  IThemeEngine,
+  IThemeBuilder
+} from './types';
+
+// Export only the core ThemeCategory from types
+export type { ThemeCategory as CoreThemeCategory } from './types';
 
 // Utilities
 export * from './utils';
@@ -13,11 +30,13 @@ export * from './utils';
 // React integration
 export * from './react';
 
-// CSS utilities
-export * from './css';
-
-// Marketplace functionality
-export * from './marketplace';
+// CSS utilities - specific exports to avoid conflicts
+export { 
+  CSSUtils,
+  generateThemeCSS,
+  generateUtilityClasses,
+  minifyCSS
+} from './css';
 
 // Version information
 export const VERSION = '1.0.0';
@@ -42,19 +61,33 @@ export * from './utils/animations';
 export * from './utils/validation';
 export * from './utils/theme';
 
-// CSS generation exports (specific exports to avoid conflicts)
-export { 
-  CSSUtils,
-  generateThemeCSS,
-  generateUtilityClasses,
-  minifyCSS
-} from './css';
+// Phase 3: Marketplace & Community exports - specific to avoid conflicts
+export type {
+  MarketplaceTheme,
+  MarketplaceCategory,
+  ThemeSearchFilters,
+  ThemeSearchResult,
+  ThemeDownloadInfo,
+  MarketplaceConfig,
+  ThemeSubmission,
+  MarketplaceStats,
+  ApiResponse
+} from './marketplace/types';
 
-// Phase 3: Marketplace & Community exports
-export * from './marketplace/types';
+export { MarketplaceError } from './marketplace/types';
 export * from './marketplace/client';
 export * from './marketplace/installer';
-export * from './community/types';
+
+export type {
+  CommunityPost,
+  CommunityConfig,
+  CommunityStats,
+  UserProfile as CommunityUserProfile,
+  ThemeCollection as CommunityThemeCollection,
+  UserBadge as CommunityUserBadge
+} from './community/types';
+
+export { CommunityError } from './community/types';
 export * from './community/manager';
 
 // Marketplace utilities

@@ -8,6 +8,46 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./database": {
+      "import": "./dist/database.js",
+      "types": "./dist/database.d.ts"
+    },
+    "./files": {
+      "import": "./dist/files.js",
+      "types": "./dist/files.d.ts"
+    },
+    "./chat": {
+      "import": "./dist/chat.js",
+      "types": "./dist/chat.d.ts"
+    },
+    "./auth": {
+      "import": "./dist/auth.js",
+      "types": "./dist/auth.d.ts"
+    },
+    "./api": {
+      "import": "./dist/api.js",
+      "types": "./dist/api.d.ts"
+    },
+    "./llm-adapters": {
+      "import": "./dist/llm-adapters.js",
+      "types": "./dist/llm-adapters.d.ts"
+    },
+    "./marketing": {
+      "import": "./dist/marketing.js",
+      "types": "./dist/marketing.d.ts"
+    },
+    "./sales": {
+      "import": "./dist/sales.js",
+      "types": "./dist/sales.d.ts"
+    },
+    "./analytics": {
+      "import": "./dist/analytics.js",
+      "types": "./dist/analytics.d.ts"
+    },
+    "./projects": {
+      "import": "./dist/projects.js",
+      "types": "./dist/projects.d.ts"
     }
   },
   "scripts": {

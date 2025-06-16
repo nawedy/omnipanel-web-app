@@ -10,8 +10,8 @@ export const defaultTheme: Theme = {
   type: 'static',
   
   metadata: {
-    created: '2024-01-01T00:00:00Z',
-    updated: '2024-01-01T00:00:00Z',
+    created: new Date().toISOString(),
+    updated: new Date().toISOString(),
     tags: ['default', 'professional', 'modern', 'light'],
     preview: '/themes/default/preview.png',
     screenshots: [
@@ -19,10 +19,15 @@ export const defaultTheme: Theme = {
       '/themes/default/screenshot-editor.png',
       '/themes/default/screenshot-chat.png'
     ],
-    compatibility: ['web', 'desktop', 'mobile'],
+    compatibility: {
+      minVersion: '1.0.0',
+      requiredFeatures: ['web', 'desktop', 'mobile']
+    },
     license: 'MIT',
     homepage: 'https://omnipanel.ai/themes/default',
-    repository: 'https://github.com/omnipanel/themes'
+    repository: 'https://github.com/omnipanel/themes',
+    rating: 5,
+    downloads: 0
   },
 
   colors: {

@@ -122,12 +122,16 @@ export type MarketplaceCategory =
 
 // Theme Submission
 export interface ThemeSubmission {
+  id?: string;
+  name?: string;
   theme: Theme;
   metadata: Partial<MarketplaceMetadata>;
   submissionNotes?: string;
   testResults?: TestResult[];
   screenshots: string[];
   demoUrl?: string;
+  previewImages?: File[];
+  packageFile?: File;
 }
 
 // Test Result
@@ -194,7 +198,9 @@ export interface UserBadge {
 // Marketplace Search
 export interface MarketplaceSearchQuery {
   query?: string;
+  category?: MarketplaceCategory;
   categories?: MarketplaceCategory[];
+  tags?: string[];
   pricing?: ('free' | 'premium')[];
   rating?: number;
   sortBy?: 'relevance' | 'downloads' | 'rating' | 'newest' | 'updated';
@@ -232,6 +238,9 @@ export interface ThemeInstallation {
 
 // Marketplace Configuration
 export interface MarketplaceConfig {
+  baseUrl?: string;
+  apiKey?: string;
+  userId?: string;
   apiUrl: string;
   cdnUrl: string;
   uploadUrl: string;
@@ -252,5 +261,113 @@ export interface MarketplaceConfig {
     collections: boolean;
     social: boolean;
     analytics: boolean;
+  };
+}
+
+// Missing type exports
+export interface ThemeSearchFilters {
+  query?: string;
+  category?: MarketplaceCategory;
+  categories?: MarketplaceCategory[];
+  pricing?: ('free' | 'premium')[];
+  rating?: number;
+  tags?: string[];
+  featured?: boolean;
+  verified?: boolean;
+  author?: string;
+  sortBy?: 'relevance' | 'downloads' | 'rating' | 'newest' | 'updated';
+  sortOrder?: 'asc' | 'desc';
+  minRating?: number;
+  maxPrice?: number;
+  isPremium?: boolean;
+  isOfficial?: boolean;
+  page?: number;
+  limit?: number;
+}
+
+export interface ThemeSearchResult {
+  themes: MarketplaceTheme[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+  facets: SearchFacets;
+}
+
+export interface SearchFacets {
+  categories: { category: MarketplaceCategory; count: number }[];
+  pricing: { type: string; count: number }[];
+  ratings: { rating: number; count: number }[];
+}
+
+export interface ThemeDownloadInfo {
+  themeId: string;
+  version: string;
+  downloadUrl: string;
+  size: number;
+  checksums: {
+    md5: string;
+    sha256: string;
+  };
+}
+
+export interface ThemeCategory {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  count: number;
+}
+
+export interface ThemeTag {
+  id: string;
+  name: string;
+  count: number;
+  trending: boolean;
+}
+
+export class MarketplaceError extends Error {
+  public code: string;
+  public status?: number;
+  public context?: Record<string, any>;
+  public recoverable: boolean;
+
+  constructor(
+    message: string, 
+    code?: string | number, 
+    context?: Record<string, any>, 
+    recoverable: boolean = true
+  ) {
+    super(message);
+    this.name = 'MarketplaceError';
+    this.code = typeof code === 'number' ? code.toString() : (code || 'UNKNOWN');
+    this.status = typeof code === 'number' ? code : undefined;
+    this.context = context;
+    this.recoverable = recoverable;
+  }
+}
+
+export interface MarketplaceStats {
+  totalThemes: number;
+  totalDownloads: number;
+  totalUsers: number;
+  featuredThemes: number;
+  categories: { category: MarketplaceCategory; count: number }[];
+  topThemes: MarketplaceTheme[];
+}
+
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+    details?: any;
+  };
+  meta?: {
+    page?: number;
+    limit?: number;
+    total?: number;
+    hasMore?: boolean;
   };
 } 

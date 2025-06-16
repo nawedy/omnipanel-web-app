@@ -1,11 +1,13 @@
-//# packages/ui/src/components/ChatInput.tsx
-
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, MotionProps } from 'framer-motion';
 import { Send, Paperclip, Image, Globe, Mic, MicOff } from 'lucide-react';
 import { clsx } from 'clsx';
+
+// Type assertions for motion components to satisfy React 19's JSX typing
+const MotionDiv = motion.div as any as React.FC<MotionProps & React.HTMLAttributes<HTMLDivElement>>;
+const MotionButton = motion.button as any as React.FC<MotionProps & React.ButtonHTMLAttributes<HTMLButtonElement>>;
 
 export interface ChatInputProps {
   placeholder?: string;
@@ -135,7 +137,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               {/* Attachment Buttons */}
               {showAttachments && (
                 <div className="flex gap-2">
-                  <motion.button
+                  <MotionButton
                     type="button"
                     onClick={onAttachment}
                     disabled={disabled}
@@ -144,9 +146,9 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     whileTap={{ scale: 0.95 }}
                   >
                     <Paperclip className="w-5 h-5" />
-                  </motion.button>
+                  </MotionButton>
                   
-                  <motion.button
+                  <MotionButton
                     type="button"
                     onClick={onImageUpload}
                     disabled={disabled}
@@ -155,19 +157,19 @@ const ChatInput: React.FC<ChatInputProps> = ({
                     whileTap={{ scale: 0.95 }}
                   >
                     <Image className="w-5 h-5" />
-                  </motion.button>
+                  </MotionButton>
                   
-                  <motion.button
+                  <MotionButton
                     type="button"
                     className="text-white/10 hover:text-white transition-all duration-300"
                     whileHover={{ y: -5 }}
                     whileTap={{ scale: 0.95 }}
                   >
                     <Globe className="w-5 h-5" />
-                  </motion.button>
+                  </MotionButton>
                   
                   {showVoice && (
-                    <motion.button
+                    <MotionButton
                       type="button"
                       onClick={handleVoiceToggle}
                       disabled={disabled}
@@ -179,13 +181,13 @@ const ChatInput: React.FC<ChatInputProps> = ({
                       whileTap={{ scale: 0.95 }}
                     >
                       {isRecording ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
-                    </motion.button>
+                    </MotionButton>
                   )}
                 </div>
               )}
               
               {/* Send Button */}
-              <motion.button
+              <MotionButton
                 type="button"
                 onClick={handleSend}
                 disabled={disabled || loading || !inputValue.trim()}
@@ -209,32 +211,25 @@ const ChatInput: React.FC<ChatInputProps> = ({
                 }}
               >
                 <div className="w-8 h-8 p-1.5 bg-black/10 rounded-lg backdrop-blur-sm">
-                  <motion.div
-                    animate={loading ? {
-                      rotate: 360
-                    } : {}}
-                    transition={loading ? {
-                      duration: 1,
-                      repeat: Infinity,
-                      ease: "linear"
-                    } : {
-                      duration: 0.3,
-                      rotate: isFocused ? 45 : 0
+                  <MotionDiv
+                    animate={{
+                      rotate: loading ? 360 : isFocused ? 45 : 0
+                    }}
+                    transition={{
+                      duration: loading ? 1 : 0.3,
+                      repeat: loading ? Infinity : 0,
+                      ease: loading ? 'linear' : 'easeInOut'
                     }}
                   >
-                    <Send 
+                    <Send
                       className={clsx(
-                        'w-full h-full transition-all duration-300',
-                        inputValue.trim() && !disabled ? 'text-white drop-shadow-sm' : 'text-gray-500',
-                        isFocused && 'transform translate-x-[-2px] translate-y-[1px] scale-120'
+                        'w-5 h-5 transition-colors',
+                        inputValue.trim() && !disabled ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'
                       )}
-                      style={{
-                        filter: inputValue.trim() && !disabled ? 'drop-shadow(0 0 5px #ffffff)' : 'none'
-                      }}
                     />
-                  </motion.div>
+                  </MotionDiv>
                 </div>
-              </motion.button>
+              </MotionButton>
             </div>
           </div>
         </div>
@@ -244,7 +239,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
       {tags.length > 0 && (
         <div className="flex gap-1 pt-4">
           {tags.map((tag, index) => (
-            <motion.button
+            <MotionButton
               key={index}
               type="button"
               onClick={() => onTagClick?.(tag)}
@@ -259,7 +254,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
               whileTap={{ scale: 0.95 }}
             >
               {tag}
-            </motion.button>
+            </MotionButton>
           ))}
         </div>
       )}

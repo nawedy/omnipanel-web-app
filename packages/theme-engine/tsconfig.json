@@ -25,6 +25,7 @@
   "exclude": [
     "node_modules",
     "dist",
+    "src/cli/**/*",
     "**/*.test.ts",
     "**/*.test.tsx"
   ]

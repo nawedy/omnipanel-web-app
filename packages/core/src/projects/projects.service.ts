@@ -12,10 +12,10 @@ import type {
   PaginatedResponse,
   SearchFilters
 } from '../types/service-types';
-import { DatabaseClient } from '@/database/client';
-import { CoreError, ErrorCodes } from '@/utils/errors';
-import { validateInput } from '@/utils/validation';
-import { generateSlug } from '@/utils/helpers';
+import type { DatabaseClient } from '../database/client';
+import { CoreError, ErrorCodes } from '../utils/errors';
+import { validateInput } from '../utils/validation';
+import { generateSlug } from '../utils/helpers';
 
 export class ProjectsService {
   private db: DatabaseClient;

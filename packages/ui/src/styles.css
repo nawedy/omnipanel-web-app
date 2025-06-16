@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* UI Package Base Styles */
+@layer base {
+  :root {
+    /* CSS variables for the UI components */
+    --radius: 0.5rem;
+  }
+}
+
+@layer components {
+  /* Custom component styles for the UI package */
+  .ui-glass {
+    backdrop-filter: blur(8px);
+    @apply bg-background/80 border border-border/50;
+  }
+  
+  .ui-neon-glow {
+    @apply shadow-lg;
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+  }
+  
+  .ui-gradient-text {
+    @apply bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent;
+  }
+}
+
+@layer utilities {
+  /* Custom utility classes */
+  .ui-transition-all {
+    @apply transition-all duration-200 ease-in-out;
+  }
+} 

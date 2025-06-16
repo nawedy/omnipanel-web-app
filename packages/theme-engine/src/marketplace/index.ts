@@ -1,16 +1,14 @@
-// Core marketplace functionality
-export { MarketplaceClient } from './client';
-export { MarketplaceAPI, createMarketplaceAPI } from './api';
-export { ThemeInstaller, createThemeInstaller } from './installer';
-
-// Types and interfaces
+// Marketplace exports
 export * from './types';
+export * from './client';
+export * from './api';
+export * from './installer';
 
-// React components
-export * from '../react/marketplace';
-
-// Utilities
-export { validateMarketplaceTheme, formatThemeSize, getThemeCompatibility } from './utils';
+// Utility functions
+export { 
+  validateThemeForMarketplace, 
+  createThemeSubmission
+} from './utils';
 
 /**
  * Complete theme marketplace exports

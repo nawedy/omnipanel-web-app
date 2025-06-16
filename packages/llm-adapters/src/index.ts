@@ -21,6 +21,13 @@ export * from './providers';
 
 // Registry and utils
 export { ProviderFactory } from './utils/providerFactory';
+export { globalAdapterRegistry } from './registry/AdapterRegistry';
+
+// Streaming
+export { StreamingManager, type StreamingOptions } from './streaming/StreamingManager';
+
+// Registry alias for backward compatibility
+export { globalAdapterRegistry as LLMAdapterRegistry } from './registry/AdapterRegistry';
 
 // Re-export common interfaces for convenience
 export type {

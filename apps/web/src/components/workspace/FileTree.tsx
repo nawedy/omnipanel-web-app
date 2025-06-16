@@ -14,7 +14,7 @@ import {
   Edit,
   Trash2,
   Copy,
-  Cut,
+  Scissors,
   Download,
   Upload,
   GitBranch,

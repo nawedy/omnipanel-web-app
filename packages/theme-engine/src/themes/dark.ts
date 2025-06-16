@@ -10,19 +10,24 @@ export const darkTheme: Theme = {
   type: 'static',
   
   metadata: {
-    created: '2024-01-01T00:00:00Z',
-    updated: '2024-01-01T00:00:00Z',
-    tags: ['dark', 'professional', 'modern', 'contrast'],
+    created: new Date().toISOString(),
+    updated: new Date().toISOString(),
+    tags: ['dark', 'professional', 'modern', 'dark-mode'],
     preview: '/themes/dark/preview.png',
     screenshots: [
       '/themes/dark/screenshot-dashboard.png',
       '/themes/dark/screenshot-editor.png',
       '/themes/dark/screenshot-chat.png'
     ],
-    compatibility: ['web', 'desktop', 'mobile'],
+    compatibility: {
+      minVersion: '1.0.0',
+      requiredFeatures: ['web', 'desktop', 'mobile']
+    },
     license: 'MIT',
     homepage: 'https://omnipanel.ai/themes/dark',
-    repository: 'https://github.com/omnipanel/themes'
+    repository: 'https://github.com/omnipanel/themes',
+    rating: 5,
+    downloads: 0
   },
 
   colors: {

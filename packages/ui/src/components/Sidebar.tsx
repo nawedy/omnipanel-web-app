@@ -1,10 +1,8 @@
-// packages/ui/src/components/Sidebar.tsx
-
 'use client';
 
 import React, { useState, createContext, useContext, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PanelLeft, User, Settings, Palette, Bell, Accessibility } from 'lucide-react';
+import { PanelLeft, User, Settings, Palette, Bell, Accessibility, LucideIcon } from 'lucide-react';
 import { clsx } from 'clsx';
 import { Button } from './Button';
 
@@ -63,7 +61,6 @@ const SidebarProvider: React.FC<SidebarProviderProps> = ({
         _setOpen(openState);
       }
 
-      // Save to cookie
       document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
     },
     [setOpenProp, open]
@@ -73,7 +70,6 @@ const SidebarProvider: React.FC<SidebarProviderProps> = ({
     return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
   }, [isMobile, setOpen, setOpenMobile]);
 
-  // Check if mobile
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
     checkMobile();
@@ -81,7 +77,6 @@ const SidebarProvider: React.FC<SidebarProviderProps> = ({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Keyboard shortcut
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'b' && (event.metaKey || event.ctrlKey)) {
@@ -165,7 +160,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       <AnimatePresence>
         {openMobile && (
           <>
-            {/* Overlay */}
             <motion.div
               className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
               initial={{ opacity: 0 }}
@@ -174,7 +168,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => setOpenMobile(false)}
             />
             
-            {/* Mobile Sidebar */}
             <motion.div
               className={clsx(
                 'fixed inset-y-0 z-50 flex h-full w-[--sidebar-width] flex-col',
@@ -206,7 +199,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       data-variant={variant}
       data-side={side}
     >
-      {/* Spacer */}
       <div
         className={clsx(
           'relative bg-transparent transition-[width] duration-200 ease-linear',
@@ -218,7 +210,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         )}
       />
       
-      {/* Actual Sidebar */}
       <motion.div
         className={clsx(
           'fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out',
@@ -305,7 +296,6 @@ const SidebarFooter: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
   );
 };
 
-// Menu Components (based on your RadioTypeMenu design)
 export interface SidebarMenuProps {
   className?: string;
   children: React.ReactNode;
@@ -320,7 +310,7 @@ const SidebarMenu: React.FC<SidebarMenuProps> = ({ className, children }) => {
 };
 
 export interface SidebarMenuItemProps {
-  icon: React.ReactNode;
+  icon: LucideIcon; // Updated to LucideIcon
   label: string;
   isActive?: boolean;
   onClick?: () => void;
@@ -328,7 +318,7 @@ export interface SidebarMenuItemProps {
 }
 
 const SidebarMenuItem: React.FC<SidebarMenuItemProps> = ({
-  icon,
+  icon: Icon,
   label,
   isActive = false,
   onClick,
@@ -352,7 +342,6 @@ const SidebarMenuItem: React.FC<SidebarMenuItemProps> = ({
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
     >
-      {/* Active indicator */}
       <motion.div
         className="absolute left-0 top-1 w-1 bg-blue-500 rounded-full"
         initial={{ height: 0, opacity: 0 }}
@@ -363,12 +352,10 @@ const SidebarMenuItem: React.FC<SidebarMenuItemProps> = ({
         transition={{ duration: 0.2 }}
       />
       
-      {/* Icon */}
       <div className="flex-shrink-0 w-4 h-4">
-        {icon}
+        <Icon /> {/* Render LucideIcon directly */}
       </div>
       
-      {/* Label */}
       <AnimatePresence>
         {!isCollapsed && (
           <motion.span
@@ -386,16 +373,15 @@ const SidebarMenuItem: React.FC<SidebarMenuItemProps> = ({
   );
 };
 
-// Pre-built sidebar with menu items
 const DefaultSidebarMenu: React.FC = () => {
   const [activeItem, setActiveItem] = useState('profile');
 
   const menuItems = [
-    { id: 'profile', icon: <User className="w-4 h-4" />, label: 'Public profile' },
-    { id: 'account', icon: <Settings className="w-4 h-4" />, label: 'Account' },
-    { id: 'appearance', icon: <Palette className="w-4 h-4" />, label: 'Appearance' },
-    { id: 'accessibility', icon: <Accessibility className="w-4 h-4" />, label: 'Accessibility' },
-    { id: 'notifications', icon: <Bell className="w-4 h-4" />, label: 'Notifications' }
+    { id: 'profile', icon: User, label: 'Public profile' },
+    { id: 'account', icon: Settings, label: 'Account' },
+    { id: 'appearance', icon: Palette, label: 'Appearance' },
+    { id: 'accessibility', icon: Accessibility, label: 'Accessibility' },
+    { id: 'notifications', icon: Bell, label: 'Notifications' }
   ];
 
   return (

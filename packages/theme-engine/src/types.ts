@@ -29,6 +29,12 @@ export interface Theme {
   // Effects and animations
   effects: EffectsSystem;
   
+  // Animation system
+  animations?: {
+    transitions?: Record<string, string>;
+    keyframes?: Record<string, string>;
+  };
+  
   // Custom properties
   custom?: Record<string, any>;
 }
@@ -55,12 +61,29 @@ export interface ThemeMetadata {
   tags: string[];
   preview: string;
   screenshots: string[];
-  compatibility: string[];
+  compatibility: {
+    minVersion?: string;
+    maxVersion?: string;
+    requiredFeatures?: string[];
+  };
   license: string;
   homepage?: string;
   repository?: string;
   rating?: number;
   downloads?: number;
+  
+  // Optional marketplace-specific properties
+  stats?: {
+    downloads: number;
+    activeInstalls: number;
+    rating: number;
+    reviewCount: number;
+    views: number;
+    likes: number;
+    forks: number;
+    lastDownload: string;
+  };
+  categories?: string[];
 }
 
 // Color System
@@ -203,6 +226,7 @@ export interface FontFamilies {
   mono: string[];
   display?: string[];
   custom?: Record<string, string[]>;
+  fontFamily?: string[];
 }
 
 // Font Sizes
@@ -290,6 +314,9 @@ export interface SpacingSystem {
   
   // Layout spacing
   layout: LayoutSpacing;
+  
+  // Base property for utility access
+  base?: string;
 }
 
 // Spacing Scale
