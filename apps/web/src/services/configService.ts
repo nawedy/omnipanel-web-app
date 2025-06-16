@@ -26,13 +26,14 @@ export interface ThemeConfig {
   accentColor: string;
   borderRadius: 'none' | 'sm' | 'md' | 'lg' | 'full';
   density: 'compact' | 'comfortable' | 'spacious';
+  fontFamily: 'inter' | 'system' | 'mono' | 'roboto' | 'opensans';
 }
 
 // Keyboard shortcuts configuration
 export interface KeyboardShortcutsConfig {
   enabled: boolean;
   shortcuts: Record<string, string>;
-  customShortcuts: Record<string, string>;
+  customShortcuts: Record<string, string[]>;
 }
 
 // General settings configuration
@@ -84,7 +85,8 @@ const defaultConfig: AppConfig = {
     primaryColor: '#6366f1',
     accentColor: '#8b5cf6',
     borderRadius: 'md',
-    density: 'comfortable'
+    density: 'comfortable',
+    fontFamily: 'inter'
   },
   keyboardShortcuts: {
     enabled: true,
