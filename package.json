@@ -21,6 +21,8 @@
     "build:web": "cd apps/web && npm run build",
     "build:packages": "npm run build:types && npm run build:config && npm run build:database && npm run build:ui && npm run build:llm-adapters && npm run build:core",
     "build:web-with-deps": "npm run build:packages && cd apps/web && npm run build",
+    "build:web-only": "pnpm install --filter omnipanel-web-standalone --filter @omnipanel/core --filter @omnipanel/ui --filter @omnipanel/types --filter @omnipanel/config --filter @omnipanel/database --filter @omnipanel/llm-adapters --no-frozen-lockfile && npm run build:web-with-deps",
+    "install:web-only": "pnpm install --filter omnipanel-web-standalone --filter @omnipanel/core --filter @omnipanel/ui --filter @omnipanel/types --filter @omnipanel/config --filter @omnipanel/database --filter @omnipanel/llm-adapters --no-frozen-lockfile",
     "build:desktop": "cd apps/desktop && npm run build",
     "build:docs": "cd apps/docs && npm run build",
     "build:website": "cd apps/website && npm run build",

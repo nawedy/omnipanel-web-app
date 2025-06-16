@@ -1,10 +1,12 @@
-# Vercel ignore file - Include necessary files for monorepo deployment
+# Vercel ignore file - Web app deployment only
 
-# Include all necessary directories
-!apps/
-!packages/
-!apps/web/
-!packages/*/
+# Exclude non-web applications
+apps/desktop/
+apps/mobile/
+apps/blog/
+apps/marketplace/
+apps/docs/
+apps/website/
 
 # Exclude development and build artifacts
 node_modules/
@@ -16,7 +18,9 @@ dist/
 .env.development
 .env.test
 
-# Include important config files
+# Include only necessary packages and web app
+!apps/web/
+!packages/
 !package.json
 !pnpm-workspace.yaml
 !pnpm-lock.yaml

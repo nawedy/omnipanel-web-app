@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "pnpm run build:web-with-deps",
-  "outputDirectory": "apps/web/.next",
-  "installCommand": "pnpm install --no-frozen-lockfile",
+  "buildCommand": "cd ../.. && pnpm run build:web-with-deps",
+  "outputDirectory": ".next",
+  "installCommand": "cd ../.. && pnpm install --filter omnipanel-web-standalone --filter @omnipanel/core --filter @omnipanel/ui --filter @omnipanel/types --filter @omnipanel/config --filter @omnipanel/database --filter @omnipanel/llm-adapters --no-frozen-lockfile",
   "framework": "nextjs",
   "env": {
     "NODE_ENV": "production"
