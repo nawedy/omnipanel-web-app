@@ -1,10 +1,11 @@
 {
   "version": 2,
-  "framework": "nextjs",
-  "buildCommand": "cd apps/web && npm run build",
+  "buildCommand": "./build-vercel.sh",
   "outputDirectory": "apps/web/.next",
-  "installCommand": "npm install",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/apps/web/$1" }
-  ]
+  "framework": "nextjs",
+  "installCommand": "echo 'Dependencies will be installed by build script'",
+  "env": {
+    "NODE_VERSION": "18",
+    "VERCEL": "1"
+  }
 }
