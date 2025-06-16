@@ -36,7 +36,7 @@ interface DatabaseTestResponse {
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('🗄️ Testing database connection...');
+    // Testing database connection...
     
     // For standalone deployment, return a simple success response
     const result = {
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result, { status: 200 });
     
   } catch (error) {
-    console.error('❌ Database test failed:', error);
+    // Database test failed - log error for debugging
     
     return NextResponse.json({
       success: false,

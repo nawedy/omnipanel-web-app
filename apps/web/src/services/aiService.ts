@@ -19,8 +19,6 @@ import {
 } from '@omnipanel/llm-adapters';
 
 import { 
-  AIProvider,
-  type AIProviderConfig,
   type ChatMessage,
   type ChatResponse,
   type StreamingChatResponse,
@@ -180,9 +178,9 @@ When responding:
   public getDefaultModel(): AIModel | undefined {
     const config = configService.getConfig();
     const defaultProvider = config.ai?.defaultProvider || 'openai';
-    const defaultModel = config.ai?.defaultModel || 'gpt-4';
     
-    return this.getModels(defaultProvider).find(m => m.id === defaultModel) ||
+    return this.getModels(defaultProvider.toLowerCase()).find(m => m.id.includes('gpt-4')) ||
+           this.getModels(defaultProvider.toLowerCase())[0] ||
            this.getModels().find(m => m.id.includes('gpt-4')) ||
            this.getModels()[0];
   }
@@ -239,9 +237,9 @@ When responding:
     const startTime = Date.now();
     
     // Get or create conversation
-    let conversation = request.conversationId 
+    const conversation = request.conversationId 
       ? this.getConversation(request.conversationId)
-      : this.createConversation();
+      : this.createConversation(this.generateConversationTitle(request.message), request.model, request.provider);
     
     if (!conversation) {
       throw new Error('Conversation not found');
@@ -694,6 +692,11 @@ This is a mock streaming response from the ${params.model} model via ${params.pr
 
   private loadConversations(): void {
     try {
+      // Check if we're in the browser environment
+      if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+        return;
+      }
+      
       const saved = localStorage.getItem('omnipanel-ai-conversations');
       if (saved) {
         const conversationsData: AIConversation[] = JSON.parse(saved);

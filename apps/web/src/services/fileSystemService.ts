@@ -69,6 +69,13 @@ class FileSystemService {
     if (this.isInitialized) return;
 
     try {
+      // Check if we're in the browser environment
+      if (typeof window === 'undefined') {
+        console.log('Server-side rendering detected, skipping file system initialization');
+        this.isInitialized = true;
+        return;
+      }
+
       // Check for File System Access API support
       if ('showDirectoryPicker' in window) {
         console.log('File System Access API supported');
@@ -76,17 +83,16 @@ class FileSystemService {
         console.log('File System Access API not supported, using mock implementation');
       }
 
-      // Initialize with mock file system for demo
+      // Load mock file system for demo
       await this.loadMockFileSystem();
       
       // Start file watching
       this.startFileWatching();
       
       this.isInitialized = true;
-      console.log('File system service initialized');
-      
     } catch (error) {
       console.error('Failed to initialize file system service:', error);
+      this.isInitialized = true; // Mark as initialized to prevent retry loops
     }
   }
 
@@ -401,6 +407,50 @@ class FileSystemService {
     return this.fileSystemCache.get(rootPath) || null;
   }
 
+  // Get directory tree in FileNode format for FileTree component
+  async getDirectoryTree(rootPath: string = '/'): Promise<import('../components/workspace/FileTree').FileNode[]> {
+    await this.initializeFileSystem();
+    const rootEntry = this.fileSystemCache.get(rootPath);
+    
+    if (!rootEntry) {
+      return [];
+    }
+
+    const convertToFileNode = (entry: FileSystemEntry): import('../components/workspace/FileTree').FileNode => {
+      return {
+        id: entry.id,
+        name: entry.name,
+        type: entry.type === 'directory' ? 'folder' : 'file',
+        path: entry.path,
+        size: entry.size,
+        lastModified: entry.lastModified,
+        children: entry.children ? entry.children.map(convertToFileNode) : undefined,
+        isExpanded: false,
+        isLoading: false,
+        isGitTracked: entry.metadata.isGitTracked,
+        gitStatus: entry.metadata.gitStatus,
+        language: entry.metadata.language,
+        isActive: false,
+        isStarred: false,
+        isHidden: entry.metadata.isHidden,
+        permissions: entry.permissions,
+        metadata: {
+          lines: entry.metadata.lines,
+          encoding: entry.metadata.encoding,
+          mimeType: entry.metadata.mimeType,
+          isSymlink: entry.metadata.isSymlink,
+          target: entry.metadata.target
+        }
+      };
+    };
+
+    if (rootEntry.type === 'directory' && rootEntry.children) {
+      return rootEntry.children.map(convertToFileNode);
+    }
+
+    return [convertToFileNode(rootEntry)];
+  }
+
   // Search files
   async searchFiles(query: string, options: {
     includeContent?: boolean;
@@ -412,7 +462,9 @@ class FileSystemService {
     const { includeContent = false, fileTypes = [], maxResults = 50 } = options;
     const allFiles = Array.from(this.fileSystemCache.values()).filter(entry => entry.type === 'file');
     
-    let results = allFiles.filter(file => {
+    const results: FileSystemEntry[] = [];
+
+    allFiles.forEach(file => {
       // Name match
       const nameMatch = file.name.toLowerCase().includes(query.toLowerCase());
       
@@ -420,7 +472,9 @@ class FileSystemService {
       const typeMatch = fileTypes.length === 0 || 
         (file.metadata.language && fileTypes.includes(file.metadata.language));
       
-      return nameMatch && typeMatch;
+      if (nameMatch && typeMatch) {
+        results.push(file);
+      }
     });
 
     // Sort by relevance (exact matches first, then partial matches)

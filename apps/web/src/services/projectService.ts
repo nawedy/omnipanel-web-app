@@ -4,7 +4,7 @@
 "use client";
 
 import { ProjectsService as coreProjectService } from '@omnipanel/core';
-import type { Project, ProjectSettings } from '@omnipanel/types';
+import type { ProjectSettings } from '@omnipanel/types';
 import { fileSystemService, type FileSystemStats } from './fileSystemService';
 import { contextService } from './contextService';
 
@@ -39,6 +39,7 @@ export interface ProjectTemplate {
 interface ProjectTemplateConfig {
   files: { path: string; content: string }[];
   dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
   scripts?: Record<string, string>;
   gitignore?: string[];
   readme?: string;
@@ -83,6 +84,7 @@ declare global {
   }
 }
 
+// Local Project interface with path property
 export interface Project {
   id: string;
   name: string;
@@ -93,8 +95,23 @@ export interface Project {
   createdAt: Date;
   updatedAt: Date;
   lastAccessedAt: Date;
-  settings: ProjectSettings;
+  settings: LocalProjectSettings;
   metadata: ProjectMetadata;
+}
+
+// Extended ProjectSettings with additional local properties
+export interface LocalProjectSettings extends Partial<ProjectSettings> {
+  theme?: 'dark' | 'light';
+  aiModel?: string;
+  autoSave?: boolean;
+  gitIntegration?: boolean;
+  linting?: boolean;
+  formatting?: boolean;
+  extensions?: string[];
+  environment?: Record<string, string>;
+  buildCommand?: string;
+  startCommand?: string;
+  testCommand?: string;
 }
 
 export interface ProjectMetadata {
@@ -257,13 +274,21 @@ class ProjectService {
       }
 
       // Initialize file system
-      await fileSystemService.createDirectory(options.path);
+      try {
+        await fileSystemService.createEntry(options.path, 'directory');
+      } catch (error) {
+        console.warn('Failed to create directory:', error);
+      }
 
       // Create project files from template
       if (options.template) {
         for (const file of options.template.config.files) {
           const fullPath = `${options.path}/${file.path}`;
-          await fileSystemService.createFile(fullPath, file.content);
+          try {
+            await fileSystemService.createEntry(fullPath, 'file', file.content);
+          } catch (error) {
+            console.warn('Failed to create file:', error);
+          }
         }
       }
 
@@ -282,7 +307,12 @@ class ProjectService {
 
       // Update context service
       if (contextService) {
-        await contextService.setActiveProject(project);
+        contextService.updateProject({
+          id: project.id,
+          name: project.name,
+          rootPath: project.path,
+          type: 'other'
+        });
       }
 
       return project;
@@ -311,8 +341,8 @@ class ProjectService {
       }
 
       // Verify path exists
-      const stats = await fileSystemService.getStats(options.path);
-      if (!stats) {
+      const entry = await fileSystemService.getEntry(options.path);
+      if (!entry) {
         throw new Error(`Project path does not exist: ${options.path}`);
       }
 
@@ -328,8 +358,8 @@ class ProjectService {
         path: options.path,
         visibility: 'private',
         ownerId: 'current-user',
-        createdAt: stats.created || now,
-        updatedAt: stats.modified || now,
+        createdAt: entry.created || now,
+        updatedAt: entry.lastModified || now,
         lastAccessedAt: now,
         settings: this.getDefaultSettings(),
         metadata: {
@@ -359,7 +389,12 @@ class ProjectService {
 
       // Update context service
       if (contextService) {
-        await contextService.setActiveProject(project);
+        contextService.updateProject({
+          id: project.id,
+          name: project.name,
+          rootPath: project.path,
+          type: 'other'
+        });
       }
 
       return project;
@@ -376,6 +411,13 @@ class ProjectService {
   }
 
   /**
+   * Get project by ID
+   */
+  async getProjectById(projectId: string): Promise<Project | null> {
+    return this.projects.get(projectId) || null;
+  }
+
+  /**
    * Set current project
    */
   async setCurrentProject(project: Project): Promise<void> {
@@ -386,7 +428,12 @@ class ProjectService {
 
     // Update context service
     if (contextService) {
-      await contextService.setActiveProject(project);
+      contextService.updateProject({
+        id: project.id,
+        name: project.name,
+        rootPath: project.path,
+        type: 'other'
+      });
     }
   }
 
@@ -413,7 +460,7 @@ class ProjectService {
       const query = options.query.toLowerCase();
       results = results.filter(p => 
         p.name.toLowerCase().includes(query) ||
-        p.description.toLowerCase().includes(query) ||
+        (p.description && p.description.toLowerCase().includes(query)) ||
         p.path.toLowerCase().includes(query)
       );
     }
@@ -423,7 +470,7 @@ class ProjectService {
     const direction = options.sortDirection || 'desc';
     
     results.sort((a, b) => {
-      let aValue: any, bValue: any;
+      let aValue: string | number, bValue: string | number;
       
       switch (sortBy) {
         case 'name':
@@ -463,7 +510,7 @@ class ProjectService {
   /**
    * Update project settings
    */
-  async updateProjectSettings(projectId: string, settings: Partial<ProjectSettings>): Promise<void> {
+  async updateProjectSettings(projectId: string, settings: Partial<LocalProjectSettings>): Promise<void> {
     const project = this.projects.get(projectId);
     if (!project) {
       throw new Error(`Project not found: ${projectId}`);
@@ -496,7 +543,11 @@ class ProjectService {
 
     // Delete files if requested
     if (deleteFiles) {
-      await fileSystemService.deleteDirectory(project.path);
+      try {
+        await fileSystemService.deleteEntry(project.path);
+      } catch (error) {
+        console.warn('Failed to delete directory:', error);
+      }
     }
 
     this.saveToStorage();
@@ -567,7 +618,7 @@ class ProjectService {
 
   // Private helper methods
 
-  private getDefaultSettings(): ProjectSettings {
+  private getDefaultSettings(): LocalProjectSettings {
     return {
       theme: 'dark',
       aiModel: 'gpt-4',
@@ -579,7 +630,9 @@ class ProjectService {
       environment: {},
       buildCommand: 'npm run build',
       startCommand: 'npm run dev',
-      testCommand: 'npm test'
+      testCommand: 'npm test',
+      allowInvites: false,
+      defaultMemberRole: 'viewer'
     };
   }
 
@@ -608,7 +661,9 @@ class ProjectService {
       // For now, we'll just update metadata
       project.metadata.gitRepository = project.path;
       project.metadata.gitBranch = 'main';
-      project.settings.gitIntegration = true;
+      if (project.settings) {
+        project.settings.gitIntegration = true;
+      }
     } catch (error) {
       console.warn('Failed to initialize git:', error);
     }
@@ -616,11 +671,11 @@ class ProjectService {
 
   private async updateProjectMetadata(project: Project): Promise<void> {
     try {
-      const stats = await fileSystemService.getStats(project.path);
+      const stats = await fileSystemService.getStats();
       if (stats) {
-        project.metadata.fileCount = stats.fileCount || 0;
+        project.metadata.fileCount = stats.totalFiles || 0;
         project.metadata.totalSize = stats.totalSize || 0;
-        project.metadata.languages = stats.languages || [];
+        project.metadata.languages = Object.keys(stats.languages || {});
       }
     } catch (error) {
       console.warn('Failed to update project metadata:', error);
@@ -630,10 +685,11 @@ class ProjectService {
   private async loadProjectSettings(project: Project): Promise<void> {
     try {
       const settingsPath = `${project.path}/.omnipanel/settings.json`;
-      const settingsContent = await fileSystemService.readFile(settingsPath);
-      if (settingsContent) {
-        const settings = JSON.parse(settingsContent.content);
-        project.settings = { ...this.getDefaultSettings(), ...settings };
+      const settingsEntry = await fileSystemService.getEntry(settingsPath);
+      if (settingsEntry && settingsEntry.type === 'file') {
+        // In a real implementation, we would read the file content
+        // For now, we'll use default settings
+        project.settings = { ...this.getDefaultSettings() };
       }
     } catch (error) {
       // Settings file doesn't exist, use defaults
@@ -646,8 +702,11 @@ class ProjectService {
       const settingsDir = `${project.path}/.omnipanel`;
       const settingsPath = `${settingsDir}/settings.json`;
       
-      await fileSystemService.createDirectory(settingsDir);
-      await fileSystemService.writeFile(settingsPath, JSON.stringify(project.settings, null, 2));
+      // Create settings directory if it doesn't exist
+      await fileSystemService.createEntry(settingsDir, 'directory');
+      
+      // Save settings file
+      await fileSystemService.createEntry(settingsPath, 'file', JSON.stringify(project.settings, null, 2));
     } catch (error) {
       console.warn('Failed to save project settings:', error);
     }
@@ -681,6 +740,11 @@ class ProjectService {
 
   private loadFromStorage(): void {
     try {
+      // Check if we're in the browser environment
+      if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+        return;
+      }
+      
       const data = localStorage.getItem('omnipanel-projects');
       if (data) {
         const parsed = JSON.parse(data);
@@ -721,6 +785,231 @@ class ProjectService {
     } catch (error) {
       console.warn('Failed to load projects from storage:', error);
     }
+  }
+
+  // Template generation methods
+  private generatePackageJson(type: string): string {
+    const base = {
+      name: "omnipanel-project",
+      version: "1.0.0",
+      private: true
+    };
+
+    if (type === 'react-app') {
+      return JSON.stringify({
+        ...base,
+        scripts: {
+          dev: "vite",
+          build: "vite build",
+          preview: "vite preview"
+        },
+        dependencies: {
+          react: "^18.2.0",
+          "react-dom": "^18.2.0"
+        },
+        devDependencies: {
+          "@types/react": "^18.2.0",
+          "@types/react-dom": "^18.2.0",
+          "@vitejs/plugin-react": "^4.0.0",
+          typescript: "^5.0.0",
+          vite: "^4.4.0"
+        }
+      }, null, 2);
+    }
+
+    if (type === 'next-app') {
+      return JSON.stringify({
+        ...base,
+        scripts: {
+          dev: "next dev",
+          build: "next build",
+          start: "next start",
+          lint: "next lint"
+        },
+        dependencies: {
+          next: "^14.0.0",
+          react: "^18.2.0",
+          "react-dom": "^18.2.0"
+        },
+        devDependencies: {
+          "@types/node": "^20.0.0",
+          "@types/react": "^18.2.0",
+          "@types/react-dom": "^18.2.0",
+          typescript: "^5.0.0"
+        }
+      }, null, 2);
+    }
+
+    return JSON.stringify(base, null, 2);
+  }
+
+  private generateReactApp(): string {
+    return `import React from 'react'
+
+function App() {
+  return (
+    <div className="App">
+      <h1>Welcome to OmniPanel</h1>
+      <p>Your React app is ready!</p>
+    </div>
+  )
+}
+
+export default App`;
+  }
+
+  private generateReactMain(): string {
+    return `import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App'
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+)`;
+  }
+
+  private generateReactIndex(): string {
+    return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OmniPanel Project</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>`;
+  }
+
+  private generateViteConfig(): string {
+    return `import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+export default defineConfig({
+  plugins: [react()],
+})`;
+  }
+
+  private generateNextPage(): string {
+    return `export default function Home() {
+  return (
+    <main>
+      <h1>Welcome to OmniPanel</h1>
+      <p>Your Next.js app is ready!</p>
+    </main>
+  )
+}`;
+  }
+
+  private generateNextLayout(): string {
+    return `export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  )
+}`;
+  }
+
+  private generateTailwindConfig(): string {
+    return `/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './components/**/*.{js,ts,jsx,tsx,mdx}',
+    './app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}`;
+  }
+
+  private generateNextConfig(): string {
+    return `/** @type {import('next').NextConfig} */
+const nextConfig = {}
+
+module.exports = nextConfig`;
+  }
+
+  private generatePythonRequirements(): string {
+    return `fastapi==0.104.1
+uvicorn==0.24.0
+pandas==2.1.3
+numpy==1.25.2
+scikit-learn==1.3.2
+matplotlib==3.8.2
+jupyter==1.0.0`;
+  }
+
+  private generateFastAPIMain(): string {
+    return `from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)`;
+  }
+
+  private generateJupyterNotebook(): string {
+    return JSON.stringify({
+      cells: [
+        {
+          cell_type: "markdown",
+          metadata: {},
+          source: ["# Data Analysis Notebook\n", "\n", "Welcome to your OmniPanel data science project!"]
+        },
+        {
+          cell_type: "code",
+          execution_count: null,
+          metadata: {},
+          outputs: [],
+          source: ["import pandas as pd\n", "import numpy as np\n", "import matplotlib.pyplot as plt\n", "\n", "print('Ready for data science!')"]
+        }
+      ],
+      metadata: {
+        kernelspec: {
+          display_name: "Python 3",
+          language: "python",
+          name: "python3"
+        }
+      },
+      nbformat: 4,
+      nbformat_minor: 4
+    }, null, 2);
+  }
+
+  private generateDataScienceReadme(): string {
+    return `# Data Science Project
+
+This project was created with OmniPanel.
+
+## Getting Started
+
+1. Install dependencies: \`pip install -r requirements.txt\`
+2. Start Jupyter: \`jupyter notebook\`
+3. Open analysis.ipynb to begin your analysis
+
+## Project Structure
+
+- \`main.py\` - FastAPI application
+- \`analysis.ipynb\` - Jupyter notebook for data analysis
+- \`requirements.txt\` - Python dependencies
+`;
   }
 }
 

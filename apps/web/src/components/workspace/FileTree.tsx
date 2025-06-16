@@ -650,7 +650,7 @@ export function FileTree({
           <Folder className="w-4 h-4 text-blue-400" />
           <span className="font-medium text-sm">Explorer</span>
           {enableContextIntegration && (
-            <Brain className="w-3 h-3 text-primary" title="Context-aware" />
+            <Brain className="w-3 h-3 text-primary" />
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -860,7 +860,7 @@ export function FileTree({
               }}
             >
               <Brain className="w-4 h-4" />
-              Add to Context
+              <span>AI Assist</span>
             </button>
           )}
           <button

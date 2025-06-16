@@ -31,18 +31,25 @@ import { SettingsModal } from '@/components/modals/SettingsModal';
 import { NotificationsPanel } from '@/components/modals/NotificationsPanel';
 import { UserProfileModal } from '@/components/modals/UserProfileModal';
 
+interface WorkspaceNotification {
+  id: string;
+  title: string;
+  message: string;
+  read: boolean;
+  date: Date;
+}
+
 export function WorkspaceHeader() {
   const { theme, setTheme } = useTheme();
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
-  interface WorkspaceNotification {
-    id: string;
-    title: string;
-    message: string;
-    read: boolean;
-    date: Date;
-  }
+  const { toggleSidebar, currentProject, selectedModel, modelProvider, layout, toggleFileTree } = useWorkspaceStore();
+  const pathname = usePathname();
 
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
+  const [showUserProfileModal, setShowUserProfileModal] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [notifications, setNotifications] = useState<WorkspaceNotification[]>([
     {
       id: '1',
@@ -59,18 +66,6 @@ export function WorkspaceHeader() {
       date: new Date(Date.now() - 1000 * 60 * 60 * 2) // 2 hours ago
     }
   ]);
-  
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  const notificationsRef = useRef<HTMLDivElement>(null);
-  const { toggleSidebar, currentProject, selectedModel, modelProvider, layout, toggleFileTree } = useWorkspaceStore();
-  const pathname = usePathname();
-
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
-  const [showUserProfileModal, setShowUserProfileModal] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
 
   // Initialize sync status after hydration
   useEffect(() => {
@@ -125,34 +120,66 @@ export function WorkspaceHeader() {
   };
 
   const handleSettingsClick = () => {
-    console.log('Opening settings...');
     setShowSettingsModal(true);
     setShowUserMenu(false);
   };
 
   const handleNotificationsClick = () => {
-    console.log('Opening notifications...');
     setShowNotificationsPanel(!showNotificationsPanel);
   };
 
   const handleHelpClick = () => {
-    console.log('Opening help...');
     window.open('/docs', '_blank');
   };
 
   const handleUserProfileClick = () => {
-    console.log('Opening user profile...');
     setShowUserMenu(false);
     setShowUserProfileModal(true);
   };
 
   const handleLogout = () => {
-    console.log('Logging out...');
     setShowUserMenu(false);
     if (confirm('Are you sure you want to sign out?')) {
       // Implement logout functionality
       window.location.href = '/auth/signin';
     }
+  };
+
+  const handleNewChat = () => {
+    setShowCommandPalette(false);
+    // Add new chat tab logic
+    const { addTab } = useWorkspaceStore.getState();
+    addTab({
+      title: 'New Chat',
+      type: 'chat',
+      projectId: currentProject?.id
+    });
+  };
+
+  const handleNewCodeFile = () => {
+    setShowCommandPalette(false);
+    // Add new code file logic
+    const fileName = prompt('Enter file name:');
+    if (fileName) {
+      const { addTab } = useWorkspaceStore.getState();
+      addTab({
+        title: fileName,
+        type: 'code',
+        filePath: `/${fileName}`,
+        projectId: currentProject?.id
+      });
+    }
+  };
+
+  const handleNewNotebook = () => {
+    setShowCommandPalette(false);
+    // Add new notebook logic
+    const { addTab } = useWorkspaceStore.getState();
+    addTab({
+      title: 'New Notebook',
+      type: 'notebook',
+      projectId: currentProject?.id
+    });
   };
 
   const getThemeIcon = () => {
@@ -259,7 +286,9 @@ export function WorkspaceHeader() {
             title="Notifications"
           >
             <Bell className="w-4 h-4" />
-            <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+            {notifications.some(n => !n.read) && (
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+            )}
           </button>
 
           {/* Help */}
@@ -395,28 +424,19 @@ export function WorkspaceHeader() {
               <div className="mt-4 space-y-1">
                 <div className="text-xs font-medium text-muted-foreground px-2 py-1">SUGGESTIONS</div>
                 <button 
-                  onClick={() => {
-                    setShowCommandPalette(false);
-                    // Add new chat tab logic
-                  }}
+                  onClick={handleNewChat}
                   className="w-full text-left px-3 py-2 rounded hover:bg-accent text-sm"
                 >
                   New Chat
                 </button>
                 <button 
-                  onClick={() => {
-                    setShowCommandPalette(false);
-                    // Add new code file logic
-                  }}
+                  onClick={handleNewCodeFile}
                   className="w-full text-left px-3 py-2 rounded hover:bg-accent text-sm"
                 >
                   New Code File
                 </button>
                 <button 
-                  onClick={() => {
-                    setShowCommandPalette(false);
-                    // Add new notebook logic
-                  }}
+                  onClick={handleNewNotebook}
                   className="w-full text-left px-3 py-2 rounded hover:bg-accent text-sm"
                 >
                   New Notebook

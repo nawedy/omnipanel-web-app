@@ -541,17 +541,51 @@ class ContextService {
 
   private loadPersistedContext(): void {
     try {
+      // Check if we're in the browser environment
+      if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+        return;
+      }
+      
       const saved = localStorage.getItem('omnipanel-workspace-context');
       if (saved) {
         const parsed = JSON.parse(saved);
         
-        this.context.project = parsed.project;
-        this.context.activeFiles = parsed.activeFiles || [];
-        this.context.terminalHistory = parsed.terminalHistory || [];
-        this.context.timestamp = new Date(parsed.timestamp || Date.now());
+        // Restore active files
+        if (parsed.activeFiles && Array.isArray(parsed.activeFiles)) {
+          this.context.activeFiles = parsed.activeFiles.map((file: any) => ({
+            ...file,
+            lastModified: file.lastModified ? new Date(file.lastModified) : undefined
+          }));
+        }
+        
+        // Restore project context
+        if (parsed.project) {
+          this.context.project = parsed.project;
+        }
+        
+        // Restore terminal history
+        if (parsed.terminalHistory && Array.isArray(parsed.terminalHistory)) {
+          this.context.terminalHistory = parsed.terminalHistory.map((entry: any) => ({
+            ...entry,
+            timestamp: new Date(entry.timestamp)
+          }));
+        }
+        
+        // Restore notebook cells
+        if (parsed.notebookCells && Array.isArray(parsed.notebookCells)) {
+          this.context.notebookCells = parsed.notebookCells;
+        }
+        
+        // Restore settings
+        if (parsed.settings) {
+          this.context.settings = parsed.settings;
+        }
+        
+        // Notify subscribers of restored context
+        this.notifySubscribers();
       }
     } catch (error) {
-      console.error('Failed to load persisted context:', error);
+      console.warn('Failed to load persisted context:', error);
     }
   }
 

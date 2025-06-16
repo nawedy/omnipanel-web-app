@@ -1,1 +1,13 @@
-'use client'; import React from 'react'; import { clsx } from 'clsx'; export interface BadgeProps { children: React.ReactNode; variant?: 'default' | 'secondary' | 'destructive' | 'outline'; className?: string; } export function Badge({ children, variant = 'default', className }: BadgeProps) { return ( <span className={clsx( 'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', { 'bg-blue-600 text-white': variant === 'default', 'bg-gray-200 text-gray-900': variant === 'secondary', 'bg-red-600 text-white': variant === 'destructive', 'border border-gray-300 bg-white text-gray-900': variant === 'outline', }, className )} > {children} </span> ); }
+'use client'; 
+import React from 'react'; 
+import { clsx } from 'clsx'; 
+
+export interface BadgeProps { children: React.ReactNode; 
+    variant?: 'default' | 'secondary' | 'destructive' | 'outline'; 
+    className?: string; } 
+    export function Badge({ children, variant = 'default', className }: BadgeProps) { 
+        return ( <span className={clsx( 'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium', 
+            { 'bg-blue-600 text-white': variant === 'default', 
+                'bg-gray-200 text-gray-900': variant === 'secondary', 
+                'bg-red-600 text-white': variant === 'destructive', 
+                'border border-gray-300 bg-white text-gray-900': variant === 'outline', }, className )} > {children} </span> ); }
