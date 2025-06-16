@@ -5,12 +5,11 @@
   "installCommand": "npm install && cd apps/web && npm install",
   "framework": "nextjs",
   "env": {
-    "NODE_VERSION": "22",
-    "VERCEL": "1"
+    "NODE_ENV": "production"
   },
   "functions": {
     "apps/web/app/api/**/*.js": {
-      "runtime": "@vercel/node@3.0.0"
+      "runtime": "@vercel/node@5.2.2"
     }
   }
 }
