@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Plus, 
@@ -402,7 +403,13 @@ function MarkdownCell({
         <div className="p-4 prose prose-invert prose-headings:text-slate-100 prose-p:text-slate-200 prose-a:text-blue-400 prose-code:text-emerald-300 prose-strong:text-slate-100 max-w-none prose-p:my-1 prose-headings:mb-2 prose-headings:mt-3 prose-ul:my-1 prose-li:my-0">
           {cell.id === '1' && cell.content.includes('Welcome to OmniPanel') ? (
             <div className="flex items-center gap-3 mb-4">
-              <img src="/logo.png" alt="OmniPanel Logo" className="w-8 h-8" />
+              <Image 
+                src="/logo.png" 
+                alt="OmniPanel Logo" 
+                width={32}
+                height={32}
+                className="rounded-md"
+              />
               <h1>Welcome to OmniPanel Notebook</h1>
             </div>
           ) : null}

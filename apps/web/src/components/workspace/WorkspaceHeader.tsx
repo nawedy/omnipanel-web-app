@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { 
   Menu, 
   Bell, 
@@ -188,10 +189,13 @@ export function WorkspaceHeader() {
           {/* Logo/Brand */}
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 flex items-center justify-center">
-              <img 
+              <Image 
                 src="/logo.png" 
                 alt="OmniPanel Logo" 
-                className="w-8 h-8 object-contain rounded-lg"
+                width={32}
+                height={32}
+                className="object-contain rounded-lg"
+                priority
               />
             </div>
             <span className="font-semibold text-base hidden sm:block">OmniPanel</span>
