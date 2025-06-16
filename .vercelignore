@@ -1,0 +1,24 @@
+# Vercel ignore file - Include necessary files for monorepo deployment
+
+# Include all necessary directories
+!apps/
+!packages/
+!apps/web/
+!packages/*/
+
+# Exclude development and build artifacts
+node_modules/
+.next/
+dist/
+.DS_Store
+*.log
+.env.local
+.env.development
+.env.test
+
+# Include important config files
+!package.json
+!pnpm-workspace.yaml
+!pnpm-lock.yaml
+!tsconfig.json
+!tsconfig.base.json 

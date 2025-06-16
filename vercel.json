@@ -1,13 +1,13 @@
 {
   "version": 2,
-  "buildCommand": "./build-vercel.sh",
+  "monorepo": true,
+  "buildCommand": "cd apps/web && npm run build",
   "outputDirectory": "apps/web/.next",
+  "installCommand": "npm install && cd apps/web && npm install",
   "framework": "nextjs",
-  "installCommand": "echo 'Dependencies will be installed by build script using PNPM'",
   "env": {
     "NODE_VERSION": "18",
-    "VERCEL": "1",
-    "ENABLE_EXPERIMENTAL_COREPACK": "1"
+    "VERCEL": "1"
   },
   "functions": {
     "apps/web/app/api/**/*.js": {
