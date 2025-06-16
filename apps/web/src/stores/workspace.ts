@@ -47,6 +47,7 @@ export interface WorkspaceState {
     showTerminal: boolean;
     showNotebook: boolean;
     terminalHeight: number;
+    fileTreeWidth: number;
   };
 }
 
@@ -81,6 +82,7 @@ export interface WorkspaceActions {
   toggleTerminal: () => void;
   toggleNotebook: () => void;
   setTerminalHeight: (height: number) => void;
+  setFileTreeWidth: (width: number) => void;
 }
 
 export type WorkspaceStore = WorkspaceState & WorkspaceActions;
@@ -103,6 +105,7 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
         showTerminal: false,
         showNotebook: false,
         terminalHeight: 200,
+        fileTreeWidth: 200,
       },
 
       // UI Actions
@@ -261,6 +264,11 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
       setTerminalHeight: (height) =>
         set((state) => ({
           layout: { ...state.layout, terminalHeight: Math.max(100, Math.min(500, height)) },
+        })),
+
+      setFileTreeWidth: (width) =>
+        set((state) => ({
+          layout: { ...state.layout, fileTreeWidth: Math.max(200, Math.min(600, width)) },
         })),
     }),
     {

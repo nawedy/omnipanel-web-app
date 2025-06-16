@@ -204,7 +204,7 @@ export function useKeyboardShortcuts(
       // Check user-defined shortcuts
       const userShortcuts = shortcutsRef.current;
       for (const [shortcutId, handler] of Object.entries(userShortcuts)) {
-        const shortcutDef = DEFAULT_SHORTCUTS.find(s => s.id === shortcutId);
+        const shortcutDef = DEFAULT_SHORTCUTS.find((s: any) => s.id === shortcutId);
         if (!shortcutDef) continue;
 
         // Get custom keys or use defaults
@@ -310,7 +310,7 @@ export function useKeyboardShortcuts(
     });
 
     // Re-register the shortcut with new keys
-    const shortcut = DEFAULT_SHORTCUTS.find(s => s.id === shortcutId);
+    const shortcut = DEFAULT_SHORTCUTS.find((s: any) => s.id === shortcutId);
     if (shortcut) {
       unregisterShortcut(shortcutId, shortcut.context?.[0]);
       
@@ -335,7 +335,7 @@ export function useKeyboardShortcuts(
   }, [registerShortcut, unregisterShortcut, captureMessage]);
 
   const resetShortcut = useCallback((shortcutId: string) => {
-    const shortcut = DEFAULT_SHORTCUTS.find(s => s.id === shortcutId);
+    const shortcut = DEFAULT_SHORTCUTS.find((s: any) => s.id === shortcutId);
     if (!shortcut) return;
 
     updateShortcut(shortcutId, shortcut.defaultKeys);

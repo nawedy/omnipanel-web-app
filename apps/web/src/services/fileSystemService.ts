@@ -52,6 +52,10 @@ export interface FileSystemStats {
 type FileWatchCallback = (event: FileWatchEvent) => void;
 type FileSystemChangeCallback = (stats: FileSystemStats) => void;
 
+interface FileSystemWatcher {
+  close(): void;
+}
+
 class FileSystemService {
   private watchers: Map<string, FileWatchCallback[]> = new Map();
   private changeListeners: FileSystemChangeCallback[] = [];

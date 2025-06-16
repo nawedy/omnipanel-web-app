@@ -217,8 +217,8 @@ export const useProjectStore = create<ProjectState>()(
             project.name.toLowerCase().includes(lowerQuery) ||
             project.description.toLowerCase().includes(lowerQuery) ||
             project.path.toLowerCase().includes(lowerQuery) ||
-            project.metadata.languages.some(lang => 
-              lang.toLowerCase().includes(lowerQuery)
+            project.metadata.languages.some((lang: string) =>
+              lowerQuery.includes(lang.toLowerCase())
             )
           );
         },

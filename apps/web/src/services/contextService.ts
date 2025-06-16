@@ -576,13 +576,8 @@ class ContextService {
           this.context.notebookCells = parsed.notebookCells;
         }
         
-        // Restore settings
-        if (parsed.settings) {
-          this.context.settings = parsed.settings;
-        }
-        
         // Notify subscribers of restored context
-        this.notifySubscribers();
+        this.notifyListeners();
       }
     } catch (error) {
       console.warn('Failed to load persisted context:', error);

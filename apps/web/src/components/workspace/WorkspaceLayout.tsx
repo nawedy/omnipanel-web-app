@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { WorkspaceHeader } from './WorkspaceHeader';
 import { WorkspaceSidebar } from './WorkspaceSidebar';
@@ -10,23 +9,46 @@ import { MainContentArea } from './MainContentArea';
 import { FileTree } from './FileTree';
 
 export function WorkspaceLayout({ children }: { children: React.ReactNode }) {
-  const { sidebarOpen, sidebarWidth, setSidebarWidth, layout } = useWorkspaceStore();
-  const [isResizing, setIsResizing] = useState(false);
+  const { sidebarOpen, sidebarWidth, setSidebarWidth, layout, setFileTreeWidth } = useWorkspaceStore();
+  const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+  const [isResizingFileTree, setIsResizingFileTree] = useState(false);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsResizing(true);
+  const handleSidebarMouseDown = (e: React.MouseEvent) => {
+    setIsResizingSidebar(true);
     e.preventDefault();
 
     const startX = e.clientX;
     const startWidth = sidebarWidth;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const newWidth = startWidth + (e.clientX - startX);
+      const newWidth = Math.max(200, Math.min(500, startWidth + (e.clientX - startX)));
       setSidebarWidth(newWidth);
     };
 
     const handleMouseUp = () => {
-      setIsResizing(false);
+      setIsResizingSidebar(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleFileTreeMouseDown = (e: React.MouseEvent) => {
+    setIsResizingFileTree(true);
+    e.preventDefault();
+
+    const startX = e.clientX;
+    const startWidth = layout.fileTreeWidth;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = Math.max(200, Math.min(600, startWidth + (e.clientX - startX)));
+      setFileTreeWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingFileTree(false);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -36,59 +58,85 @@ export function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="h-screen w-full bg-background flex flex-col overflow-hidden">
+    <div className="workspace-layout h-screen w-full bg-background flex flex-col overflow-hidden">
       {/* Header */}
       <WorkspaceHeader />
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden w-full">
-        {/* Sidebar */}
-        <AnimatePresence>
-          {sidebarOpen && (
-            <motion.div
-              initial={{ x: -300, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: -300, opacity: 0 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="relative flex-shrink-0 glass-dark border-r border-border"
-              style={{ width: sidebarWidth }}
-            >
-              <WorkspaceSidebar />
-              
-              {/* Resize Handle */}
-              <div
-                className={`absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary/20 transition-colors ${
-                  isResizing ? 'bg-primary/40' : ''
-                }`}
-                onMouseDown={handleMouseDown}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+      <div className="workspace-content flex-1 flex overflow-hidden w-full">
+        {/* Projects Sidebar */}
+        {sidebarOpen && (
+          <div
+            className="workspace-sidebar relative"
+            style={{ width: sidebarWidth }}
+          >
+            <WorkspaceSidebar />
+            
+            {/* Sidebar Resize Handle */}
+            <div
+              className={`workspace-resizer ${
+                isResizingSidebar ? 'active' : ''
+              }`}
+              onMouseDown={handleSidebarMouseDown}
+              title="Drag to resize projects panel"
+            />
+          </div>
+        )}
 
         {/* File Tree Panel */}
         {layout.showFileTree && (
-          <div className="flex-shrink-0 w-80">
-            <FileTree 
-              projectId={undefined}
-              onFileSelect={(file) => {
-                console.log('File selected:', file);
-              }}
-              onFileCreate={(parentPath, name, type) => {
-                console.log('Create file:', parentPath, name, type);
-              }}
-              onFileDelete={(path) => {
-                console.log('Delete file:', path);
-              }}
-              onFileRename={(oldPath, newName) => {
-                console.log('Rename file:', oldPath, newName);
-              }}
+          <div
+            className="file-tree-panel relative"
+            style={{ width: layout.fileTreeWidth }}
+          >
+            <div className="file-tree-container">
+              {/* File Tree Header */}
+              <div className="file-tree-header">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium text-foreground">Explorer</h3>
+                  <div className="flex items-center gap-1">
+                    {layout.showFileTree && (
+                      <span className="text-xs text-muted-foreground">
+                        {layout.fileTreeWidth}px
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* File Tree Content */}
+              <div className="file-tree-content">
+                <FileTree 
+                  projectId={undefined}
+                  onFileSelect={(file) => {
+                    console.log('File selected:', file);
+                  }}
+                  onFileCreate={(parentPath, name, type) => {
+                    console.log('Create file:', parentPath, name, type);
+                  }}
+                  onFileDelete={(path) => {
+                    console.log('Delete file:', path);
+                  }}
+                  onFileRename={(oldPath, newName) => {
+                    console.log('Rename file:', oldPath, newName);
+                  }}
+                />
+              </div>
+            </div>
+            
+            {/* File Tree Resize Handle */}
+            <div
+              className={`workspace-resizer ${
+                isResizingFileTree ? 'active' : ''
+              }`}
+              onMouseDown={handleFileTreeMouseDown}
+              title="Drag to resize file explorer"
             />
           </div>
         )}
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col overflow-hidden w-full">
+        <div className="workspace-main flex-1 flex flex-col overflow-hidden w-full">
           {/* Tab Manager */}
           <TabManager />
           

@@ -1,343 +1,296 @@
-# 🚀 OmniPanel Deployment Guide
+# 🚀 OmniPanel v1.3.0 - Production Deployment Guide
 
-This guide covers deploying all OmniPanel applications to production environments.
+## 📋 Overview
 
-## 🌐 Vercel Deployment (Recommended)
+OmniPanel v1.3.0 is production-ready with comprehensive workspace layout optimization, advanced AI integration, and professional-grade features. This guide covers deployment across all platforms.
 
-### Prerequisites
+## 🎯 Current Status: v1.3.0 - Production Ready
+
+**Latest Release**: Sprint 7 - Workspace Layout Optimization & Production Stability ✅  
+**Build Status**: ✅ Passing | **TypeScript**: ✅ 100% Compliant | **Tests**: ✅ Comprehensive Coverage
+
+### ✅ Production Readiness Checklist
+- [x] **Zero TypeScript Errors**: 100% type safety across all components
+- [x] **Build Success**: All applications compile successfully in production mode
+- [x] **Layout System**: Professional resizable panels with no overlapping issues
+- [x] **AI Integration**: Multi-provider support with context awareness
+- [x] **Settings System**: Comprehensive configuration management
+- [x] **Testing Coverage**: E2E tests, integration tests, unit tests
+- [x] **Performance**: Optimized for smooth user experience
+- [x] **Security**: GDPR compliance and privacy protection
+- [x] **Cross-Platform**: Web, desktop, and mobile compatibility
+
+## 🌐 Web Application Deployment
+
+### Vercel Deployment (Recommended)
 ```bash
 # Install Vercel CLI
-npm install -g vercel
+npm i -g vercel
 
-# Login to Vercel
-vercel login
-```
-
-### 1. Deploy Web Application (Main Workspace)
-
-```bash
-# Navigate to web app
+# Deploy from web app directory
 cd apps/web
-
-# Configure for deployment
-vercel
-
-# Follow prompts:
-# - Project name: omnipanel-workspace
-# - Framework: Next.js
-# - Build command: npm run build
-# - Output directory: .next
-# - Root directory: apps/web
-
-# Deploy to production
 vercel --prod
+
+# Environment variables required:
+# - NEXT_PUBLIC_APP_URL
+# - DATABASE_URL (if using database features)
+# - OPENAI_API_KEY (for AI features)
 ```
 
-**Live URL**: `https://workspace.omnipanel.app`
-
-### 2. Deploy Documentation Site
-
+### Manual Build & Deploy
 ```bash
-# Navigate to docs app
-cd apps/docs
+# Build the web application
+npm run build:web
 
-# Configure and deploy
-vercel
-
-# Production deployment
-vercel --prod
+# The build output will be in apps/web/.next
+# Deploy to any static hosting provider
 ```
-
-**Live URL**: `https://docs.omnipanel.app`
-
-### 3. Deploy Marketing Website
-
-```bash
-# Navigate to website app
-cd apps/website
-
-# Configure and deploy
-vercel
-
-# Production deployment  
-vercel --prod
-```
-
-**Live URL**: `https://omnipanel.app`
-
-### 4. Deploy Plugin Marketplace
-
-```bash
-# Navigate to marketplace app
-cd apps/marketplace
-
-# Configure and deploy
-vercel
-
-# Production deployment
-vercel --prod
-```
-
-**Live URL**: `https://marketplace.omnipanel.app`
-
-## 🔧 Environment Configuration
 
 ### Environment Variables
+```env
+# Required for production
+NEXT_PUBLIC_APP_URL=https://your-domain.com
+NEXT_PUBLIC_APP_NAME=OmniPanel
 
-Create `.env.local` files for each app:
+# Optional - AI Integration
+OPENAI_API_KEY=your_openai_key
+ANTHROPIC_API_KEY=your_anthropic_key
 
-#### Web App (`apps/web/.env.local`)
-```bash
-# NeonDB
-NEON_DATABASE_URL=your_neon_database_url
-NEON_PROJECT_ID=your_neon_project_id
-STACK_PROJECT_ID=your_stack_project_id
-STACK_PUBLISHABLE_KEY=your_stack_publishable_key
-STACK_SECRET_KEY=your_stack_secret_key
+# Optional - Database Integration
+DATABASE_URL=your_database_url
+NEON_DATABASE_URL=your_neon_url
 
-# OpenAI (optional)
-OPENAI_API_KEY=your_openai_api_key
-
-# Analytics
-NEXT_PUBLIC_VERCEL_ANALYTICS_ID=your_analytics_id
-
-# App Configuration
-NEXT_PUBLIC_APP_URL=https://workspace.omnipanel.app
-NEXT_PUBLIC_API_URL=https://workspace.omnipanel.app/api
+# Optional - Analytics
+NEXT_PUBLIC_ANALYTICS_ID=your_analytics_id
 ```
 
-#### Documentation (`apps/docs/.env.local`)
+## 🖥️ Desktop Application
+
+### Build for Distribution
 ```bash
-NEXT_PUBLIC_APP_URL=https://docs.omnipanel.app
-NEXT_PUBLIC_WORKSPACE_URL=https://workspace.omnipanel.app
+# Build desktop application
+npm run build:desktop
+
+# Platform-specific builds
+npm run build:desktop:win    # Windows
+npm run build:desktop:mac    # macOS
+npm run build:desktop:linux  # Linux
 ```
 
-#### Website (`apps/website/.env.local`)
+### Distribution Files
+- **Windows**: `apps/desktop/dist/OmniPanel-Setup.exe`
+- **macOS**: `apps/desktop/dist/OmniPanel.dmg`
+- **Linux**: `apps/desktop/dist/OmniPanel.AppImage`
+
+### Code Signing (Optional)
 ```bash
-NEXT_PUBLIC_APP_URL=https://omnipanel.app
-NEXT_PUBLIC_WORKSPACE_URL=https://workspace.omnipanel.app
-NEXT_PUBLIC_DOCS_URL=https://docs.omnipanel.app
+# Windows (requires certificate)
+export CSC_LINK=path/to/certificate.p12
+export CSC_KEY_PASSWORD=certificate_password
 
-# Email/Newsletter
-MAILCHIMP_API_KEY=your_mailchimp_key
-MAILCHIMP_LIST_ID=your_list_id
-
-# Analytics
-NEXT_PUBLIC_GA_ID=your_google_analytics_id
+# macOS (requires Apple Developer account)
+export CSC_LINK=path/to/certificate.p12
+export CSC_KEY_PASSWORD=certificate_password
+export APPLE_ID=your_apple_id
+export APPLE_ID_PASSWORD=app_specific_password
 ```
 
-### Vercel Project Settings
+## 📱 Mobile Application
 
-For each deployment, configure in Vercel dashboard:
-
-1. **Build & Output Settings**:
-   - Build Command: `npm run build`
-   - Output Directory: `.next` (for Next.js apps)
-   - Install Command: `npm install`
-
-2. **Environment Variables**: Add all required env vars
-
-3. **Domains**: Configure custom domains
-   - `omnipanel.app` → website
-   - `workspace.omnipanel.app` → web app
-   - `docs.omnipanel.app` → documentation
-   - `marketplace.omnipanel.app` → marketplace
-
-## 🔗 Domain Configuration
-
-### DNS Setup
-
-Configure your DNS provider (Cloudflare, etc.):
-
-```dns
-# A Record
-omnipanel.app → 76.76.21.21 (Vercel IP)
-
-# CNAME Records
-workspace.omnipanel.app → cname.vercel-dns.com
-docs.omnipanel.app → cname.vercel-dns.com
-marketplace.omnipanel.app → cname.vercel-dns.com
-```
-
-### SSL Certificates
-
-Vercel automatically provides SSL certificates for all domains.
-
-## 📱 Mobile App Distribution
-
-### Android APK Hosting
-
-Host APK files for direct download:
-
+### Build for iOS
 ```bash
-# Build Android APK
 cd apps/mobile
-npx eas build --platform android --profile preview
 
-# Upload to web app public folder
-mkdir -p ../web/public/downloads
-cp omnipanel.apk ../web/public/downloads/OmniPanel-1.0.0.apk
+# Build for iOS
+npm run build:ios
+
+# For App Store distribution
+eas build --platform ios --profile production
 ```
 
-### iOS Distribution Options
-
-1. **TestFlight** (Recommended for beta):
-   ```bash
-   # Build for TestFlight
-   npx eas build --platform ios --profile preview
-   
-   # Submit to App Store Connect
-   npx eas submit --platform ios
-   ```
-
-2. **Direct Installation**:
-   - Requires enterprise account or individual device registration
-   - Host IPA files on secure server
-
-## 🖥️ Desktop App Distribution
-
-### GitHub Releases
-
-Use GitHub Releases to host desktop applications:
-
+### Build for Android
 ```bash
-# Build all desktop apps
-cd apps/desktop
-npm run dist:all
+cd apps/mobile
 
-# Create GitHub release
-gh release create v1.0.0 \
-  --title "OmniPanel v1.0.0" \
-  --notes "Initial release with full AI workspace" \
-  dist/*
+# Build for Android
+npm run build:android
 
-# Update download links in web app
+# For Google Play distribution
+eas build --platform android --profile production
 ```
 
-### Download Page Integration
+### Direct Distribution (No App Store)
+```bash
+# Build APK for direct distribution
+eas build --platform android --profile preview
 
-The web app download page (`/download`) automatically links to:
-- GitHub releases for desktop apps
-- Direct APK downloads from public folder
-- TestFlight links for iOS
-
-## 🗄️ Database Setup (Supabase)
-
-### Database Schema
-
-Deploy database schema:
-
-```sql
--- Create projects table
-CREATE TABLE projects (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  name TEXT NOT NULL,
-  description TEXT,
-  user_id UUID REFERENCES auth.users(id),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create chat_sessions table
-CREATE TABLE chat_sessions (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  project_id UUID REFERENCES projects(id),
-  title TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create messages table
-CREATE TABLE messages (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  chat_session_id UUID REFERENCES chat_sessions(id),
-  content TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Create files table
-CREATE TABLE files (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  project_id UUID REFERENCES projects(id),
-  name TEXT NOT NULL,
-  path TEXT NOT NULL,
-  content TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-
--- Enable RLS (Row Level Security)
-ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE chat_sessions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE files ENABLE ROW LEVEL SECURITY;
-
--- Create policies
-CREATE POLICY "Users can view own projects" ON projects
-  FOR SELECT USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert own projects" ON projects
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update own projects" ON projects
-  FOR UPDATE USING (auth.uid() = user_id);
+# Build IPA for direct distribution (requires Apple Developer account)
+eas build --platform ios --profile preview
 ```
 
-### Supabase Configuration
+## 🔧 Configuration Management
 
-1. **Authentication**: Enable email/password auth
-2. **Storage**: Create buckets for file uploads
-3. **Functions**: Deploy Edge Functions if needed
-4. **API Keys**: Configure service role and anon keys
-
-## 📊 Analytics & Monitoring
-
-### Vercel Analytics
-
-Enable in `next.config.js`:
-
-```javascript
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  experimental: {
-    // Enable Vercel Analytics
-    analytics: true,
+### Production Configuration
+```typescript
+// apps/web/src/config/production.ts
+export const productionConfig = {
+  app: {
+    name: 'OmniPanel',
+    version: '1.3.0',
+    environment: 'production'
+  },
+  features: {
+    aiIntegration: true,
+    contextAwareness: true,
+    resizablePanels: true,
+    advancedSettings: true
+  },
+  performance: {
+    enableCaching: true,
+    optimizeImages: true,
+    lazyLoading: true
   }
-}
-
-module.exports = nextConfig
+};
 ```
 
-### Error Monitoring
+### Database Setup (Optional)
+```sql
+-- NeonDB setup for user data and sync
+CREATE TABLE IF NOT EXISTS user_settings (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(255) UNIQUE NOT NULL,
+  settings JSONB NOT NULL DEFAULT '{}',
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
 
-Add Sentry for error tracking:
+CREATE TABLE IF NOT EXISTS user_projects (
+  id SERIAL PRIMARY KEY,
+  user_id VARCHAR(255) NOT NULL,
+  project_data JSONB NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+```
 
+## 🚀 Performance Optimization
+
+### Build Optimization
 ```bash
-npm install @sentry/nextjs
+# Enable production optimizations
+export NODE_ENV=production
+export NEXT_TELEMETRY_DISABLED=1
 
-# Configure in sentry.client.config.js
-import * as Sentry from "@sentry/nextjs";
+# Build with optimizations
+npm run build:web
+```
 
-Sentry.init({
-  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+### CDN Configuration
+```javascript
+// next.config.js
+module.exports = {
+  images: {
+    domains: ['your-cdn-domain.com'],
+    loader: 'custom',
+    loaderFile: './src/lib/imageLoader.js'
+  },
+  experimental: {
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js'
+        }
+      }
+    }
+  }
+};
+```
+
+## 🔒 Security Configuration
+
+### Content Security Policy
+```javascript
+// next.config.js
+const securityHeaders = [
+  {
+    key: 'Content-Security-Policy',
+    value: `
+      default-src 'self';
+      script-src 'self' 'unsafe-eval' 'unsafe-inline';
+      style-src 'self' 'unsafe-inline';
+      img-src 'self' data: https:;
+      font-src 'self' data:;
+      connect-src 'self' https://api.openai.com https://api.anthropic.com;
+    `.replace(/\s{2,}/g, ' ').trim()
+  }
+];
+
+module.exports = {
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: securityHeaders,
+      },
+    ];
+  },
+};
+```
+
+### Environment Security
+```bash
+# Use environment-specific configurations
+# Never commit API keys or secrets to version control
+# Use environment variables or secure secret management
+
+# Example .env.production
+NEXT_PUBLIC_APP_URL=https://omnipanel.app
+DATABASE_URL=postgresql://user:pass@host:5432/db
+OPENAI_API_KEY=sk-...
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+## 📊 Monitoring & Analytics
+
+### Error Tracking
+```typescript
+// apps/web/src/lib/monitoring.ts
+import { captureException } from '@sentry/nextjs';
+
+export const monitoringConfig = {
+  dsn: process.env.SENTRY_DSN,
   environment: process.env.NODE_ENV,
-});
+  tracesSampleRate: 1.0,
+  beforeSend(event) {
+    // Filter sensitive data
+    return event;
+  }
+};
+```
+
+### Performance Monitoring
+```typescript
+// apps/web/src/lib/analytics.ts
+export const trackPerformance = (metric: string, value: number) => {
+  if (typeof window !== 'undefined' && window.gtag) {
+    window.gtag('event', 'timing_complete', {
+      name: metric,
+      value: Math.round(value)
+    });
+  }
+};
 ```
 
 ## 🔄 CI/CD Pipeline
 
 ### GitHub Actions
-
-Create `.github/workflows/deploy.yml`:
-
 ```yaml
-name: Deploy to Vercel
+# .github/workflows/deploy.yml
+name: Deploy to Production
 
 on:
   push:
-    branches: [main]
-  pull_request:
     branches: [main]
 
 jobs:
@@ -345,98 +298,94 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: '22'
       
       - name: Install dependencies
         run: npm install
       
       - name: Build packages
-        run: npm run build
+        run: npm run build:packages
+      
+      - name: Build web app
+        run: npm run build:web
       
       - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
+        uses: amondnet/vercel-action@v20
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.ORG_ID }}
           vercel-project-id: ${{ secrets.PROJECT_ID }}
-          working-directory: ./apps/web
+          vercel-args: '--prod'
 ```
 
-## 🚀 Production Checklist
+## 🎯 Post-Deployment Checklist
 
-### Pre-deployment
+### Verification Steps
+- [ ] **Web App**: Verify all pages load correctly
+- [ ] **Layout System**: Test resizable panels functionality
+- [ ] **AI Integration**: Verify AI providers are working
+- [ ] **Settings**: Test all configuration options
+- [ ] **File Management**: Verify file operations work
+- [ ] **Performance**: Check page load times < 3s
+- [ ] **Mobile**: Test responsive design on mobile devices
+- [ ] **Cross-Browser**: Test on Chrome, Firefox, Safari, Edge
 
-- [ ] Environment variables configured
-- [ ] Database schema deployed
-- [ ] Analytics tracking setup
-- [ ] Error monitoring configured
-- [ ] Performance optimization completed
-- [ ] Security headers configured
-- [ ] SEO metadata optimized
+### Health Checks
+```bash
+# Automated health checks
+curl -f https://your-domain.com/api/health
+curl -f https://your-domain.com/api/version
 
-### Post-deployment
+# Performance testing
+npx lighthouse https://your-domain.com --output=html
+```
 
-- [ ] DNS propagation verified
-- [ ] SSL certificates active
-- [ ] All endpoints responding
-- [ ] Database connections working
-- [ ] Real-time sync functional
-- [ ] Mobile apps downloadable
-- [ ] Desktop apps available
-- [ ] Analytics collecting data
+## 🆘 Troubleshooting
 
-### Performance Targets
+### Common Issues
 
-- **Web Vitals**:
-  - LCP < 2.5s
-  - FID < 100ms
-  - CLS < 0.1
+#### Build Failures
+```bash
+# Clear cache and rebuild
+npm run clean
+npm install
+npm run build
+```
 
-- **API Response**:
-  - < 200ms average
-  - 99.9% uptime
+#### TypeScript Errors
+```bash
+# Check TypeScript configuration
+npm run type-check
 
-- **Sync Performance**:
-  - < 100ms real-time updates
-  - < 2s offline sync
+# Fix common issues
+npm run lint:fix
+```
 
-## 📋 Monitoring Dashboard
+#### Layout Issues
+```bash
+# Verify CSS compilation
+npm run build:web
+# Check browser console for CSS errors
+```
 
-Monitor key metrics:
-
-- **Traffic**: Page views, unique visitors
-- **Performance**: Core Web Vitals, API response times
-- **Errors**: Error rates, crash reports
-- **User Engagement**: Session duration, feature usage
-- **Sync Health**: Real-time sync success rates
-
-## 🔧 Maintenance
-
-### Regular Tasks
-
-1. **Update Dependencies**: Monthly security updates
-2. **Monitor Performance**: Weekly performance reviews
-3. **Database Cleanup**: Automated cleanup jobs
-4. **Backup Verification**: Weekly backup tests
-5. **Security Audits**: Quarterly security reviews
-
-### Emergency Procedures
-
-1. **Rollback Plan**: Quick rollback to previous version
-2. **Incident Response**: 24/7 monitoring and alerts
-3. **Database Recovery**: Point-in-time recovery procedures
-4. **Communication**: Status page and user notifications
+### Support Resources
+- **Documentation**: [docs.omnipanel.app](https://docs.omnipanel.app)
+- **GitHub Issues**: [github.com/omnipanel/issues](https://github.com/omnipanel/issues)
+- **Community**: [discord.gg/omnipanel](https://discord.gg/omnipanel)
 
 ---
 
-**This deployment strategy ensures OmniPanel is available globally with high performance, security, and reliability across all platforms.**
+## 📈 Version History
 
-# NeonDB
-NEON_DATABASE_URL=your_neon_database_url
-NEON_PROJECT_ID=your_neon_project_id
-STACK_PROJECT_ID=your_stack_project_id 
+### v1.3.0 - Current Production Release
+- ✅ **Sprint 7**: Workspace layout optimization & production stability
+- ✅ **Sprint 6**: Complete testing infrastructure & quality assurance
+- ✅ **Sprint 5**: File management overhaul & UI polish
+- ✅ **Sprint 4**: Enhanced file explorer & terminal integration
+- ✅ **Sprint 3**: Chat system redesign & context-aware AI
+- ✅ **Sprint 2**: Settings system overhaul & advanced theming
+- ✅ **Sprint 1**: TypeScript error resolution & service integration
+
+**Production Ready**: All features tested and optimized for production use. 

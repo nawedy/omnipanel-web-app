@@ -621,52 +621,7 @@ export function FileTree({
   ]);
 
   return (
-    <div className="h-full flex flex-col bg-card/30 border-r border-border">
-      {/* Enhanced Header */}
-      <div className="flex-shrink-0 h-12 px-3 flex items-center justify-between border-b border-border">
-        <div className="flex items-center gap-2">
-          <Folder className="w-4 h-4 text-blue-400" />
-          <span className="font-medium text-sm">Explorer</span>
-          {enableContextIntegration && (
-            <Brain className="w-3 h-3 text-primary" />
-          )}
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            className="p-1.5 hover:bg-accent/50 rounded transition-colors"
-            title="New File"
-            onClick={() => {
-              const name = prompt('File name:');
-              if (name) {
-                onFileCreate?.('/', name, 'file');
-              }
-            }}
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
-          <button
-            className={`p-1.5 hover:bg-accent/50 rounded transition-colors ${showFilters ? 'bg-accent/50' : ''}`}
-            title="Filters & Sort"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="w-3.5 h-3.5" />
-          </button>
-          <button
-            className="p-1.5 hover:bg-accent/50 rounded transition-colors"
-            title="Refresh"
-            onClick={loadProjectFiles}
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
-          <button
-            className="p-1.5 hover:bg-accent/50 rounded transition-colors"
-            title="More options"
-          >
-            <MoreVertical className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
+    <div className="h-full flex flex-col bg-card/30">
       {/* Filters & Sort Panel */}
       {showFilters && (
         <motion.div
@@ -730,6 +685,46 @@ export function FileTree({
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-sm bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
+        </div>
+        
+        {/* Action Buttons */}
+        <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center gap-1">
+            <button
+              className="p-1.5 hover:bg-accent/50 rounded transition-colors"
+              title="New File"
+              onClick={() => {
+                const name = prompt('File name:');
+                if (name) {
+                  onFileCreate?.('/', name, 'file');
+                }
+              }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
+            <button
+              className="p-1.5 hover:bg-accent/50 rounded transition-colors"
+              title="Refresh"
+              onClick={loadProjectFiles}
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              className={`p-1.5 hover:bg-accent/50 rounded transition-colors ${showFilters ? 'bg-accent/50' : ''}`}
+              title="Filters & Sort"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="w-3.5 h-3.5" />
+            </button>
+            <button
+              className="p-1.5 hover:bg-accent/50 rounded transition-colors"
+              title="More options"
+            >
+              <MoreVertical className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
