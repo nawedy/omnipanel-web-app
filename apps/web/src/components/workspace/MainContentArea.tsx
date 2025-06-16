@@ -8,10 +8,18 @@ import { CodeEditor } from '../editor/CodeEditor';
 import { Terminal } from '../terminal/Terminal';
 import Notebook from '../notebook/Notebook';
 import { fileService, type FileContent } from '@/services/fileService';
-import { Loader2 } from 'lucide-react';
+import { contextService } from '@/services/contextService';
+import { useCurrentProject } from '@/stores/projectStore';
+import { useMonitoring } from '@/components/providers/MonitoringProvider';
+import { Loader2, AlertCircle, FileText, Code, BookOpen, Terminal as TerminalIcon, MessageSquare } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export function MainContentArea({ children }: { children: React.ReactNode }) {
-  const { tabs, activeTabId } = useWorkspaceStore();
+  const { tabs, activeTabId, updateTab } = useWorkspaceStore();
+  const currentProject = useCurrentProject();
+  const { captureMessage } = useMonitoring();
+  
   const [fileContent, setFileContent] = useState<FileContent | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,9 +39,12 @@ export function MainContentArea({ children }: { children: React.ReactNode }) {
       const filePath = activeTab.filePath || activeTab.title;
       if (!filePath) {
         // For new files without path, create empty content
+        const fileExtension = activeTab.title.split('.').pop()?.toLowerCase();
+        const language = getLanguageFromExtension(fileExtension);
+        
         setFileContent({
-          content: '',
-          language: 'typescript',
+          content: getDefaultContent(language, activeTab.title),
+          language,
           lastModified: new Date(),
           size: 0
         });
@@ -48,17 +59,27 @@ export function MainContentArea({ children }: { children: React.ReactNode }) {
       try {
         const content = await fileService.readFile(filePath);
         setFileContent(content);
+        
+        // Update context service with file access
+        if (currentProject) {
+          contextService.addFile({
+            path: filePath,
+            name: filePath.split('/').pop() || filePath,
+            type: 'file',
+            content: content.content,
+            language: content.language,
+            lastModified: content.lastModified,
+            size: content.size
+          });
+        }
       } catch (err) {
         console.log('File not found, creating new file:', filePath);
         // Instead of showing error, create a new empty file
         const fileExtension = filePath.split('.').pop()?.toLowerCase();
-        const language = fileExtension === 'js' ? 'javascript' : 
-                        fileExtension === 'py' ? 'python' : 
-                        fileExtension === 'md' ? 'markdown' : 
-                        fileExtension === 'json' ? 'json' : 'typescript';
+        const language = getLanguageFromExtension(fileExtension);
         
         setFileContent({
-          content: '',
+          content: getDefaultContent(language, activeTab.title),
           language,
           lastModified: new Date(),
           size: 0
@@ -70,171 +91,455 @@ export function MainContentArea({ children }: { children: React.ReactNode }) {
     };
 
     loadFileContent();
-  }, [activeTab?.id, activeTab?.filePath, activeTab?.title, activeTab?.type]);
+  }, [activeTab?.id, activeTab?.filePath, activeTab?.title, activeTab?.type, currentProject]);
+
+  // Helper function to get language from file extension
+  const getLanguageFromExtension = (extension?: string): string => {
+    switch (extension) {
+      case 'js': return 'javascript';
+      case 'jsx': return 'javascript';
+      case 'ts': return 'typescript';
+      case 'tsx': return 'typescript';
+      case 'py': return 'python';
+      case 'md': return 'markdown';
+      case 'json': return 'json';
+      case 'html': return 'html';
+      case 'css': return 'css';
+      case 'scss': return 'scss';
+      case 'yaml': case 'yml': return 'yaml';
+      case 'xml': return 'xml';
+      case 'sql': return 'sql';
+      case 'sh': return 'shell';
+      case 'rs': return 'rust';
+      case 'go': return 'go';
+      case 'java': return 'java';
+      case 'cpp': case 'cc': case 'cxx': return 'cpp';
+      case 'c': return 'c';
+      case 'php': return 'php';
+      case 'rb': return 'ruby';
+      default: return 'typescript';
+    }
+  };
+
+  // Helper function to get default content for new files
+  const getDefaultContent = (language: string, fileName: string): string => {
+    const projectName = currentProject?.name || 'OmniPanel';
+    const timestamp = new Date().toISOString().split('T')[0];
+    
+    switch (language) {
+      case 'javascript':
+        return `// ${fileName}
+// Created in ${projectName} on ${timestamp}
+
+console.log('Hello from ${fileName}!');
+
+// Welcome to OmniPanel JavaScript Editor
+// Try these AI shortcuts:
+// Ctrl+E - Explain selected code
+// Ctrl+I - Improve selected code
+// Ctrl+Shift+C - Send to AI chat
+
+function main() {
+  console.log('Ready to code with AI assistance!');
+}
+
+main();`;
+
+      case 'typescript':
+        return `// ${fileName}
+// Created in ${projectName} on ${timestamp}
+
+interface GreetingOptions {
+  name: string;
+  enthusiastic?: boolean;
+}
+
+function greetOmniPanel(options: GreetingOptions): void {
+  const message = \`Hello \${options.name} from ${fileName}!\`;
+  console.log(options.enthusiastic ? message.toUpperCase() + '!' : message);
+}
+
+// Welcome to OmniPanel TypeScript Editor
+// Try these AI shortcuts:
+// Ctrl+E - Explain selected code
+// Ctrl+I - Improve selected code
+// Ctrl+Shift+C - Send to AI chat
+
+greetOmniPanel({ name: 'Developer', enthusiastic: true });`;
+
+      case 'python':
+        return `# ${fileName}
+# Created in ${projectName} on ${timestamp}
+
+def main():
+    """Main function for ${fileName}"""
+    print(f"Hello from {fileName}!")
+    print("Ready to code with AI assistance!")
+
+# Welcome to OmniPanel Python Editor
+# Try these AI shortcuts:
+# Ctrl+E - Explain selected code
+# Ctrl+I - Improve selected code
+# Ctrl+Shift+C - Send to AI chat
+
+if __name__ == "__main__":
+    main()`;
+
+      case 'markdown':
+        return `# ${fileName}
+
+*Created in ${projectName} on ${timestamp}*
+
+Welcome to **OmniPanel Markdown Editor**!
+
+## Features
+
+- Real-time preview
+- Syntax highlighting
+- AI assistance
+- Project integration
+
+### Getting Started
+
+1. Start typing your markdown content
+2. Use the preview toggle to see rendered output
+3. Try AI shortcuts for help
+
+> **Tip**: Use Ctrl+E to explain selected text or Ctrl+I to improve it!
+
+\`\`\`javascript
+// You can even include code blocks
+console.log('Hello from ${fileName}!');
+\`\`\`
+
+---
+
+Happy writing! 🚀`;
+
+      case 'json':
+        return `{
+  "name": "${fileName}",
+  "description": "JSON file created in ${projectName}",
+  "version": "1.0.0",
+  "created": "${timestamp}",
+  "project": "${projectName}",
+  "metadata": {
+    "editor": "OmniPanel",
+    "features": [
+      "AI assistance",
+      "Real-time validation",
+      "Syntax highlighting"
+    ]
+  }
+}`;
+
+      case 'html':
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${fileName}</title>
+    <!-- Created in ${projectName} on ${timestamp} -->
+</head>
+<body>
+    <h1>Welcome to OmniPanel HTML Editor</h1>
+    <p>Start building your web page here!</p>
+    
+    <!-- Try these AI shortcuts:
+         Ctrl+E - Explain selected code
+         Ctrl+I - Improve selected code
+         Ctrl+Shift+C - Send to AI chat -->
+    
+    <script>
+        console.log('Hello from ${fileName}!');
+    </script>
+</body>
+</html>`;
+
+      case 'css':
+        return `/* ${fileName} */
+/* Created in ${projectName} on ${timestamp} */
+
+/* Welcome to OmniPanel CSS Editor */
+/* Try these AI shortcuts:
+   Ctrl+E - Explain selected code
+   Ctrl+I - Improve selected code
+   Ctrl+Shift+C - Send to AI chat */
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background-color: #f5f5f5;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  color: #333;
+  margin-bottom: 20px;
+}`;
+
+      default:
+        return `// ${fileName}
+// Created in ${projectName} on ${timestamp}
+
+console.log('Hello from ${fileName}!');
+
+// Welcome to OmniPanel Code Editor
+// Try these AI shortcuts:
+// Ctrl+E - Explain selected code
+// Ctrl+I - Improve selected code
+// Ctrl+Shift+C - Send to AI chat
+
+// Start coding here...`;
+    }
+  };
+
+  // Get tab icon based on type
+  const getTabIcon = (type: string) => {
+    switch (type) {
+      case 'chat': return MessageSquare;
+      case 'code': case 'file': return Code;
+      case 'notebook': return BookOpen;
+      case 'terminal': return TerminalIcon;
+      default: return FileText;
+    }
+  };
 
   // If no tabs are open, show welcome screen
   if (!activeTab) {
-    return <div className="w-full h-full"><WelcomeScreen /></div>;
+    return (
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="w-full h-full"
+      >
+        <WelcomeScreen />
+      </motion.div>
+    );
   }
 
   // Show loading state for file/code tabs
   if ((activeTab.type === 'file' || activeTab.type === 'code') && isLoading) {
     return (
-      <div className="w-full h-full flex items-center justify-center">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          <span>Loading file...</span>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="w-full h-full flex items-center justify-center"
+      >
+        <div className="flex flex-col items-center gap-4 text-muted-foreground">
+          <Loader2 className="w-8 h-8 animate-spin" />
+          <div className="text-center">
+            <h3 className="font-medium mb-1">Loading {activeTab.title}</h3>
+            <p className="text-sm">Preparing your file...</p>
+          </div>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   // Show error state for file/code tabs
   if ((activeTab.type === 'file' || activeTab.type === 'code') && error) {
     return (
-      <div className="w-full h-full flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <h3 className="text-lg font-semibold text-red-600">Error Loading File</h3>
-          <p className="text-muted-foreground">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-          >
-            Retry
-          </button>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="w-full h-full flex items-center justify-center"
+      >
+        <div className="text-center space-y-4 max-w-md">
+          <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto">
+            <AlertCircle className="w-8 h-8 text-destructive" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-destructive mb-2">Error Loading File</h3>
+            <p className="text-muted-foreground mb-4">{error}</p>
+          </div>
+          <div className="flex gap-3 justify-center">
+            <Button
+              onClick={() => window.location.reload()}
+              variant="outline"
+            >
+              Retry
+            </Button>
+            <Button
+              onClick={() => {
+                setError(null);
+                setFileContent({
+                  content: getDefaultContent('typescript', activeTab.title),
+                  language: 'typescript',
+                  lastModified: new Date(),
+                  size: 0
+                });
+              }}
+            >
+              Create New File
+            </Button>
+          </div>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   // Render content based on tab type
   const renderTabContent = () => {
+    const IconComponent = getTabIcon(activeTab.type);
+    
     switch (activeTab.type) {
       case 'chat':
         return (
-          <ChatInterface 
-            sessionId={activeTab.id}
-            projectId={activeTab.projectId}
-          />
+          <motion.div
+            key={activeTab.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="w-full h-full"
+          >
+            <ChatInterface 
+              sessionId={activeTab.id}
+              projectId={currentProject?.id}
+            />
+          </motion.div>
         );
       
       case 'code':
-        const getDefaultContent = (language: string, fileName: string) => {
-          switch (language) {
-            case 'javascript':
-              return `// ${fileName}\n// Welcome to OmniPanel JavaScript Editor\n\nconsole.log('Hello from OmniPanel!');\n\n// Try these AI shortcuts:\n// Ctrl+E - Explain selected code\n// Ctrl+I - Improve selected code\n// Ctrl+Shift+C - Send to AI chat\n\nfunction greetOmniPanel() {\n  console.log('Ready to code with AI assistance!');\n}\n\ngreetOmniPanel();`;
-            case 'python':
-              return `# ${fileName}\n# Welcome to OmniPanel Python Editor\n\nprint('Hello from OmniPanel!')\n\n# Try these AI shortcuts:\n# Ctrl+E - Explain selected code\n# Ctrl+I - Improve selected code\n# Ctrl+Shift+C - Send to AI chat\n\ndef greet_omnipanel():\n    print('Ready to code with AI assistance!')\n\nif __name__ == '__main__':\n    greet_omnipanel()`;
-            case 'typescript':
-              return `// ${fileName}\n// Welcome to OmniPanel TypeScript Editor\n\ninterface GreetingOptions {\n  name: string;\n  enthusiastic?: boolean;\n}\n\nfunction greetOmniPanel(options: GreetingOptions): void {\n  const message = \`Hello \${options.name} from OmniPanel!\`;\n  console.log(options.enthusiastic ? message.toUpperCase() + '!' : message);\n}\n\n// Try these AI shortcuts:\n// Ctrl+E - Explain selected code\n// Ctrl+I - Improve selected code\n// Ctrl+Shift+C - Send to AI chat\n\ngreetOmniPanel({ name: 'Developer', enthusiastic: true });`;
-            case 'markdown':
-              return `# ${fileName}\n\nWelcome to **OmniPanel Markdown Editor**!\n\n## Features\n\n- Real-time preview\n- Syntax highlighting\n- AI assistance\n\n### Getting Started\n\n1. Start typing your markdown content\n2. Use the preview toggle to see rendered output\n3. Try AI shortcuts for help\n\n> **Tip**: Use Ctrl+E to explain selected text or Ctrl+I to improve it!\n\n\`\`\`javascript\n// You can even include code blocks\nconsole.log('Hello from OmniPanel!');\n\`\`\`\n\n---\n\nHappy writing! 🚀`;
-            default:
-              return `// ${fileName}\n// Welcome to OmniPanel Code Editor\n\nconsole.log('Hello from OmniPanel!');\n\n// Try these AI shortcuts:\n// Ctrl+E - Explain selected code\n// Ctrl+I - Improve selected code\n// Ctrl+Shift+C - Send to AI chat`;
-          }
-        };
-
+      case 'file':
         return (
-          <CodeEditor 
-            filePath={activeTab.filePath || activeTab.title}
-            initialContent={fileContent?.content || getDefaultContent(fileContent?.language || 'typescript', activeTab.title)}
-            language={fileContent?.language || 'typescript'}
-            onSave={async (content) => {
-              const filePath = activeTab.filePath || activeTab.title;
-              try {
-                await fileService.writeFile(filePath, content);
-                console.log('File saved successfully:', filePath);
-              } catch (err) {
-                console.error('Failed to save file:', err);
-              }
-            }}
-            onContentChange={(content) => {
-              console.log('Content changed:', content.length, 'characters');
-            }}
-          />
+          <motion.div
+            key={activeTab.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="w-full h-full"
+          >
+            <CodeEditor 
+              filePath={activeTab.filePath || activeTab.title}
+              initialContent={fileContent?.content || ''}
+              language={fileContent?.language || 'typescript'}
+              onSave={async (content) => {
+                const filePath = activeTab.filePath || activeTab.title;
+                try {
+                  await fileService.writeFile(filePath, content);
+                  
+                  // Update tab to show saved state
+                  updateTab(activeTab.id, { 
+                    title: activeTab.title.replace(' •', ''),
+                    filePath 
+                  });
+                  
+                  // Update context service
+                  if (currentProject) {
+                    contextService.addFile({
+                      path: filePath,
+                      name: filePath.split('/').pop() || filePath,
+                      type: 'file',
+                      content,
+                      language: fileContent?.language || 'typescript',
+                      lastModified: new Date(),
+                      size: content.length
+                    });
+                  }
+                  
+                  captureMessage('File saved successfully', 'info', {
+                    filePath,
+                    projectId: currentProject?.id,
+                    size: content.length
+                  });
+                } catch (err) {
+                  const errorMessage = err instanceof Error ? err.message : 'Failed to save file';
+                  captureMessage('Failed to save file', 'error', {
+                    error: errorMessage,
+                    filePath,
+                    projectId: currentProject?.id
+                  });
+                  console.error('Failed to save file:', err);
+                }
+              }}
+              onContentChange={(content) => {
+                // Mark tab as modified if content changed
+                if (content !== fileContent?.content && !activeTab.title.includes(' •')) {
+                  updateTab(activeTab.id, { 
+                    title: activeTab.title + ' •' 
+                  });
+                }
+              }}
+            />
+          </motion.div>
         );
       
       case 'notebook':
         return (
-          <Notebook 
-            filePath={activeTab.filePath || activeTab.title}
-            onSave={(content) => {
-              console.log('Saving notebook:', activeTab.filePath, content);
-            }}
-          />
+          <motion.div
+            key={activeTab.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="w-full h-full"
+          >
+            <Notebook 
+              filePath={activeTab.filePath || activeTab.title}
+              onSave={(content) => {
+                captureMessage('Notebook saved', 'info', {
+                  filePath: activeTab.filePath,
+                  projectId: currentProject?.id
+                });
+                console.log('Saving notebook:', activeTab.filePath, content);
+              }}
+            />
+          </motion.div>
         );
       
       case 'terminal':
         return (
-          <Terminal 
-            sessionId={activeTab.id}
-            projectId={activeTab.projectId}
-            initialPath={activeTab.projectId ? `~/projects/${activeTab.projectId}` : '~/'}
-          />
-        );
-      
-      case 'file':
-        const getFileContent = () => {
-          if (fileContent?.content) {
-            return fileContent.content;
-          }
-          
-          // If no content available, create template based on file extension
-          const fileName = activeTab.filePath || activeTab.title;
-          const extension = fileName.split('.').pop()?.toLowerCase();
-          
-          switch (extension) {
-            case 'md':
-              return `# ${fileName}\n\nThis file is ready for your content.\n\n## Getting Started\n- Start typing your markdown content\n- Use AI assistance with Ctrl+E or Ctrl+I\n- Save your changes with Ctrl+S\n\nHappy writing! 🚀`;
-            case 'js':
-              return `// ${fileName}\n// JavaScript file ready for development\n\nconsole.log('File loaded in OmniPanel');\n\n// Start coding here...`;
-            case 'ts':
-              return `// ${fileName}\n// TypeScript file ready for development\n\ninterface FileData {\n  name: string;\n  content: string;\n}\n\nconst fileData: FileData = {\n  name: '${fileName}',\n  content: 'Ready for development'\n};\n\nconsole.log('File loaded:', fileData);`;
-            case 'py':
-              return `# ${fileName}\n# Python file ready for development\n\nprint(f"File loaded: ${fileName}")\n\n# Start coding here...`;
-            case 'json':
-              return `{\n  "name": "${fileName}",\n  "description": "JSON file ready for data",\n  "version": "1.0.0"\n}`;
-            default:
-              return `File: ${fileName}\n\nThis file is ready for your content.\nStart typing to begin editing.`;
-          }
-        };
-
-        return (
-          <CodeEditor 
-            filePath={activeTab.filePath || activeTab.title}
-            initialContent={getFileContent()}
-            language={fileContent?.language || 'text'}
-            onSave={async (content) => {
-              const filePath = activeTab.filePath || activeTab.title;
-              try {
-                await fileService.writeFile(filePath, content);
-                console.log('File saved successfully:', filePath);
-              } catch (err) {
-                console.error('Failed to save file:', err);
-              }
-            }}
-            onContentChange={(content) => {
-              console.log('Content changed:', content.length, 'characters');
-            }}
-          />
+          <motion.div
+            key={activeTab.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="w-full h-full"
+          >
+            <Terminal 
+              sessionId={activeTab.id}
+              projectId={currentProject?.id}
+              initialPath={currentProject?.path || '~/'}
+            />
+          </motion.div>
         );
       
       default:
         return (
-          <div className="w-full h-full flex items-center justify-center">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="w-full h-full flex items-center justify-center"
+          >
             <div className="text-center space-y-4">
-              <h3 className="text-lg font-semibold">Unknown Tab Type</h3>
-              <p className="text-muted-foreground">Tab type "{activeTab.type}" is not supported yet</p>
+              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
+                <IconComponent className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Unknown Tab Type</h3>
+                <p className="text-muted-foreground">
+                  This tab type ({activeTab.type}) is not supported yet.
+                </p>
+              </div>
             </div>
-          </div>
+          </motion.div>
         );
     }
   };
 
   return (
-    <div className="h-full bg-background">
+    <AnimatePresence mode="wait">
       {renderTabContent()}
-      {children}
-    </div>
+    </AnimatePresence>
   );
 } 

@@ -14,8 +14,8 @@ import {
   SettingsIcon,
   CommandIcon
 } from 'lucide-react';
-import { omnipanelProjectService, type FileTreeNode, type RecentProject, type ProjectTemplate } from '@/services/projectService';
-import type { Project } from '@omnipanel/types';
+import { projectService, type Project, type ProjectTemplate } from '@/services/projectService';
+import { useCurrentProject, useRecentProjects } from '@/stores/projectStore';
 
 interface WorkspaceSidebarProps {
   onFileSelect?: (filePath: string) => void;
@@ -23,38 +23,19 @@ interface WorkspaceSidebarProps {
 }
 
 export function WorkspaceSidebar({ onFileSelect, onSettingsClick }: WorkspaceSidebarProps) {
-  const [currentProject, setCurrentProject] = useState<Project | null>(null);
-  const [fileTree, setFileTree] = useState<FileTreeNode | null>(null);
-  const [recentProjects, setRecentProjects] = useState<RecentProject[]>([]);
+  const currentProject = useCurrentProject();
+  const recentProjects = useRecentProjects();
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<ProjectTemplate | null>(null);
   const [newProjectName, setNewProjectName] = useState('');
 
-  // Subscribe to project changes
-  useEffect(() => {
-    const unsubscribe = omnipanelProjectService.subscribe((project) => {
-      setCurrentProject(project);
-      setFileTree(omnipanelProjectService.getFileTree());
-    });
-
-    // Load initial data
-    setCurrentProject(omnipanelProjectService.getCurrentProject());
-    setFileTree(omnipanelProjectService.getFileTree());
-    setRecentProjects(omnipanelProjectService.getRecentProjects());
-
-    return unsubscribe;
-  }, []);
-
-  // Update recent projects when current project changes
-  useEffect(() => {
-    setRecentProjects(omnipanelProjectService.getRecentProjects());
-  }, [currentProject]);
-
   const handleOpenProject = async () => {
-    const project = await omnipanelProjectService.openProject();
-    if (project) {
-      console.log('Opened project:', project.name);
+    try {
+      // This would open a file picker in a real implementation
+      console.log('Open project clicked - would show file picker');
+    } catch (error) {
+      console.error('Failed to open project:', error);
     }
   };
 
@@ -66,9 +47,13 @@ export function WorkspaceSidebar({ onFileSelect, onSettingsClick }: WorkspaceSid
     if (!selectedTemplate || !newProjectName.trim()) return;
 
     try {
-      const project = await omnipanelProjectService.createProject(selectedTemplate, {
+      const project = await projectService.createProject({
         name: newProjectName.trim(),
-        description: `${selectedTemplate.name} project created with OmniPanel`
+        description: `${selectedTemplate.name} project created with OmniPanel`,
+        path: `/projects/${newProjectName.trim().toLowerCase().replace(/\s+/g, '-')}`,
+        template: selectedTemplate,
+        gitInit: true,
+        visibility: 'private'
       });
 
       if (project) {
@@ -82,89 +67,13 @@ export function WorkspaceSidebar({ onFileSelect, onSettingsClick }: WorkspaceSid
     }
   };
 
-  const handleImportProject = async () => {
-    // For now, just show a simple prompt - in a real app this would be a proper modal
-    const url = prompt('Enter GitHub/GitLab repository URL:');
-    if (url) {
-      const project = await omnipanelProjectService.importProject('github', url);
-      if (project) {
-        console.log('Imported project:', project.name);
-      }
+  const handleRecentProjectClick = async (project: Project) => {
+    try {
+      await projectService.setCurrentProject(project);
+      console.log('Opened recent project:', project.name);
+    } catch (error) {
+      console.error('Failed to open recent project:', error);
     }
-  };
-
-  const handleFileClick = (node: FileTreeNode) => {
-    if (node.type === 'directory') {
-      omnipanelProjectService.toggleNode(node.id);
-      setFileTree(omnipanelProjectService.getFileTree());
-    } else {
-      omnipanelProjectService.selectNode(node.id);
-      setFileTree(omnipanelProjectService.getFileTree());
-      onFileSelect?.(node.path);
-    }
-  };
-
-  const handleRecentProjectClick = async (recentProject: RecentProject) => {
-    // For now, just set it as current - in a real app we'd actually open the project
-    console.log('Opening recent project:', recentProject.name);
-  };
-
-  const renderFileTreeNode = (node: FileTreeNode, depth: number = 0): React.ReactNode => {
-    const isDirectory = node.type === 'directory';
-    const isExpanded = node.isExpanded;
-    const isSelected = node.isSelected;
-
-    return (
-      <div key={node.id}>
-        <div
-          className={`flex items-center py-1 px-2 hover:bg-slate-800/50 cursor-pointer rounded-sm ${
-            isSelected ? 'bg-slate-700/50' : ''
-          }`}
-          style={{ paddingLeft: `${depth * 16 + 8}px` }}
-          onClick={() => handleFileClick(node)}
-        >
-          {isDirectory && (
-            <span className="mr-1 text-slate-400">
-              {isExpanded ? (
-                <ChevronDownIcon className="h-3 w-3" />
-              ) : (
-                <ChevronRightIcon className="h-3 w-3" />
-              )}
-            </span>
-          )}
-          
-          <span className="mr-2 text-sm">
-            {isDirectory ? (
-              isExpanded ? (
-                <FolderOpenIcon className="h-4 w-4 text-blue-400" />
-              ) : (
-                <FolderIcon className="h-4 w-4 text-blue-400" />
-              )
-            ) : (
-              <span className="text-xs">{node.icon || '📄'}</span>
-            )}
-          </span>
-          
-          <span className={`text-sm truncate ${
-            isDirectory ? 'text-slate-200' : 'text-slate-300'
-          }`}>
-            {node.name}
-          </span>
-          
-          {!isDirectory && node.size && (
-            <span className="ml-auto text-xs text-slate-500">
-              {formatFileSize(node.size)}
-            </span>
-          )}
-        </div>
-        
-        {isDirectory && isExpanded && node.children && (
-          <div>
-            {node.children.map(child => renderFileTreeNode(child, depth + 1))}
-          </div>
-        )}
-      </div>
-    );
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -180,7 +89,7 @@ export function WorkspaceSidebar({ onFileSelect, onSettingsClick }: WorkspaceSid
   );
 
   if (isCreatingProject) {
-    const templates = omnipanelProjectService.getProjectTemplates();
+    const templates = projectService.getTemplates();
     
     return (
       <div className="w-80 bg-slate-900 border-r border-slate-800 flex flex-col h-full">
@@ -199,7 +108,7 @@ export function WorkspaceSidebar({ onFileSelect, onSettingsClick }: WorkspaceSid
                 className="bg-slate-800 border-slate-700 text-slate-100"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Template
@@ -211,40 +120,47 @@ export function WorkspaceSidebar({ onFileSelect, onSettingsClick }: WorkspaceSid
                     className={`p-3 rounded-lg border cursor-pointer transition-colors ${
                       selectedTemplate?.id === template.id
                         ? 'border-blue-500 bg-blue-500/10'
-                        : 'border-slate-700 bg-slate-800 hover:bg-slate-750'
+                        : 'border-slate-700 bg-slate-800 hover:bg-slate-700'
                     }`}
                     onClick={() => setSelectedTemplate(template)}
                   >
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-medium text-slate-200">{template.name}</span>
                       <span className="text-lg">{template.icon}</span>
-                      <div>
-                        <h3 className="font-medium text-slate-100">{template.name}</h3>
-                        <p className="text-xs text-slate-400">{template.description}</p>
-                      </div>
+                    </div>
+                    <p className="text-sm text-slate-400">{template.description}</p>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {template.features.slice(0, 3).map((feature) => (
+                        <span
+                          key={feature}
+                          className="px-2 py-1 text-xs bg-slate-700 text-slate-300 rounded"
+                        >
+                          {feature}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
-          
-          <div className="flex space-x-2 mt-4">
+        </div>
+
+        <div className="p-4 mt-auto border-t border-slate-800">
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setIsCreatingProject(false)}
+              variant="outline"
+              className="flex-1"
+            >
+              Cancel
+            </Button>
             <Button
               onClick={handleCreateProject}
               disabled={!selectedTemplate || !newProjectName.trim()}
               className="flex-1"
             >
-              Create Project
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setIsCreatingProject(false);
-                setSelectedTemplate(null);
-                setNewProjectName('');
-              }}
-            >
-              Cancel
+              Create
             </Button>
           </div>
         </div>
@@ -259,136 +175,114 @@ export function WorkspaceSidebar({ onFileSelect, onSettingsClick }: WorkspaceSid
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-slate-100">Workspace</h2>
           <Button
+            onClick={onSettingsClick}
             variant="ghost"
             size="sm"
-            onClick={onSettingsClick}
             className="text-slate-400 hover:text-slate-100"
           >
             <SettingsIcon className="h-4 w-4" />
           </Button>
         </div>
 
-        {/* Quick Actions */}
-        <div className="space-y-2">
+        {/* Project Actions */}
+        <div className="flex gap-2 mb-4">
           <Button
             onClick={handleOpenProject}
-            className="w-full justify-start text-left"
             variant="outline"
+            size="sm"
+            className="flex-1 text-xs"
           >
-            <FolderOpenIcon className="h-4 w-4 mr-2" />
-            Open Project
-            <span className="ml-auto text-xs text-slate-400 flex items-center">
-              <CommandIcon className="h-3 w-3 mr-1" />O
-            </span>
+            <FolderOpenIcon className="h-3 w-3 mr-1" />
+            Open
           </Button>
-          
           <Button
             onClick={handleNewProject}
-            className="w-full justify-start text-left"
             variant="outline"
+            size="sm"
+            className="flex-1 text-xs"
           >
-            <PlusIcon className="h-4 w-4 mr-2" />
-            New Project
-            <span className="ml-auto text-xs text-slate-400 flex items-center">
-              <CommandIcon className="h-3 w-3 mr-1" />⇧N
-            </span>
+            <PlusIcon className="h-3 w-3 mr-1" />
+            New
           </Button>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            value={searchQuery}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+            placeholder="Search projects..."
+            className="pl-10 bg-slate-800 border-slate-700 text-slate-100 text-sm"
+          />
         </div>
       </div>
 
       {/* Current Project */}
       {currentProject && (
         <div className="p-4 border-b border-slate-800">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-medium text-slate-100">{currentProject.name}</h3>
-            <span className="text-xs text-slate-400 capitalize">{currentProject.status}</span>
-          </div>
-          {currentProject.description && (
-            <p className="text-sm text-slate-400 mb-3">{currentProject.description}</p>
-          )}
-        </div>
-      )}
-
-      {/* File Explorer */}
-      {fileTree && (
-        <div className="flex-1 overflow-hidden">
-          <div className="p-4 border-b border-slate-800">
-            <h3 className="font-medium text-slate-100 mb-2">Files</h3>
-            <div className="relative">
-              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-                placeholder="Search files..."
-                className="pl-10 bg-slate-800 border-slate-700 text-slate-100"
-              />
+          <h3 className="text-sm font-medium text-slate-300 mb-2">Current Project</h3>
+          <div className="p-3 bg-slate-800 rounded-lg">
+            <div className="flex items-center mb-2">
+              <FolderIcon className="h-4 w-4 text-blue-400 mr-2" />
+              <span className="font-medium text-slate-200 truncate">{currentProject.name}</span>
             </div>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto p-2">
-            {renderFileTreeNode(fileTree)}
+            <p className="text-xs text-slate-400 mb-2 line-clamp-2">{currentProject.description}</p>
+            <div className="flex items-center justify-between text-xs text-slate-500">
+              <span>{currentProject.metadata?.fileCount || 0} files</span>
+              <span>{currentProject.metadata?.framework || 'Unknown'}</span>
+            </div>
           </div>
         </div>
       )}
 
       {/* Recent Projects */}
-      {!currentProject && (
-        <div className="flex-1 overflow-hidden">
-          <div className="p-4 border-b border-slate-800">
-            <h3 className="font-medium text-slate-100 mb-2">Recent Projects</h3>
-            <div className="relative">
-              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input
-                value={searchQuery}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-                placeholder="Search projects..."
-                className="pl-10 bg-slate-800 border-slate-700 text-slate-100"
-              />
-            </div>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto p-2">
+      <div className="flex-1 overflow-hidden">
+        <div className="p-4">
+          <h3 className="text-sm font-medium text-slate-300 mb-3">Recent Projects</h3>
+          <div className="space-y-2 overflow-y-auto max-h-96">
             {filteredRecentProjects.length > 0 ? (
-              <div className="space-y-1">
-                {filteredRecentProjects.map((project) => (
-                  <div
-                    key={project.id}
-                    className="p-3 rounded-lg bg-slate-800 hover:bg-slate-750 cursor-pointer transition-colors"
-                    onClick={() => handleRecentProjectClick(project)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-slate-100 truncate">{project.name}</h4>
-                      <span className="text-xs text-slate-400">{project.type}</span>
-                    </div>
-                    {project.description && (
-                      <p className="text-sm text-slate-400 mt-1 truncate">{project.description}</p>
-                    )}
-                    <p className="text-xs text-slate-500 mt-1">
-                      Last opened: {new Date(project.lastOpened).toLocaleDateString()}
-                    </p>
+              filteredRecentProjects.map((project) => (
+                <div
+                  key={project.id}
+                  className="p-3 bg-slate-800 hover:bg-slate-700 rounded-lg cursor-pointer transition-colors"
+                  onClick={() => handleRecentProjectClick(project)}
+                >
+                  <div className="flex items-center mb-1">
+                    <FolderIcon className="h-3 w-3 text-blue-400 mr-2" />
+                    <span className="text-sm font-medium text-slate-200 truncate">{project.name}</span>
                   </div>
-                ))}
-              </div>
+                  <p className="text-xs text-slate-400 truncate">{project.description}</p>
+                  <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
+                    <span>{project.metadata?.framework || 'Unknown'}</span>
+                    <span>{new Date(project.lastAccessedAt).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))
             ) : (
               <div className="text-center py-8">
-                <FolderIcon className="h-12 w-12 text-slate-600 mx-auto mb-3" />
-                <p className="text-slate-400 text-sm">No recent projects</p>
-                <p className="text-slate-500 text-xs mt-1">Create or open a project to get started</p>
+                <FolderIcon className="h-8 w-8 text-slate-600 mx-auto mb-2" />
+                <p className="text-sm text-slate-500">
+                  {searchQuery ? 'No projects found' : 'No recent projects'}
+                </p>
               </div>
             )}
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Footer Actions */}
+      {/* Quick Actions */}
       <div className="p-4 border-t border-slate-800">
-        <Button
-          onClick={handleImportProject}
-          variant="ghost"
-          className="w-full justify-start text-slate-400 hover:text-slate-100"
-        >
-          Import from Git
-        </Button>
+        <div className="flex items-center justify-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-slate-400 hover:text-slate-100"
+          >
+            <CommandIcon className="h-4 w-4 mr-2" />
+            <span className="text-xs">Command Palette</span>
+          </Button>
+        </div>
       </div>
     </div>
   );

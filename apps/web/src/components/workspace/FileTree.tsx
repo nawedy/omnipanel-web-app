@@ -39,6 +39,9 @@ import {
   Brain
 } from 'lucide-react';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { useCurrentProject } from '@/stores/projectStore';
+import { projectService } from '@/services/projectService';
+import { fileSystemService } from '@/services/fileSystemService';
 import { contextService, type FileContext } from '@/services/contextService';
 import { useMonitoring } from '@/components/providers/MonitoringProvider';
 
@@ -97,7 +100,8 @@ export function FileTree({
   showHidden = false,
   enableContextIntegration = true
 }: FileTreeProps) {
-  const { addTab, currentProject } = useWorkspaceStore();
+  const { addTab } = useWorkspaceStore();
+  const currentProject = useCurrentProject();
   const { captureMessage } = useMonitoring();
   
   const [files, setFiles] = useState<FileNode[]>([]);
@@ -118,292 +122,47 @@ export function FileTree({
   const [recentFiles, setRecentFiles] = useState<FileNode[]>([]);
   const [fileWatcher, setFileWatcher] = useState<FileSystemWatcher | null>(null);
 
-  // Enhanced mock file system with more metadata
-  const mockFileSystem: FileNode[] = [
-    {
-      id: '1',
-      name: 'src',
-      type: 'folder',
-      path: '/src',
-      isExpanded: true,
-      lastModified: new Date(),
-      isGitTracked: true,
-      children: [
-        {
-          id: '2',
-          name: 'components',
-          type: 'folder',
-          path: '/src/components',
-          isExpanded: true,
-          lastModified: new Date(),
-          isGitTracked: true,
-          children: [
-            {
-              id: '3',
-              name: 'Chat.tsx',
-              type: 'file',
-              path: '/src/components/Chat.tsx',
-              size: 2048,
-              lastModified: new Date(),
-              isGitTracked: true,
-              gitStatus: 'modified',
-              language: 'typescript',
-              isActive: true,
-              metadata: {
-                lines: 85,
-                encoding: 'utf-8',
-                mimeType: 'text/typescript'
-              }
-            },
-            {
-              id: '4',
-              name: 'Editor.tsx',
-              type: 'file',
-              path: '/src/components/Editor.tsx',
-              size: 3072,
-              lastModified: new Date(),
-              isGitTracked: true,
-              language: 'typescript',
-              metadata: {
-                lines: 120,
-                encoding: 'utf-8',
-                mimeType: 'text/typescript'
-              }
-            },
-            {
-              id: '15',
-              name: 'FileTree.tsx',
-              type: 'file',
-              path: '/src/components/FileTree.tsx',
-              size: 15360,
-              lastModified: new Date(),
-              isGitTracked: true,
-              gitStatus: 'modified',
-              language: 'typescript',
-              isStarred: true,
-              metadata: {
-                lines: 560,
-                encoding: 'utf-8',
-                mimeType: 'text/typescript'
-              }
-            }
-          ]
-        },
-        {
-          id: '5',
-          name: 'hooks',
-          type: 'folder',
-          path: '/src/hooks',
-          lastModified: new Date(),
-          isGitTracked: true,
-          children: [
-            {
-              id: '6',
-              name: 'useWorkspace.ts',
-              type: 'file',
-              path: '/src/hooks/useWorkspace.ts',
-              size: 1024,
-              lastModified: new Date(),
-              isGitTracked: true,
-              gitStatus: 'added',
-              language: 'typescript',
-              metadata: {
-                lines: 45,
-                encoding: 'utf-8',
-                mimeType: 'text/typescript'
-              }
-            },
-            {
-              id: '16',
-              name: 'useFileSystem.ts',
-              type: 'file',
-              path: '/src/hooks/useFileSystem.ts',
-              size: 2048,
-              lastModified: new Date(),
-              isGitTracked: true,
-              language: 'typescript',
-              metadata: {
-                lines: 78,
-                encoding: 'utf-8',
-                mimeType: 'text/typescript'
-              }
-            }
-          ]
-        },
-        {
-          id: '7',
-          name: 'styles',
-          type: 'folder',
-          path: '/src/styles',
-          lastModified: new Date(),
-          isGitTracked: true,
-          children: [
-            {
-              id: '8',
-              name: 'globals.css',
-              type: 'file',
-              path: '/src/styles/globals.css',
-              size: 512,
-              lastModified: new Date(),
-              isGitTracked: true,
-              language: 'css',
-              metadata: {
-                lines: 25,
-                encoding: 'utf-8',
-                mimeType: 'text/css'
-              }
-            }
-          ]
-        },
-        {
-          id: '17',
-          name: 'services',
-          type: 'folder',
-          path: '/src/services',
-          lastModified: new Date(),
-          isGitTracked: true,
-          children: [
-            {
-              id: '18',
-              name: 'contextService.ts',
-              type: 'file',
-              path: '/src/services/contextService.ts',
-              size: 8192,
-              lastModified: new Date(),
-              isGitTracked: true,
-              gitStatus: 'added',
-              language: 'typescript',
-              isStarred: true,
-              metadata: {
-                lines: 245,
-                encoding: 'utf-8',
-                mimeType: 'text/typescript'
-              }
-            },
-            {
-              id: '19',
-              name: 'aiService.ts',
-              type: 'file',
-              path: '/src/services/aiService.ts',
-              size: 12288,
-              lastModified: new Date(),
-              isGitTracked: true,
-              gitStatus: 'modified',
-              language: 'typescript',
-              metadata: {
-                lines: 380,
-                encoding: 'utf-8',
-                mimeType: 'text/typescript'
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: '9',
-      name: 'public',
-      type: 'folder',
-      path: '/public',
-      lastModified: new Date(),
-      isGitTracked: true,
-      children: [
-        {
-          id: '10',
-          name: 'favicon.ico',
-          type: 'file',
-          path: '/public/favicon.ico',
-          size: 15086,
-          lastModified: new Date(),
-          isGitTracked: true,
-          language: 'binary',
-          metadata: {
-            mimeType: 'image/x-icon'
-          }
-        },
-        {
-          id: '20',
-          name: 'logo.svg',
-          type: 'file',
-          path: '/public/logo.svg',
-          size: 2048,
-          lastModified: new Date(),
-          isGitTracked: true,
-          language: 'svg',
-          metadata: {
-            lines: 15,
-            encoding: 'utf-8',
-            mimeType: 'image/svg+xml'
-          }
-        }
-      ]
-    },
-    {
-      id: '11',
-      name: 'package.json',
-      type: 'file',
-      path: '/package.json',
-      size: 2048,
-      lastModified: new Date(),
-      isGitTracked: true,
-      language: 'json',
-      isStarred: true,
-      metadata: {
-        lines: 45,
-        encoding: 'utf-8',
-        mimeType: 'application/json'
-      }
-    },
-    {
-      id: '12',
-      name: 'README.md',
-      type: 'file',
-      path: '/README.md',
-      size: 1536,
-      lastModified: new Date(),
-      isGitTracked: true,
-      gitStatus: 'modified',
-      language: 'markdown',
-      metadata: {
-        lines: 35,
-        encoding: 'utf-8',
-        mimeType: 'text/markdown'
-      }
-    },
-    {
-      id: '13',
-      name: '.env.local',
-      type: 'file',
-      path: '/.env.local',
-      size: 256,
-      lastModified: new Date(),
-      isGitTracked: false,
-      gitStatus: 'untracked',
-      language: 'env',
-      isHidden: true,
-      metadata: {
-        lines: 8,
-        encoding: 'utf-8',
-        mimeType: 'text/plain'
-      }
-    },
-    {
-      id: '14',
-      name: '.gitignore',
-      type: 'file',
-      path: '/.gitignore',
-      size: 512,
-      lastModified: new Date(),
-      isGitTracked: true,
-      language: 'gitignore',
-      isHidden: true,
-      metadata: {
-        lines: 20,
-        encoding: 'utf-8',
-        mimeType: 'text/plain'
-      }
+  // Load files from current project or file system service
+  const loadProjectFiles = useCallback(async () => {
+    if (!projectId && !currentProject) {
+      setFiles([]);
+      setIsLoading(false);
+      return;
     }
-  ];
+
+    setIsLoading(true);
+    try {
+      const projectPath = projectId ? 
+        (await projectService.getProjectById(projectId))?.path : 
+        currentProject?.path;
+
+      if (projectPath) {
+        // Load files from file system service
+        const projectFiles = await fileSystemService.getDirectoryTree(projectPath);
+        setFiles(projectFiles || []);
+      } else {
+        // Show empty state for new projects
+        setFiles([]);
+      }
+    } catch (error) {
+      console.error('Failed to load project files:', error);
+      captureMessage('Failed to load project files', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        projectId: projectId || currentProject?.id
+      });
+      setFiles([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [projectId, currentProject, captureMessage]);
+
+  // Initialize with project files or show empty state
+  useEffect(() => {
+    loadProjectFiles();
+  }, [loadProjectFiles]);
+
+  // Show empty state when no project is loaded
+  const emptyState = !currentProject && !projectId;
 
   // Context integration
   useEffect(() => {
@@ -484,51 +243,13 @@ export function FileTree({
     initFileWatcher();
   }, [projectId]);
 
-  // Load files with enhanced metadata
-  const loadFiles = useCallback(async () => {
-    setIsLoading(true);
-    
-    try {
-      // Simulate API call with enhanced file metadata
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Load starred files from localStorage
-      const savedStarred = localStorage.getItem('omnipanel-starred-files');
-      if (savedStarred) {
-        setStarredFiles(new Set(JSON.parse(savedStarred)));
-      }
-      
-      // Apply starred status to files
-      const filesWithStarred = mockFileSystem.map(file => ({
-        ...file,
-        isStarred: starredFiles.has(file.path),
-        children: file.children?.map(child => ({
-          ...child,
-          isStarred: starredFiles.has(child.path),
-          children: child.children?.map(grandchild => ({
-            ...grandchild,
-            isStarred: starredFiles.has(grandchild.path)
-          }))
-        }))
-      }));
-      
-      setFiles(filesWithStarred);
-      
-      captureMessage('File tree loaded successfully', 'info', {
-        fileCount: filesWithStarred.length,
-        projectId
-      });
-      
-    } catch (error) {
-      captureMessage('Failed to load file tree', 'error', { error });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [projectId, starredFiles, captureMessage]);
-
+  // Load starred files from localStorage
   useEffect(() => {
-    loadFiles();
-  }, [loadFiles]);
+    const savedStarred = localStorage.getItem('omnipanel-starred-files');
+    if (savedStarred) {
+      setStarredFiles(new Set(JSON.parse(savedStarred)));
+    }
+  }, []);
 
   // Enhanced file click handler with context integration
   const handleFileClick = useCallback((file: FileNode) => {

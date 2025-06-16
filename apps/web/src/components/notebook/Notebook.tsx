@@ -31,6 +31,9 @@ import {
 } from 'lucide-react';
 import { Editor } from '@monaco-editor/react';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { contextService } from '@/services/contextService';
+import { aiService } from '@/services/aiService';
+import { useMonitoring } from '@/components/providers/MonitoringProvider';
 import { v4 as uuidv4 } from 'uuid';
 
 // Dynamic import for markdown rendering to avoid SSR issues
@@ -87,14 +90,15 @@ function NotebookLoading() {
   );
 }
 
-// AI Assistance Modal Component
+// Enhanced AI Assistance Modal Component with streaming support
 function AiAssistModal({
   isOpen,
   onClose,
   cellContent,
   suggestion,
   isLoading,
-  onApplySuggestion
+  onApplySuggestion,
+  streamingContent
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -102,6 +106,7 @@ function AiAssistModal({
   suggestion: string;
   isLoading: boolean;
   onApplySuggestion: (suggestion: string) => void;
+  streamingContent?: string;
 }) {
   if (!isOpen) return null;
 
@@ -111,54 +116,78 @@ function AiAssistModal({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-background border border-border rounded-lg shadow-lg w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col"
+        className="bg-background border border-border rounded-lg shadow-lg w-full max-w-4xl max-h-[80vh] overflow-hidden flex flex-col"
       >
         <div className="flex items-center justify-between border-b border-border p-4">
           <div className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold text-slate-100">AI Assistant</h3>
+            <h3 className="font-semibold text-slate-100">AI Code Assistant</h3>
+            <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">
+              Context-Aware
+            </span>
           </div>
           <button onClick={onClose} className="hover:bg-muted rounded p-1">
             <X className="h-4 w-4" />
           </button>
         </div>
         
-        <div className="p-4 overflow-y-auto flex-grow">
-          <div className="mb-4">
-            <h4 className="text-sm font-medium mb-2 text-slate-100">Your Code</h4>
-            <div className="bg-muted/30 rounded-md p-3 font-mono text-sm overflow-x-auto">
+        <div className="p-4 overflow-y-auto flex-grow grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div>
+            <h4 className="text-sm font-medium mb-2 text-slate-100 flex items-center gap-2">
+              <Code className="h-4 w-4" />
+              Your Code
+            </h4>
+            <div className="bg-muted/30 rounded-md p-3 font-mono text-sm overflow-x-auto max-h-64">
               <pre className="text-slate-100">{cellContent}</pre>
             </div>
           </div>
           
           <div>
-            <h4 className="text-sm font-medium mb-2 text-slate-100">AI Suggestion</h4>
+            <h4 className="text-sm font-medium mb-2 text-slate-100 flex items-center gap-2">
+              <Bot className="h-4 w-4" />
+              AI Suggestion
+              {isLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+            </h4>
             {isLoading ? (
-              <div className="flex items-center justify-center p-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <div className="bg-muted/30 rounded-md p-3 min-h-[200px] flex flex-col">
+                <div className="flex items-center gap-2 mb-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  <span className="text-sm text-muted-foreground">Analyzing code with context...</span>
+                </div>
+                {streamingContent && (
+                  <div className="font-mono text-sm overflow-x-auto flex-grow">
+                    <pre className="text-slate-100">{streamingContent}</pre>
+                  </div>
+                )}
               </div>
             ) : (
-              <div className="bg-muted/30 rounded-md p-3 font-mono text-sm overflow-x-auto">
+              <div className="bg-muted/30 rounded-md p-3 font-mono text-sm overflow-x-auto max-h-64">
                 <pre className="text-slate-100">{suggestion}</pre>
               </div>
             )}
           </div>
         </div>
         
-        <div className="border-t border-border p-4 flex justify-end gap-2">
-          <button 
-            onClick={onClose}
-            className="px-4 py-2 rounded-md border border-border hover:bg-muted"
-          >
-            Cancel
-          </button>
-          <button 
-            onClick={() => onApplySuggestion(suggestion)}
-            disabled={isLoading || !suggestion}
-            className="px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-          >
-            Apply Suggestion
-          </button>
+        <div className="border-t border-border p-4 flex justify-between items-center">
+          <div className="text-xs text-muted-foreground">
+            💡 Suggestions are based on your current project context and recent files
+          </div>
+          <div className="flex gap-2">
+            <button 
+              onClick={onClose}
+              className="px-4 py-2 rounded-md border border-border hover:bg-muted transition-colors"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={() => onApplySuggestion(suggestion)}
+              disabled={isLoading || !suggestion}
+              className="px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors flex items-center gap-2"
+            >
+              <Check className="h-4 w-4" />
+              Apply Suggestion
+            </button>
+          </div>
         </div>
       </motion.div>
     </div>
@@ -470,39 +499,31 @@ const emptyNotebook = {
 export default function Notebook({ filePath, initialContent, onSave }: NotebookProps) {
   const workspace = useWorkspaceStore();
   const [cells, setCells] = useState<NotebookCell[]>([]);
-  const [selectedCellId, setSelectedCellId] = useState<string>('');
-  const [isKernelRunning, setIsKernelRunning] = useState(false);
-  const [aiAssistState, setAiAssistState] = useState<AiAssistModalState>({
+  const [selectedCellId, setSelectedCellId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [aiModal, setAiModal] = useState<AiAssistModalState>({
     isOpen: false,
     cellId: '',
     cellContent: '',
     isLoading: false,
     suggestion: ''
   });
+  const [streamingContent, setStreamingContent] = useState<string>('');
+  const [executionCount, setExecutionCount] = useState(1);
+  const [notebookMetadata, setNotebookMetadata] = useState({
+    kernelspec: {
+      display_name: 'Python 3',
+      language: 'python',
+      name: 'python3'
+    },
+    language_info: {
+      name: 'python',
+      version: '3.9.0'
+    }
+  });
   
-  // Add custom styles for editor to fix text positioning
-  useEffect(() => {
-    const styleEl = document.createElement('style');
-    styleEl.textContent = `
-      /* Fix line number width and text positioning */
-      .editor-container .monaco-editor .margin,
-      .editor-container .monaco-editor .margin-view-overlays {
-        width: 20px !important;
-      }
-      .editor-container .monaco-editor .line-numbers {
-        width: 20px !important;
-        text-align: center !important;
-      }
-      .editor-container .monaco-editor .monaco-scrollable-element {
-        left: 20px !important;
-      }
-    `;
-    document.head.appendChild(styleEl);
-    
-    return () => {
-      document.head.removeChild(styleEl);
-    };
-  }, []);
+  const { captureMessage } = useMonitoring();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Initialize notebook with default cells if no content provided
   useEffect(() => {
@@ -619,7 +640,7 @@ export default function Notebook({ filePath, initialContent, onSave }: NotebookP
       )
     );
     
-    setIsKernelRunning(true);
+    setIsLoading(true);
     
     try {
       // Simulate execution delay
@@ -659,315 +680,365 @@ export default function Notebook({ filePath, initialContent, onSave }: NotebookP
         )
       );
     } finally {
-      setIsKernelRunning(false);
+      setIsLoading(false);
     }
   };
   
   // Handle AI assistance for a cell
   const handleAiAssist = async (id: string, content: string) => {
-    setAiAssistState({
-      isOpen: true,
-      cellId: id,
-      cellContent: content,
-      isLoading: true,
-      suggestion: ''
-    });
-    
     try {
-      // Simulate AI processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      setAiModal({
+        isOpen: true,
+        cellId: id,
+        cellContent: content,
+        isLoading: true,
+        suggestion: ''
+      });
+      setStreamingContent('');
+
+      // Get current project context
+      const projectContext = contextService.getProjectContext();
+      const recentFiles = contextService.getRecentFiles();
       
-      // Generate a mock suggestion based on the content
-      let suggestion = '';
-      
-      if (content.includes('print')) {
-        suggestion = content.replace('print', '# Enhanced with better output formatting\nprint(f"Result: {');
-        suggestion += content.includes('"') ? content.split('"')[1].split('"')[0] : 'result';
-        suggestion += '}")'; 
-      } else {
-        suggestion = '# AI enhanced version\n# Added error handling and documentation\n\ntry:\n    ' + 
-          content.replace(/\n/g, '\n    ') + 
-          '\nexcept Exception as e:\n    print(f"Error occurred: {e}")\n';
-      }
-      
-      setAiAssistState(prev => ({
-        ...prev,
-        isLoading: false,
-        suggestion
-      }));
+      // Enhanced prompt with context
+      const contextPrompt = `
+Project Context:
+- Framework: ${projectContext.framework || 'Unknown'}
+- Languages: ${projectContext.languages.join(', ')}
+- Recent files: ${recentFiles.map(f => f.name).join(', ')}
+
+Please analyze this code and provide improvements, optimizations, or suggestions:
+
+\`\`\`python
+${content}
+\`\`\`
+
+Provide:
+1. Code improvements or optimizations
+2. Best practices suggestions
+3. Potential issues or bugs
+4. Alternative approaches if applicable
+
+Return only the improved code without explanations.`;
+
+      // Stream AI response
+      let fullResponse = '';
+      await aiService.streamCompletion(
+        contextPrompt,
+        {
+          onChunk: (chunk) => {
+            fullResponse += chunk;
+            setStreamingContent(fullResponse);
+          },
+          onComplete: (response) => {
+            setAiModal(prev => ({
+              ...prev,
+              isLoading: false,
+              suggestion: response
+            }));
+            setStreamingContent('');
+            
+            // Track AI assistance usage
+            captureMessage('AI assistance used in notebook', 'info', {
+              cellId: id,
+              contentLength: content.length,
+              responseLength: response.length
+            });
+          },
+          onError: (error) => {
+            console.error('AI assistance error:', error);
+            setAiModal(prev => ({
+              ...prev,
+              isLoading: false,
+              suggestion: 'Error getting AI suggestion. Please try again.'
+            }));
+            captureMessage('AI assistance error in notebook', 'error', { error: error.message });
+          }
+        }
+      );
     } catch (error) {
-      setAiAssistState(prev => ({
+      console.error('AI assistance error:', error);
+      setAiModal(prev => ({
         ...prev,
         isLoading: false,
-        suggestion: '# Error generating suggestion\n# Please try again'
+        suggestion: 'Error getting AI suggestion. Please try again.'
       }));
+      captureMessage('AI assistance error in notebook', 'error', { 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
     }
   };
   
   // Apply AI suggestion to a cell
   const applyAiSuggestion = (suggestion: string) => {
-    if (aiAssistState.cellId) {
-      updateCellContent(aiAssistState.cellId, suggestion);
-      setAiAssistState({
-        isOpen: false,
-        cellId: '',
-        cellContent: '',
-        isLoading: false,
-        suggestion: ''
+    if (aiModal.cellId && suggestion) {
+      updateCellContent(aiModal.cellId, suggestion);
+      setAiModal({ isOpen: false, cellId: '', cellContent: '', isLoading: false, suggestion: '' });
+      captureMessage('AI suggestion applied in notebook', 'info', {
+        cellId: aiModal.cellId,
+        suggestionLength: suggestion.length
       });
     }
   };
   
   // Save notebook to JSON format
   const saveNotebook = () => {
-    if (!onSave) return;
-    
-    const notebookData = {
-      cells: cells.map(cell => ({
-        cell_type: cell.type,
-        metadata: cell.metadata || {},
-        source: cell.content.split('\n'),
-        execution_count: cell.type === 'code' ? cell.execution_count : null,
-        outputs: cell.output ? cell.output.map(out => ({
-          output_type: out.type === 'error' ? 'error' : 'execute_result',
-          data: { 'text/plain': out.content }
-        })) : []
-      })),
-      metadata: {
-        kernelspec: {
-          display_name: "Python 3",
-          language: "python",
-          name: "python3"
-        },
-        language_info: {
-          file_extension: ".py",
-          mimetype: "text/x-python",
-          name: "python",
-          nbconvert_exporter: "python",
-          pygments_lexer: "ipython3",
-          version: "3.8.0"
-        }
-      },
-      nbformat: 4,
-      nbformat_minor: 5
-    };
-    
-    onSave(JSON.stringify(notebookData, null, 2));
+    try {
+      const notebookData = {
+        cells: cells.map(cell => ({
+          cell_type: cell.type,
+          source: cell.content.split('\n'),
+          metadata: cell.metadata || {},
+          ...(cell.type === 'code' && {
+            execution_count: cell.execution_count,
+            outputs: cell.output || []
+          })
+        })),
+        metadata: notebookMetadata,
+        nbformat: 4,
+        nbformat_minor: 4
+      };
+      
+      const content = JSON.stringify(notebookData, null, 2);
+      onSave?.(content);
+      
+      // Update context service with notebook save
+      if (filePath) {
+        contextService.addFile({
+          path: filePath,
+          name: filePath.split('/').pop() || 'notebook.ipynb',
+          type: 'file',
+          content,
+          language: 'jupyter',
+          lastModified: new Date(),
+          size: content.length
+        });
+      }
+      
+      captureMessage('Notebook saved successfully', 'info', {
+        filePath,
+        cellCount: cells.length,
+        contentSize: content.length
+      });
+    } catch (error) {
+      console.error('Error saving notebook:', error);
+      captureMessage('Error saving notebook', 'error', { 
+        error: error instanceof Error ? error.message : 'Unknown error' 
+      });
+    }
   };
 
   // Effect to initialize notebook from provided content
-  // Add custom styles for editor to fix text positioning
   useEffect(() => {
-    const styleEl = document.createElement('style');
-    styleEl.textContent = `
-      /* Fix line number width and text positioning */
-      .editor-container .monaco-editor .margin,
-      .editor-container .monaco-editor .margin-view-overlays {
-        width: 20px !important;
-      }
-      .editor-container .monaco-editor .line-numbers {
-        width: 20px !important;
-        text-align: center !important;
-      }
-      .editor-container .monaco-editor .monaco-scrollable-element {
-        left: 20px !important;
-      }
-    `;
-    document.head.appendChild(styleEl);
-    
-    return () => {
-      document.head.removeChild(styleEl);
-    };
-  }, []);
-
-  // Add custom styles for better text contrast in the editor
-  useEffect(() => {
-    const contrastStyleEl = document.createElement('style');
-    contrastStyleEl.textContent = `
-      /* Improve text contrast in Monaco editor */
-      .monaco-editor .mtk1 { color: #f1f5f9 !important; } /* Default text - slate-100 */
-      .monaco-editor .mtk7 { color: #38bdf8 !important; } /* Keywords - sky-400 */
-      .monaco-editor .mtk8 { color: #4ade80 !important; } /* Variables - green-400 */
-      .monaco-editor .mtk5 { color: #fb923c !important; } /* Functions - orange-400 */
-      .monaco-editor .mtk9 { color: #c084fc !important; } /* Strings - purple-400 */
-      .monaco-editor .mtk6 { color: #e879f9 !important; } /* Special - fuchsia-400 */
-      .monaco-editor .mtk20 { color: #94a3b8 !important; } /* Comments - slate-400 */
-      .monaco-editor .mtk4 { color: #f472b6 !important; } /* Numbers - pink-400 */
-      .monaco-editor .line-numbers { color: #94a3b8 !important; } /* Line numbers - slate-400 */
-    `;
-    document.head.appendChild(contrastStyleEl);
-    
-    return () => {
-      document.head.removeChild(contrastStyleEl);
-    };
-  }, []);
-
-  useEffect(() => {
-    // Try to parse initial content if provided
     if (initialContent) {
-    try {
-      const parsed = JSON.parse(initialContent);
-      if (parsed.cells) {
-        const convertedCells = parsed.cells.map((cell: any) => ({
-          id: uuidv4(),
-          type: cell.cell_type,
-          content: Array.isArray(cell.source) ? cell.source.join('') : cell.source || '',
-          output: cell.outputs ? cell.outputs.map((output: any) => {
-            if (output.output_type === 'stream') {
-              return {
-                type: 'text',
-                content: Array.isArray(output.text) ? output.text.join('') : output.text
-              };
-            } else if (output.output_type === 'error') {
-              return {
-                type: 'error',
-                content: output.ename + ': ' + output.evalue + '\n' + output.traceback.join('\n')
-              };
-            } else if (output.output_type === 'display_data' || output.output_type === 'execute_result') {
-              if (output.data && output.data['image/png']) {
-                return {
-                  type: 'image',
-                  content: output.data['image/png'],
-                  mimeType: 'image/png'
-                };
-              } else if (output.data && output.data['text/html']) {
-                return {
-                  type: 'html',
-                  content: output.data['text/html']
-                };
-              } else if (output.data['text/plain']) {
+      try {
+        const parsed = JSON.parse(initialContent);
+        if (parsed.cells) {
+          const convertedCells = parsed.cells.map((cell: any) => ({
+            id: uuidv4(),
+            type: cell.cell_type,
+            content: Array.isArray(cell.source) ? cell.source.join('') : cell.source || '',
+            output: cell.outputs ? cell.outputs.map((output: any) => {
+              if (output.output_type === 'stream') {
                 return {
                   type: 'text',
-                  content: output.data['text/plain']
+                  content: Array.isArray(output.text) ? output.text.join('') : output.text
                 };
+              } else if (output.output_type === 'error') {
+                return {
+                  type: 'error',
+                  content: output.ename + ': ' + output.evalue + '\n' + output.traceback.join('\n')
+                };
+              } else if (output.output_type === 'display_data' || output.output_type === 'execute_result') {
+                if (output.data && output.data['image/png']) {
+                  return {
+                    type: 'image',
+                    content: output.data['image/png'],
+                    mimeType: 'image/png'
+                  };
+                } else if (output.data && output.data['text/html']) {
+                  return {
+                    type: 'html',
+                    content: output.data['text/html']
+                  };
+                } else if (output.data['text/plain']) {
+                  return {
+                    type: 'text',
+                    content: output.data['text/plain']
+                  };
+                }
               }
-            }
-            return {
-              type: 'text',
-              content: 'Unsupported output type'
-            };
-          }) : [],
-          execution_count: cell.execution_count || null
-        }));
-        
-        setCells(convertedCells);
-        if (convertedCells.length > 0) {
-          setSelectedCellId(convertedCells[0].id);
+              return {
+                type: 'text',
+                content: 'Unsupported output type'
+              };
+            }) : [],
+            execution_count: cell.execution_count || null
+          }));
+          
+          setCells(convertedCells);
+          if (convertedCells.length > 0) {
+            setSelectedCellId(convertedCells[0].id);
+          }
         }
+      } catch (error) {
+        console.error('Failed to parse notebook content:', error);
+        // Fall back to default cells
       }
-    } catch (error) {
-      console.error('Failed to parse notebook content:', error);
-      // Fall back to default cells
     }
-  } // Close if (initialContent) block
   }, [initialContent]);
 
   // Language for the notebook (could be made configurable)
   const language = 'python';
 
   return (
-    <div className="h-full flex flex-col bg-background px-4">
-      {/* Notebook toolbar */}
-      <div className="flex items-center justify-between border-b border-border p-2 bg-muted/30">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => addCell('code')}
-            className="p-1.5 hover:bg-muted rounded-md flex items-center gap-1 text-xs"
-            title="Add Code Cell"
-          >
-            <Code size={14} />
-            <span>Code</span>
-          </button>
-          <button
-            onClick={() => addCell('markdown')}
-            className="p-1.5 hover:bg-muted rounded-md flex items-center gap-1 text-xs"
-            title="Add Markdown Cell"
-          >
-            <Type size={14} />
-            <span>Markdown</span>
-          </button>
-          <div className="h-4 border-r border-border mx-1"></div>
-          <button
-            onClick={saveNotebook}
-            className="p-1.5 hover:bg-muted rounded-md"
-            title="Save Notebook"
-          >
-            <Save size={14} />
-          </button>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-xs px-2 py-1 bg-muted rounded-md">
-            <div className={`w-2 h-2 rounded-full ${isKernelRunning ? 'bg-yellow-400 animate-pulse' : 'bg-green-400'}`} />
-            <span>{isKernelRunning ? 'Running' : 'Ready'}</span>
+    <div className="w-full h-full flex flex-col bg-background text-foreground">
+      {isLoading ? (
+        <NotebookLoading />
+      ) : (
+        <>
+          {/* Enhanced Toolbar */}
+          <div className="border-b border-border p-4 bg-muted/30">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-primary" />
+                  {filePath ? filePath.split('/').pop() : 'Untitled Notebook'}
+                </h2>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="bg-primary/20 text-primary px-2 py-1 rounded-full text-xs">
+                    {notebookMetadata.kernelspec.display_name}
+                  </span>
+                  <span>{cells.length} cells</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => addCell('code')}
+                  className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  <Code className="h-4 w-4" />
+                  Code
+                </button>
+                <button
+                  onClick={() => addCell('markdown')}
+                  className="flex items-center gap-2 px-3 py-2 rounded-md border border-border hover:bg-muted transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  <Type className="h-4 w-4" />
+                  Markdown
+                </button>
+                <div className="w-px h-6 bg-border" />
+                <button
+                  onClick={saveNotebook}
+                  className="flex items-center gap-2 px-3 py-2 rounded-md border border-border hover:bg-muted transition-colors"
+                >
+                  <Save className="h-4 w-4" />
+                  Save
+                </button>
+                <button
+                  onClick={exportNotebook}
+                  className="flex items-center gap-2 px-3 py-2 rounded-md border border-border hover:bg-muted transition-colors"
+                >
+                  <Download className="h-4 w-4" />
+                  Export
+                </button>
+              </div>
+            </div>
           </div>
-          <button
-            className="p-1.5 hover:bg-muted rounded-md"
-            title="Settings"
-          >
-            <Settings size={14} />
-          </button>
-        </div>
-      </div>
-      
-      {/* Notebook cells */}
-      <div className="flex-1 overflow-y-auto py-4 editor-container">
-        {cells.map(cell => (
-          <div key={cell.id}>
-            {cell.type === 'code' ? (
-              <CodeCell
-                cell={cell}
-                onChange={updateCellContent}
-                onDelete={deleteCell}
-                onMoveUp={() => moveCell(cell.id, 'up')}
-                onMoveDown={() => moveCell(cell.id, 'down')}
-                isSelected={cell.id === selectedCellId}
-                onSelect={() => setSelectedCellId(cell.id)}
-                onExecute={executeCell}
-                onAiAssist={handleAiAssist}
-              />
-            ) : (
-              <MarkdownCell
-                cell={cell}
-                onChange={updateCellContent}
-                onDelete={deleteCell}
-                onMoveUp={() => moveCell(cell.id, 'up')}
-                onMoveDown={() => moveCell(cell.id, 'down')}
-                isSelected={cell.id === selectedCellId}
-                onSelect={() => setSelectedCellId(cell.id)}
-              />
-            )}
+
+          {/* Notebook Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-4xl mx-auto">
+              <AnimatePresence>
+                {cells.map((cell, index) => (
+                  <motion.div
+                    key={cell.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {cell.type === 'code' ? (
+                      <CodeCell
+                        cell={cell}
+                        onChange={updateCellContent}
+                        onDelete={deleteCell}
+                        onMoveUp={(id) => moveCell(id, 'up')}
+                        onMoveDown={(id) => moveCell(id, 'down')}
+                        isSelected={selectedCellId === cell.id}
+                        onSelect={() => setSelectedCellId(cell.id)}
+                        onExecute={executeCell}
+                        onAiAssist={handleAiAssist}
+                      />
+                    ) : (
+                      <MarkdownCell
+                        cell={cell}
+                        onChange={updateCellContent}
+                        onDelete={deleteCell}
+                        onMoveUp={(id) => moveCell(id, 'up')}
+                        onMoveDown={(id) => moveCell(id, 'down')}
+                        isSelected={selectedCellId === cell.id}
+                        onSelect={() => setSelectedCellId(cell.id)}
+                      />
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              
+              {cells.length === 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-center py-16"
+                >
+                  <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">Empty Notebook</h3>
+                  <p className="text-muted-foreground mb-6">Start by adding a code or markdown cell</p>
+                  <div className="flex items-center justify-center gap-4">
+                    <button
+                      onClick={() => addCell('code')}
+                      className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                      <Code className="h-4 w-4" />
+                      Add Code Cell
+                    </button>
+                    <button
+                      onClick={() => addCell('markdown')}
+                      className="flex items-center gap-2 px-4 py-2 rounded-md border border-border hover:bg-muted transition-colors"
+                    >
+                      <Type className="h-4 w-4" />
+                      Add Markdown Cell
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </div>
           </div>
-        ))}
-        
-        {/* Add cell buttons at the end */}
-        <div className="flex items-center justify-center gap-2 mt-4">
-          <button 
-            onClick={() => addCell('code')} 
-            className="px-3 py-1.5 rounded-md border border-border hover:bg-muted flex items-center gap-1.5 text-sm"
-          >
-            <Plus size={14} />
-            <span>Code</span>
-          </button>
-          <button 
-            onClick={() => addCell('markdown')} 
-            className="px-3 py-1.5 rounded-md border border-border hover:bg-muted flex items-center gap-1.5 text-sm"
-          >
-            <Plus size={14} />
-            <span>Markdown</span>
-          </button>
-        </div>
-      </div>
-      
-      {/* AI Assistant Modal */}
-      <AiAssistModal
-        isOpen={aiAssistState.isOpen}
-        onClose={() => setAiAssistState(prev => ({ ...prev, isOpen: false }))}
-        cellContent={aiAssistState.cellContent}
-        suggestion={aiAssistState.suggestion}
-        isLoading={aiAssistState.isLoading}
-        onApplySuggestion={applyAiSuggestion}
-      />
+
+          {/* Enhanced AI Modal */}
+          <AiAssistModal
+            isOpen={aiModal.isOpen}
+            onClose={() => setAiModal({ isOpen: false, cellId: '', cellContent: '', isLoading: false, suggestion: '' })}
+            cellContent={aiModal.cellContent}
+            suggestion={aiModal.suggestion}
+            isLoading={aiModal.isLoading}
+            onApplySuggestion={applyAiSuggestion}
+            streamingContent={streamingContent}
+          />
+
+          {/* Hidden file input for import */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".ipynb"
+            onChange={importNotebook}
+            className="hidden"
+          />
+        </>
+      )}
     </div>
   );
 }
