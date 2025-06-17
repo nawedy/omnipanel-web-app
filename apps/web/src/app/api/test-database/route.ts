@@ -1,8 +1,6 @@
 // apps/web/src/app/api/test-database/route.ts
 // Comprehensive database testing API route
 
-'use client';
-
 import { NextRequest, NextResponse } from 'next/server';
 import { 
   createDatabaseService, 

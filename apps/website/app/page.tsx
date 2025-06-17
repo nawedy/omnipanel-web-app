@@ -7,25 +7,12 @@ import { NewsletterSignup } from '@/components/NewsletterSignup';
 import { Footer } from '@/components/Footer';
 import FeaturesSection from './sections/FeaturesSection';
 import PricingSection from './sections/PricingSection';
-import { ChatBubbleBottomCenterTextIcon, CodeBracketIcon, SunIcon, MoonIcon } from '@heroicons/react/24/outline';
+import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
 import { useTheme } from 'next-themes';
 import { testimonials } from '@/data/testimonials';
-import { pricingPlans } from '@/data/pricingPlans';
 
-const features = [
-  {
-    name: 'Multi-Model AI Chat',
-    description: 'Connect with any AI model - OpenAI, Anthropic, Ollama, local models, and more.',
-    icon: ChatBubbleBottomCenterTextIcon,
-    color: 'blue',
-  },
-  {
-    name: 'Code Editing',
-    description: 'Edit code with AI assistance, syntax highlighting, and intelligent completions.',
-    icon: CodeBracketIcon,
-    color: 'purple',
-  },
-];
+// Features data moved to dedicated data file for consistency
+// TODO: Move to @/data/features.ts in Sprint 5
 
 export default function HomePage(): React.JSX.Element {
   const { theme, setTheme } = useTheme();

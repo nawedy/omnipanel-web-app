@@ -1,194 +1,363 @@
+/* Unified design system for OmniPanel applications - Docs variant */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&display=swap');
-
-:root {
-  --font-inter: 'Inter', system-ui, sans-serif;
-  --font-jetbrains-mono: 'JetBrains Mono', 'Fira Code', monospace;
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-gray-100 dark:bg-gray-800;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-gray-400 dark:bg-gray-500;
-}
-
-/* Focus styles */
-.focus-visible {
-  @apply outline-none ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900;
-}
-
-/* Custom selection */
-::selection {
-  @apply bg-primary-100 text-primary-900 dark:bg-primary-900 dark:text-primary-100;
-}
-
-/* Smooth scrolling */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Code block improvements */
-pre[class*="language-"] {
-  @apply !bg-gray-900 dark:!bg-gray-950;
-}
-
-code[class*="language-"] {
-  @apply !bg-transparent;
-}
-
-/* Syntax highlighting theme adjustments */
-.token.comment,
-.token.prolog,
-.token.doctype,
-.token.cdata {
-  @apply text-gray-500;
-}
-
-.token.punctuation {
-  @apply text-gray-300;
-}
-
-.token.property,
-.token.tag,
-.token.boolean,
-.token.number,
-.token.constant,
-.token.symbol,
-.token.deleted {
-  @apply text-red-400;
-}
-
-.token.selector,
-.token.attr-name,
-.token.string,
-.token.char,
-.token.builtin,
-.token.inserted {
-  @apply text-green-400;
-}
-
-.token.operator,
-.token.entity,
-.token.url,
-.language-css .token.string,
-.style .token.string {
-  @apply text-yellow-400;
-}
-
-.token.atrule,
-.token.attr-value,
-.token.keyword {
-  @apply text-blue-400;
-}
-
-.token.function,
-.token.class-name {
-  @apply text-purple-400;
-}
-
-.token.regex,
-.token.important,
-.token.variable {
-  @apply text-orange-400;
-}
-
-/* Headings with anchor links */
-.heading-anchor {
-  @apply ml-2 opacity-0 transition-opacity duration-200;
-  text-decoration: none;
-}
-
-h1:hover .heading-anchor,
-h2:hover .heading-anchor,
-h3:hover .heading-anchor,
-h4:hover .heading-anchor,
-h5:hover .heading-anchor,
-h6:hover .heading-anchor {
-  @apply opacity-100;
-}
-
-/* Table styles */
-.docs-table {
-  @apply w-full border-collapse border border-gray-200 dark:border-gray-700;
-}
-
-.docs-table th {
-  @apply border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2 text-left font-semibold;
-}
-
-.docs-table td {
-  @apply border border-gray-200 dark:border-gray-700 px-4 py-2;
-}
-
-/* Callout styles */
-.callout {
-  @apply rounded-lg border-l-4 p-4 my-6;
-}
-
-.callout.info {
-  @apply border-blue-500 bg-blue-50 dark:bg-blue-950/30;
-}
-
-.callout.warning {
-  @apply border-yellow-500 bg-yellow-50 dark:bg-yellow-950/30;
-}
-
-.callout.error {
-  @apply border-red-500 bg-red-50 dark:bg-red-950/30;
-}
-
-.callout.success {
-  @apply border-green-500 bg-green-50 dark:bg-green-950/30;
-}
-
-/* Search highlighting */
-mark {
-  @apply bg-yellow-200 dark:bg-yellow-800 text-yellow-900 dark:text-yellow-100 px-1 py-0.5 rounded;
-}
-
-/* Loading animations */
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
+@layer base {
+  :root {
+    --font-inter: 'Inter', sans-serif;
+    --font-jetbrains-mono: 'JetBrains Mono', monospace;
+    
+    /* Light theme colors */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
   }
-  50% {
-    opacity: 0.5;
+
+  .dark {
+    /* Dark theme colors */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
   }
-}
 
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* Print styles */
-@media print {
-  .no-print {
-    display: none !important;
+  * {
+    @apply border-border;
   }
   
   body {
-    color: black !important;
-    background: white !important;
+    @apply bg-background text-foreground;
+    font-family: var(--font-inter), system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  /* Better focus styles */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Selection styles */
+  ::selection {
+    @apply bg-primary/20;
+  }
+
+  /* Smooth transitions */
+  * {
+    @apply transition-colors duration-150;
+  }
+
+  /* Glass morphism effect */
+  .glass {
+    backdrop-filter: blur(8px);
+    @apply bg-background/80 border border-border/50;
+  }
+
+  .glass-dark {
+    backdrop-filter: blur(8px);
+    @apply bg-background/80 border border-border/50;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent;
+  }
+
+  /* Docs-specific styles */
+  .docs-layout {
+    @apply min-h-screen bg-background;
+  }
+
+  .docs-header {
+    @apply sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60;
+  }
+
+  .docs-sidebar {
+    @apply w-64 border-r bg-card/50;
+  }
+
+  .docs-content {
+    @apply flex-1 overflow-auto;
+  }
+
+  /* Documentation content styles */
+  .prose {
+    @apply max-w-none text-foreground;
+  }
+
+  .prose h1 {
+    @apply text-3xl font-bold tracking-tight;
+  }
+
+  .prose h2 {
+    @apply text-2xl font-semibold tracking-tight border-b pb-2 mb-4;
+  }
+
+  .prose h3 {
+    @apply text-xl font-semibold tracking-tight;
+  }
+
+  .prose h4 {
+    @apply text-lg font-medium;
+  }
+
+  .prose p {
+    @apply leading-7 mb-4;
+  }
+
+  .prose ul {
+    @apply list-disc list-inside mb-4 space-y-2;
+  }
+
+  .prose ol {
+    @apply list-decimal list-inside mb-4 space-y-2;
+  }
+
+  .prose li {
+    @apply leading-7;
+  }
+
+  .prose blockquote {
+    @apply border-l-4 border-primary pl-4 italic text-muted-foreground my-4;
+  }
+
+  .prose table {
+    @apply w-full border-collapse border border-border mb-4;
+  }
+
+  .prose th {
+    @apply border border-border px-4 py-2 bg-muted font-semibold text-left;
+  }
+
+  .prose td {
+    @apply border border-border px-4 py-2;
+  }
+
+  /* Code block styles */
+  .prose pre {
+    @apply bg-muted rounded-lg p-4 overflow-x-auto mb-4;
+    font-family: var(--font-jetbrains-mono), monospace;
+  }
+
+  .prose code {
+    @apply bg-muted px-1.5 py-0.5 rounded text-sm;
+    font-family: var(--font-jetbrains-mono), monospace;
+  }
+
+  .prose pre code {
+    @apply bg-transparent p-0;
+  }
+
+  /* Navigation styles */
+  .docs-nav-item {
+    @apply block px-3 py-2 text-sm rounded-md transition-colors hover:bg-accent hover:text-accent-foreground;
+  }
+
+  .docs-nav-item.active {
+    @apply bg-accent text-accent-foreground font-medium;
+  }
+
+  .docs-nav-group {
+    @apply mb-4;
+  }
+
+  .docs-nav-group-title {
+    @apply px-3 py-2 text-sm font-semibold text-muted-foreground uppercase tracking-wider;
+  }
+
+  /* Search styles */
+  .docs-search {
+    @apply w-full px-3 py-2 bg-background border border-border rounded-md text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring;
+  }
+
+  /* Table of contents */
+  .docs-toc {
+    @apply space-y-1;
+  }
+
+  .docs-toc-item {
+    @apply block px-2 py-1 text-sm text-muted-foreground hover:text-foreground transition-colors;
+  }
+
+  .docs-toc-item.active {
+    @apply text-foreground font-medium;
+  }
+
+  /* Code playground styles */
+  .code-playground {
+    @apply border border-border rounded-lg overflow-hidden;
+  }
+
+  .code-playground-tabs {
+    @apply flex border-b border-border bg-muted/50;
+  }
+
+  .code-playground-tab {
+    @apply px-4 py-2 text-sm font-medium border-r border-border hover:bg-accent transition-colors;
+  }
+
+  .code-playground-tab.active {
+    @apply bg-background text-foreground;
+  }
+
+  .code-playground-content {
+    @apply p-4;
+  }
+
+  /* API reference styles */
+  .api-endpoint {
+    @apply border border-border rounded-lg p-4 mb-4;
+  }
+
+  .api-method {
+    @apply inline-flex items-center px-2 py-1 rounded text-xs font-mono font-semibold;
+  }
+
+  .api-method.get {
+    @apply bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200;
+  }
+
+  .api-method.post {
+    @apply bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200;
+  }
+
+  .api-method.put {
+    @apply bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200;
+  }
+
+  .api-method.delete {
+    @apply bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200;
+  }
+
+  /* Alert/callout styles */
+  .docs-alert {
+    @apply p-4 rounded-lg border-l-4 mb-4;
+  }
+
+  .docs-alert.info {
+    @apply bg-blue-50 border-blue-400 text-blue-900 dark:bg-blue-950 dark:text-blue-100;
+  }
+
+  .docs-alert.warning {
+    @apply bg-yellow-50 border-yellow-400 text-yellow-900 dark:bg-yellow-950 dark:text-yellow-100;
+  }
+
+  .docs-alert.error {
+    @apply bg-red-50 border-red-400 text-red-900 dark:bg-red-950 dark:text-red-100;
+  }
+
+  .docs-alert.success {
+    @apply bg-green-50 border-green-400 text-green-900 dark:bg-green-950 dark:text-green-100;
+  }
+
+  /* Improved typography for documentation */
+  .interface-text {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .interface-text-large {
+    font-size: 18px;
+    line-height: 1.6;
+  }
+
+  /* Mobile responsiveness */
+  @media (max-width: 768px) {
+    .docs-sidebar {
+      @apply w-full border-r-0 border-b;
+    }
+    
+    .prose {
+      @apply text-sm;
+    }
+    
+    .prose h1 {
+      @apply text-2xl;
+    }
+    
+    .prose h2 {
+      @apply text-xl;
+    }
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
   }
   
-  a {
-    color: black !important;
-    text-decoration: underline !important;
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 } 

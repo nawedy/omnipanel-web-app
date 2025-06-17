@@ -1,13 +1,16 @@
+'use client';
+
+import React from 'react';
 import Link from 'next/link';
-import { ArrowRightIcon } from '@heroicons/react/24/outline';
 import { 
-  BookOpenIcon, 
-  CodeBracketIcon, 
-  CpuChipIcon,
-  SparklesIcon,
-  RocketLaunchIcon,
-  CommandLineIcon
-} from '@heroicons/react/24/outline';
+  ArrowRight,
+  BookOpen, 
+  Code2, 
+  Cpu,
+  Sparkles,
+  Rocket,
+  Terminal
+} from 'lucide-react';
 
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
@@ -18,42 +21,42 @@ const features = [
     name: 'Getting Started',
     description: 'Quick setup guides and tutorials to get you up and running with OmniPanel in minutes.',
     href: '/getting-started',
-    icon: RocketLaunchIcon,
+    icon: Rocket,
     color: 'text-blue-600',
   },
   {
     name: 'API Reference',
     description: 'Complete API documentation with examples and interactive playground.',
     href: '/api',
-    icon: CodeBracketIcon,
+    icon: Code2,
     color: 'text-green-600',
   },
   {
     name: 'LLM Adapters',
     description: 'Learn how to integrate with different AI models and providers.',
     href: '/llm-adapters',
-    icon: CpuChipIcon,
+    icon: Cpu,
     color: 'text-purple-600',
   },
   {
     name: 'Plugin Development',
     description: 'Build and publish plugins to extend OmniPanel functionality.',
     href: '/plugins',
-    icon: SparklesIcon,
+    icon: Sparkles,
     color: 'text-yellow-600',
   },
   {
     name: 'Guides & Tutorials',
     description: 'Step-by-step guides and best practices for using OmniPanel.',
     href: '/guides',
-    icon: BookOpenIcon,
+    icon: BookOpen,
     color: 'text-pink-600',
   },
   {
     name: 'CLI & Automation',
     description: 'Command-line tools and automation scripts for OmniPanel.',
     href: '/cli',
-    icon: CommandLineIcon,
+    icon: Terminal,
     color: 'text-indigo-600',
   },
 ];
@@ -67,7 +70,7 @@ const quickLinks = [
   { name: 'Troubleshooting', href: '/guides/troubleshooting' },
 ];
 
-export default function HomePage(): JSX.Element {
+export default function HomePage(): React.JSX.Element {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <Header />
@@ -119,13 +122,13 @@ export default function HomePage(): JSX.Element {
                     <div className="p-6 font-mono text-sm">
                       <div className="text-green-400">$ omnipanel chat --model gpt-4</div>
                       <div className="mt-2 text-gray-600 dark:text-gray-300">
-                        🤖 <span className="text-blue-400">Assistant:</span> Hello! I'm ready to help you with coding, analysis, and creative tasks.
+                        🤖 <span className="text-blue-400">Assistant:</span> Hello! I&apos;m ready to help you with coding, analysis, and creative tasks.
                       </div>
                       <div className="mt-2 text-gray-600 dark:text-gray-300">
                         💬 <span className="text-yellow-400">You:</span> Build a React component for user authentication
                       </div>
                       <div className="mt-2 text-gray-600 dark:text-gray-300">
-                        🤖 <span className="text-blue-400">Assistant:</span> I'll create a comprehensive auth component...
+                        🤖 <span className="text-blue-400">Assistant:</span> I&apos;ll create a comprehensive auth component...
                       </div>
                       <div className="mt-2 animate-pulse">
                         <span className="bg-gray-300 dark:bg-gray-600 text-transparent">█</span>
@@ -179,7 +182,7 @@ export default function HomePage(): JSX.Element {
                       <p className="mt-6">
                         <span className="inline-flex items-center gap-x-1 text-sm font-semibold leading-6 text-primary-600 group-hover:text-primary-500">
                           Learn more
-                          <ArrowRightIcon className="h-4 w-4" />
+                          <ArrowRight className="h-4 w-4" />
                         </span>
                       </p>
                     </dd>
@@ -211,7 +214,7 @@ export default function HomePage(): JSX.Element {
                   <span className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400">
                     {link.name}
                   </span>
-                  <ArrowRightIcon className="h-4 w-4 text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400" />
+                  <ArrowRight className="h-4 w-4 text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400" />
                 </Link>
               ))}
             </div>

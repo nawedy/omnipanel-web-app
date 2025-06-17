@@ -14,6 +14,7 @@ import { useMonitoring } from '@/components/providers/MonitoringProvider';
 import { Loader2, AlertCircle, FileText, Code, BookOpen, Terminal as TerminalIcon, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ResearchChat } from '@/components/chat/ResearchChat';
 
 export function MainContentArea({ children }: { children: React.ReactNode }) {
   const { tabs, activeTabId, updateTab } = useWorkspaceStore();
@@ -409,7 +410,21 @@ console.log('Hello from ${fileName}!');
             />
           </motion.div>
         );
+
+      case 'research':
+        return (
+          <motion.div
+            key={activeTab.id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="w-full h-full"
+          >
+            <ResearchChat />
+          </motion.div>
+        );
       
+      case 'editor':
       case 'code':
       case 'file':
         return (

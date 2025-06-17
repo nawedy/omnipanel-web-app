@@ -32,6 +32,8 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { useContextStore } from '@/stores/contextStore';
+import { useWorkspaceContext } from '@/hooks/useWorkspaceContext';
 import { contextService, type TerminalContext } from '@/services/contextService';
 import { aiService } from '@/services/aiService';
 import { useMonitoring } from '@/components/providers/MonitoringProvider';
@@ -73,6 +75,8 @@ export function Terminal({
   enableAIAssistance = true
 }: TerminalProps) {
   const { currentProject } = useWorkspaceStore();
+  const { addTerminalCommand, updateSharedContext } = useContextStore();
+  const { addTerminalCommand: addToWorkspaceContext, getRelevantContext } = useWorkspaceContext();
   const { captureMessage } = useMonitoring();
   
   const terminalRef = useRef<HTMLDivElement>(null);
@@ -208,69 +212,392 @@ export function Terminal({
     return unsubscribe;
   }, [enableContextIntegration]);
 
-  // Enhanced command suggestions
-  const getCommandSuggestions = useCallback((input: string): CommandSuggestion[] => {
-    if (!input.trim()) return [];
+  // Enhanced command execution with context integration
+  const executeCommand = useCallback(async (command: string) => {
+    if (!command.trim()) return;
+
+    const startTime = Date.now();
+    setIsRunning(true);
+    setCurrentInput('');
     
-    const trimmedInput = input.trim().toLowerCase();
+    // Add to command history
+    setCommandHistory(prev => [...prev.slice(-49), command]);
+    setHistoryIndex(-1);
+
+    // Add input to output
+    const inputOutput: TerminalOutput = {
+      type: 'input',
+      content: `${currentPath} $ ${command}`,
+      timestamp: new Date(),
+      command
+    };
+    setOutput(prev => [...prev, inputOutput]);
+
+    try {
+      let result: TerminalOutput;
+      
+      // Handle AI commands
+      if (command.startsWith('ai:') || command.startsWith('AI:')) {
+        result = await handleAICommand(command.substring(3).trim());
+      }
+      // Handle context commands
+      else if (command.startsWith('context:')) {
+        result = await handleContextCommand(command.substring(8).trim());
+      }
+      // Handle regular commands
+      else {
+        result = await executeSystemCommand(command);
+      }
+
+      const duration = Date.now() - startTime;
+      result.duration = duration;
+      
+      setOutput(prev => [...prev, result]);
+
+      // Add to context if enabled
+      if (enableContextIntegration) {
+        const terminalContext: TerminalContext = {
+          command,
+          output: result.content,
+          exitCode: result.exitCode || 0,
+          timestamp: new Date(),
+          workingDirectory: currentPath
+        };
+        
+        addToWorkspaceContext(command, result.content, result.exitCode);
+        addTerminalCommand(command);
+        
+        // Update shared context for other components
+        updateSharedContext('terminal', {
+          lastCommand: command,
+          lastOutput: result.content,
+          workingDirectory: currentPath,
+          timestamp: new Date()
+        });
+      }
+
+      captureMessage(`Terminal command executed: ${command}`, 'info', {
+        duration: duration.toString(),
+        exitCode: (result.exitCode || 0).toString()
+      });
+
+    } catch (error) {
+      const errorOutput: TerminalOutput = {
+        type: 'error',
+        content: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        timestamp: new Date(),
+        command,
+        exitCode: 1,
+        duration: Date.now() - startTime
+      };
+      
+      setOutput(prev => [...prev, errorOutput]);
+      
+      if (enableContextIntegration) {
+        addToWorkspaceContext(command, errorOutput.content, 1);
+      }
+    } finally {
+      setIsRunning(false);
+    }
+  }, [currentPath, enableContextIntegration, enableAIAssistance, addToWorkspaceContext, addTerminalCommand, updateSharedContext, captureMessage]);
+
+  // Handle AI commands with context awareness
+  const handleAICommand = useCallback(async (query: string): Promise<TerminalOutput> => {
+    setIsAIThinking(true);
+    
+    try {
+      // Get relevant context for the AI query
+      const relevantContext = enableContextIntegration ? getRelevantContext(query, 1500) : '';
+      
+      const enhancedQuery = relevantContext ? 
+        `Context: ${relevantContext}\n\nQuery: ${query}` : 
+        query;
+
+      // Generate AI response using the service
+      const messages = [
+        {
+          role: 'system' as const,
+          content: `You are a helpful terminal assistant. Provide concise, actionable responses. 
+          Focus on terminal commands, file operations, and development tasks. 
+          If suggesting commands, format them clearly with explanations.`,
+          timestamp: new Date()
+        },
+        {
+          role: 'user' as const,
+          content: enhancedQuery,
+          timestamp: new Date()
+        }
+      ];
+
+      const response = await aiService.generateResponse(messages, relevantContext);
+
+      return {
+        type: 'ai',
+        content: `🤖 AI Assistant: ${response}`,
+        timestamp: new Date(),
+        exitCode: 0
+      };
+    } catch (error) {
+      return {
+        type: 'error',
+        content: `AI Error: ${error instanceof Error ? error.message : 'Failed to get AI response'}`,
+        timestamp: new Date(),
+        exitCode: 1
+      };
+    } finally {
+      setIsAIThinking(false);
+    }
+  }, [enableContextIntegration, getRelevantContext]);
+
+  // Handle context commands
+  const handleContextCommand = useCallback(async (command: string): Promise<TerminalOutput> => {
+    const parts = command.split(' ');
+    const action = parts[0];
+
+    switch (action) {
+      case 'show':
+        const context = contextService.getContext();
+        return {
+          type: 'output',
+          content: `Active Files: ${context.activeFiles.length}\nTerminal History: ${context.terminalHistory.length}\nProject: ${context.project?.name || 'None'}`,
+          timestamp: new Date(),
+          exitCode: 0
+        };
+      
+      case 'clear':
+        contextService.clearContext();
+        return {
+          type: 'success',
+          content: 'Context cleared successfully',
+          timestamp: new Date(),
+          exitCode: 0
+        };
+      
+      case 'summary':
+        const summary = contextService.generateContextSummary();
+        return {
+          type: 'output',
+          content: `Project: ${summary.projectInfo}\nFiles: ${summary.activeFiles}\nRecent: ${summary.recentCommands}`,
+          timestamp: new Date(),
+          exitCode: 0
+        };
+      
+      default:
+        return {
+          type: 'error',
+          content: `Unknown context command: ${action}. Available: show, clear, summary`,
+          timestamp: new Date(),
+          exitCode: 1
+        };
+    }
+  }, []);
+
+  // Handle system commands
+  const executeSystemCommand = useCallback(async (command: string): Promise<TerminalOutput> => {
+    const startTime = Date.now();
+    
+    switch (command.toLowerCase().trim()) {
+      case 'help':
+        return {
+          type: 'output',
+          content: `Available commands:
+help              - Show this help message
+ls, dir           - List directory contents
+pwd               - Show current directory
+cd <path>         - Change directory
+clear             - Clear terminal
+history           - Show command history
+ai: <query>       - Ask AI assistant (Ctrl+A)
+context: <action> - Context commands (show, clear, summary)
+
+File Operations:
+cat <file>        - Display file contents
+find <pattern>    - Search for files
+grep <pattern>    - Search in files
+
+Development:
+npm <command>     - Run npm commands
+git <command>     - Run git commands
+node <file>       - Run Node.js file
+
+🤖 AI Features:
+- Context-aware responses based on your workspace
+- Command suggestions and optimization
+- Error explanation and debugging help
+- Performance analysis and recommendations`,
+          timestamp: new Date(),
+          duration: Date.now() - startTime,
+          exitCode: 0
+        };
+
+      case 'clear':
+        setOutput([]);
+        return {
+          type: 'system',
+          content: 'Terminal cleared',
+          timestamp: new Date(),
+          exitCode: 0
+        };
+
+      case 'history':
+        return {
+          type: 'output',
+          content: commandHistory.length > 0 ? 
+            commandHistory.map((cmd, i) => `${i + 1}: ${cmd}`).join('\n') :
+            'No command history available',
+          timestamp: new Date(),
+          duration: Date.now() - startTime,
+          exitCode: 0
+        };
+
+      case 'pwd':
+        return {
+          type: 'output',
+          content: currentPath,
+          timestamp: new Date(),
+          duration: Date.now() - startTime,
+          exitCode: 0
+        };
+
+      case 'ls':
+      case 'dir':
+        await new Promise(resolve => setTimeout(resolve, 300));
+        return {
+          type: 'output',
+          content: `📁 src/           📁 public/        📁 node_modules/
+📄 package.json   📄 README.md      📄 tsconfig.json
+📄 .env.local     📄 .gitignore     📄 next.config.js`,
+          timestamp: new Date(),
+          duration: Date.now() - startTime,
+          exitCode: 0
+        };
+
+      default:
+        // Handle unknown commands
+        if (command.startsWith('cd ')) {
+          const newPath = command.substring(3).trim();
+          setCurrentPath(newPath || '~/workspace');
+          return {
+            type: 'output',
+            content: `Changed directory to: ${newPath || '~/workspace'}`,
+            timestamp: new Date(),
+            duration: Date.now() - startTime,
+            exitCode: 0
+          };
+        } else if (command.startsWith('npm ')) {
+          await new Promise(resolve => setTimeout(resolve, 800));
+          return {
+            type: 'output',
+            content: `Executing: ${command}\n✓ Command completed successfully`,
+            timestamp: new Date(),
+            duration: Date.now() - startTime,
+            exitCode: 0
+          };
+        } else if (command.startsWith('git ')) {
+          await new Promise(resolve => setTimeout(resolve, 600));
+          return {
+            type: 'output',
+            content: `Executing: ${command}\n✓ Git command completed`,
+            timestamp: new Date(),
+            duration: Date.now() - startTime,
+            exitCode: 0
+          };
+        } else {
+          return {
+            type: 'error',
+            content: `Command not found: ${command}\nType 'help' for available commands or 'ai: how to ${command}' for AI assistance`,
+            timestamp: new Date(),
+            duration: Date.now() - startTime,
+            exitCode: 127
+          };
+        }
+    }
+  }, [commandHistory, currentPath]);
+
+  // Enhanced command suggestions with context awareness
+  const generateSuggestions = useCallback((input: string) => {
+    if (!input.trim()) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
     const allSuggestions: CommandSuggestion[] = [];
     
-    // AI command suggestions
-    if (trimmedInput.startsWith('ai:')) {
-      const aiInput = trimmedInput.substring(3).trim();
-      const aiSuggestions = commandDatabase.ai.map(cmd => ({
-        ...cmd,
-        category: 'ai' as const,
-        confidence: aiInput ? cmd.confidence * 0.8 : cmd.confidence
-      }));
-      allSuggestions.push(...aiSuggestions);
-    } else {
-      // Regular command suggestions
-      Object.entries(commandDatabase).forEach(([category, commands]) => {
-        const matches = commands.filter(cmd =>
-          cmd.command.toLowerCase().includes(trimmedInput) ||
-          cmd.description.toLowerCase().includes(trimmedInput)
-        ).map(cmd => ({ ...cmd, category: category as CommandSuggestion['category'] }));
-        
-        allSuggestions.push(...matches);
+    // Add commands from database
+    Object.entries(commandDatabase).forEach(([category, commands]) => {
+      commands.forEach(cmd => {
+        if (cmd.command.toLowerCase().includes(input.toLowerCase()) ||
+            cmd.description.toLowerCase().includes(input.toLowerCase())) {
+          allSuggestions.push({
+            ...cmd,
+            category: category as CommandSuggestion['category']
+          });
+        }
       });
-      
-      // History matches
-      const historyMatches = commandHistory
-        .filter((cmd, index, self) => 
-          self.indexOf(cmd) === index && // Remove duplicates
-          cmd.toLowerCase().includes(trimmedInput)
-        )
-        .slice(-5)
-        .map(cmd => ({
-          command: cmd,
-          description: 'From history',
-          category: 'custom' as const,
-          confidence: 0.6
-        }));
-      
-      allSuggestions.push(...historyMatches);
+    });
+
+    // Add AI suggestions
+    if (enableAIAssistance && input.length > 2) {
+      allSuggestions.push({
+        command: `ai: ${input}`,
+        description: `Ask AI about: ${input}`,
+        category: 'ai',
+        confidence: 0.8
+      });
     }
-    
+
+    // Add context-aware suggestions
+    if (enableContextIntegration) {
+      const context = contextService.getContext();
+      
+      // Suggest commands based on active files
+      if (context.activeFiles.some(f => f.name.endsWith('.json'))) {
+        allSuggestions.push({
+          command: 'cat package.json',
+          description: 'View package.json (detected in workspace)',
+          category: 'file',
+          confidence: 0.9
+        });
+      }
+      
+      if (context.activeFiles.some(f => f.language === 'typescript')) {
+        allSuggestions.push({
+          command: 'npx tsc --noEmit',
+          description: 'Type check TypeScript files (detected in workspace)',
+          category: 'npm',
+          confidence: 0.9
+        });
+      }
+    }
+
     // Sort by confidence and relevance
-    return allSuggestions
-      .sort((a, b) => b.confidence - a.confidence)
-      .slice(0, 8);
-  }, [commandDatabase, commandHistory]);
+    allSuggestions.sort((a, b) => {
+      const aRelevance = a.command.toLowerCase().startsWith(input.toLowerCase()) ? 1 : 0;
+      const bRelevance = b.command.toLowerCase().startsWith(input.toLowerCase()) ? 1 : 0;
+      
+      if (aRelevance !== bRelevance) return bRelevance - aRelevance;
+      return b.confidence - a.confidence;
+    });
+
+    const finalSuggestions = allSuggestions.slice(0, 8);
+    setSuggestions(finalSuggestions);
+    setShowSuggestions(finalSuggestions.length > 0);
+    setSelectedSuggestionIndex(0);
+  }, [commandDatabase, enableAIAssistance, enableContextIntegration]);
 
   // Auto-complete functionality
   const handleAutoComplete = useCallback(() => {
-    const suggestions = getCommandSuggestions(currentInput);
+    generateSuggestions(currentInput);
     
     if (suggestions.length === 1) {
       setCurrentInput(suggestions[0].command + (suggestions[0].command.endsWith(':') ? ' ' : ''));
       setShowSuggestions(false);
     } else if (suggestions.length > 1) {
-      setSuggestions(suggestions);
       setShowSuggestions(true);
       setSelectedSuggestionIndex(0);
     }
-  }, [currentInput, getCommandSuggestions]);
+  }, [currentInput, suggestions, generateSuggestions]);
 
   // Apply suggestion
   const applySuggestion = useCallback((suggestion: CommandSuggestion) => {
@@ -279,416 +606,6 @@ export function Terminal({
     setSuggestions([]);
     inputRef.current?.focus();
   }, []);
-
-  // Enhanced command execution with context integration
-  const executeCommand = useCallback(async (command: string) => {
-    if (!command.trim()) return;
-
-    const timestamp = new Date();
-    const startTime = Date.now();
-    
-    // Add command to history
-    setCommandHistory(prev => [...prev, command]);
-    
-    // Add input to output
-    setOutput(prev => [...prev, { 
-      type: 'input', 
-      content: `${currentPath} $ ${command}`, 
-      timestamp,
-      command
-    }]);
-
-    setIsRunning(true);
-
-    try {
-      // Handle AI commands
-      if (command.startsWith('ai:')) {
-        const aiQuery = command.substring(3).trim();
-        setIsAIThinking(true);
-        
-        try {
-          // Get context for AI
-          const context = enableContextIntegration ? contextService.getContext() : null;
-          const contextPrompt = context ? 
-            `Current working directory: ${currentPath}\nRecent commands: ${commandHistory.slice(-3).join(', ')}\nActive files: ${context.activeFiles.map(f => f.name).join(', ')}\n\nUser query: ${aiQuery}` :
-            aiQuery;
-
-          // Stream AI response
-          const conversation = aiService.createConversation();
-          const streamId = `terminal-${Date.now()}`;
-          setAiStreamId(streamId);
-          
-          let fullResponse = '';
-          
-          await aiService.streamMessage(conversation.id, contextPrompt, {
-            onChunk: (chunk) => {
-              fullResponse += chunk;
-              
-              // Update the AI response in real-time
-              setOutput(prev => {
-                const lastIndex = prev.length - 1;
-                const lastItem = prev[lastIndex];
-                
-                if (lastItem && lastItem.type === 'ai' && lastItem.content.startsWith('🤖 AI:')) {
-                  // Update existing AI response
-                  return [
-                    ...prev.slice(0, lastIndex),
-                    { ...lastItem, content: `🤖 AI: ${fullResponse}` }
-                  ];
-                } else {
-                  // Add new AI response
-                  return [...prev, {
-                    type: 'ai',
-                    content: `🤖 AI: ${fullResponse}`,
-                    timestamp: new Date()
-                  }];
-                }
-              });
-            },
-            onComplete: (response) => {
-              fullResponse = response;
-            },
-            context: enableContextIntegration ? `Working directory: ${currentPath}\nRecent commands: ${commandHistory.slice(-3).join(', ')}` : undefined
-          });
-          
-          captureMessage('AI command executed', 'info', {
-            query: aiQuery,
-            responseLength: fullResponse.length
-          });
-          
-        } catch (error) {
-          setOutput(prev => [...prev, {
-            type: 'error',
-            content: `🤖 AI Error: Failed to process query - ${error}`,
-            timestamp: new Date()
-          }]);
-          
-          captureMessage('AI command failed', 'error', { error, query: aiQuery });
-        } finally {
-          setIsAIThinking(false);
-          setAiStreamId(null);
-        }
-        
-        return;
-      }
-
-      // Handle built-in commands
-      const duration = Date.now() - startTime;
-      let commandOutput: TerminalOutput;
-      
-      switch (command.toLowerCase().trim()) {
-        case 'help':
-          commandOutput = {
-            type: 'output',
-            content: `Available commands:
-  help              - Show this help message
-  ls, dir           - List directory contents
-  pwd               - Show current directory
-  cd <path>         - Change directory
-  clear             - Clear terminal
-  history           - Show command history
-  ai: <query>       - Ask AI assistant (Ctrl+A)
-  context           - Show current workspace context
-  
-File Operations:
-  cat <file>        - Display file contents
-  find <pattern>    - Search for files
-  grep <pattern>    - Search in files
-  
-Development:
-  npm <command>     - Run npm commands
-  git <command>     - Run git commands
-  node <file>       - Run Node.js file
-  
-🤖 AI Features:
-  - Context-aware responses based on your workspace
-  - Command suggestions and optimization
-  - Error explanation and debugging help
-  - Performance analysis and recommendations`,
-            timestamp: new Date(),
-            duration
-          };
-          break;
-
-        case 'clear':
-          setOutput([]);
-          return;
-
-        case 'history':
-          commandOutput = {
-            type: 'output',
-            content: commandHistory.length > 0 ? 
-              commandHistory.map((cmd, i) => `${i + 1}: ${cmd}`).join('\n') :
-              'No command history available',
-            timestamp: new Date(),
-            duration
-          };
-          break;
-
-        case 'context':
-          if (enableContextIntegration) {
-            const context = contextService.getContext();
-            const summary = contextService.generateContextSummary();
-            
-            commandOutput = {
-              type: 'output',
-              content: `📊 Workspace Context:
-Project: ${summary.projectInfo}
-Active Files: ${summary.activeFiles}
-Recent Commands: ${summary.recentCommands}
-Current Task: ${summary.currentTask}
-
-🧠 Context Details:
-- ${context.activeFiles.length} active files
-- ${context.terminalHistory.length} terminal commands
-- ${context.recentActions.length} recent actions
-${context.currentSelection ? `- Code selection: ${context.currentSelection.text.substring(0, 50)}...` : ''}`,
-              timestamp: new Date(),
-              duration
-            };
-          } else {
-            commandOutput = {
-              type: 'warning',
-              content: 'Context integration is disabled',
-              timestamp: new Date(),
-              duration
-            };
-          }
-          break;
-
-        case 'pwd':
-          commandOutput = {
-            type: 'output',
-            content: currentPath,
-            timestamp: new Date(),
-            duration
-          };
-          break;
-
-        case 'ls':
-        case 'dir':
-          await new Promise(resolve => setTimeout(resolve, 300));
-          commandOutput = {
-            type: 'output',
-            content: `📁 src/           📁 public/        📁 node_modules/
-📄 package.json   📄 README.md      📄 tsconfig.json
-📄 .env.local     📄 .gitignore     📄 next.config.js`,
-            timestamp: new Date(),
-            duration: Date.now() - startTime,
-            exitCode: 0
-          };
-          break;
-
-        case 'git status':
-          await new Promise(resolve => setTimeout(resolve, 500));
-          commandOutput = {
-            type: 'output',
-            content: `On branch main
-Your branch is up to date with 'origin/main'.
-
-Changes not staged for commit:
-  (use "git add <file>..." to update what will be committed)
-  (use "git restore <file>..." to discard changes in working directory)
-        modified:   src/components/FileTree.tsx
-        modified:   src/components/terminal/Terminal.tsx
-
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-        src/services/contextService.ts
-
-no changes added to commit (use "git add ." or "git commit -a")`,
-            timestamp: new Date(),
-            duration: Date.now() - startTime,
-            exitCode: 0
-          };
-          break;
-
-        case 'npm run dev':
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          commandOutput = {
-            type: 'success',
-            content: `> omnipanel-web@1.3.0 dev
-> next dev --turbo
-
-  ▲ Next.js 14.0.0 (turbo)
-  - Local:        http://localhost:3000
-  - Network:      http://192.168.1.100:3000
-
- ✓ Ready in 1.2s`,
-            timestamp: new Date(),
-            duration: Date.now() - startTime,
-            exitCode: 0
-          };
-          break;
-
-        default:
-          // Handle unknown commands
-          if (command.startsWith('cd ')) {
-            const newPath = command.substring(3).trim();
-            setCurrentPath(newPath || '~/workspace');
-            commandOutput = {
-              type: 'output',
-              content: `Changed directory to: ${newPath || '~/workspace'}`,
-              timestamp: new Date(),
-              duration
-            };
-          } else if (command.startsWith('npm ')) {
-            await new Promise(resolve => setTimeout(resolve, 800));
-            commandOutput = {
-              type: 'output',
-              content: `Executing: ${command}\n✓ Command completed successfully`,
-              timestamp: new Date(),
-              duration: Date.now() - startTime,
-              exitCode: 0
-            };
-          } else if (command.startsWith('git ')) {
-            await new Promise(resolve => setTimeout(resolve, 600));
-            commandOutput = {
-              type: 'output',
-              content: `Executing: ${command}\n✓ Git command completed`,
-              timestamp: new Date(),
-              duration: Date.now() - startTime,
-              exitCode: 0
-            };
-          } else {
-            commandOutput = {
-              type: 'error',
-              content: `Command not found: ${command}\nType 'help' for available commands or 'ai: how to ${command}' for AI assistance`,
-              timestamp: new Date(),
-              duration,
-              exitCode: 127
-            };
-          }
-      }
-
-      setOutput(prev => [...prev, commandOutput]);
-
-      // Add to context service if enabled
-      if (enableContextIntegration) {
-        const terminalContext: TerminalContext = {
-          command,
-          output: commandOutput.content,
-          exitCode: commandOutput.exitCode || 0,
-          timestamp,
-          workingDirectory: currentPath
-        };
-        
-        contextService.addTerminalCommand(terminalContext);
-      }
-
-      captureMessage('Terminal command executed', 'info', {
-        command,
-        exitCode: commandOutput.exitCode || 0,
-        duration
-      });
-
-    } catch (error) {
-      const errorOutput: TerminalOutput = {
-        type: 'error',
-        content: `Error executing command: ${error}`,
-        timestamp: new Date(),
-        duration: Date.now() - startTime,
-        exitCode: 1
-      };
-      
-      setOutput(prev => [...prev, errorOutput]);
-      
-      captureMessage('Terminal command failed', 'error', { command, error });
-    } finally {
-      setIsRunning(false);
-    }
-  }, [currentPath, commandHistory, enableContextIntegration, enableAIAssistance, captureMessage]);
-
-  // Enhanced keyboard handling
-  const handleKeyPress = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (currentInput.trim()) {
-        executeCommand(currentInput.trim());
-        setCurrentInput('');
-        setHistoryIndex(-1);
-        setShowSuggestions(false);
-      }
-    } else if (e.key === 'Tab') {
-      e.preventDefault();
-      if (showSuggestions && suggestions.length > 0) {
-        applySuggestion(suggestions[selectedSuggestionIndex]);
-      } else {
-        handleAutoComplete();
-      }
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (showSuggestions) {
-        setSelectedSuggestionIndex(prev => 
-          prev > 0 ? prev - 1 : suggestions.length - 1
-        );
-      } else if (commandHistory.length > 0) {
-        const newIndex = historyIndex < commandHistory.length - 1 ? historyIndex + 1 : historyIndex;
-        setHistoryIndex(newIndex);
-        setCurrentInput(commandHistory[commandHistory.length - 1 - newIndex]);
-      }
-    } else if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (showSuggestions) {
-        setSelectedSuggestionIndex(prev => 
-          prev < suggestions.length - 1 ? prev + 1 : 0
-        );
-      } else if (historyIndex > 0) {
-        const newIndex = historyIndex - 1;
-        setHistoryIndex(newIndex);
-        setCurrentInput(commandHistory[commandHistory.length - 1 - newIndex]);
-      } else if (historyIndex === 0) {
-        setHistoryIndex(-1);
-        setCurrentInput('');
-      }
-    } else if (e.key === 'Escape') {
-      setShowSuggestions(false);
-      setSuggestions([]);
-    } else if (e.ctrlKey && e.key === 'a') {
-      e.preventDefault();
-      setCurrentInput('ai: ');
-      inputRef.current?.focus();
-    } else if (e.ctrlKey && e.key === 'c') {
-      if (isRunning && aiStreamId) {
-        aiService.stopStream(aiStreamId);
-        setIsAIThinking(false);
-        setAiStreamId(null);
-        setOutput(prev => [...prev, {
-          type: 'warning',
-          content: '^C - Operation cancelled',
-          timestamp: new Date()
-        }]);
-      }
-    }
-  }, [
-    currentInput, 
-    executeCommand, 
-    showSuggestions, 
-    suggestions, 
-    selectedSuggestionIndex, 
-    applySuggestion, 
-    handleAutoComplete, 
-    commandHistory, 
-    historyIndex,
-    isRunning,
-    aiStreamId
-  ]);
-
-  // Input change handler with suggestions
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setCurrentInput(value);
-    
-    if (value.trim()) {
-      const newSuggestions = getCommandSuggestions(value);
-      setSuggestions(newSuggestions);
-      setShowSuggestions(newSuggestions.length > 0);
-      setSelectedSuggestionIndex(0);
-    } else {
-      setShowSuggestions(false);
-      setSuggestions([]);
-    }
-  }, [getCommandSuggestions]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -1014,8 +931,71 @@ no changes added to commit (use "git add ." or "git commit -a")`,
             ref={inputRef}
             type="text"
             value={currentInput}
-            onChange={handleInputChange}
-            onKeyDown={handleKeyPress}
+            onChange={(e) => {
+              setCurrentInput(e.target.value);
+              generateSuggestions(e.target.value);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (currentInput.trim()) {
+                  executeCommand(currentInput.trim());
+                  setCurrentInput('');
+                  setHistoryIndex(-1);
+                  setShowSuggestions(false);
+                }
+              } else if (e.key === 'Tab') {
+                e.preventDefault();
+                if (showSuggestions && suggestions.length > 0) {
+                  applySuggestion(suggestions[selectedSuggestionIndex]);
+                } else {
+                  handleAutoComplete();
+                }
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (showSuggestions) {
+                  setSelectedSuggestionIndex(prev => 
+                    prev > 0 ? prev - 1 : suggestions.length - 1
+                  );
+                } else if (commandHistory.length > 0) {
+                  const newIndex = historyIndex < commandHistory.length - 1 ? historyIndex + 1 : historyIndex;
+                  setHistoryIndex(newIndex);
+                  setCurrentInput(commandHistory[commandHistory.length - 1 - newIndex]);
+                }
+              } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (showSuggestions) {
+                  setSelectedSuggestionIndex(prev => 
+                    prev < suggestions.length - 1 ? prev + 1 : 0
+                  );
+                } else if (historyIndex > 0) {
+                  const newIndex = historyIndex - 1;
+                  setHistoryIndex(newIndex);
+                  setCurrentInput(commandHistory[commandHistory.length - 1 - newIndex]);
+                } else if (historyIndex === 0) {
+                  setHistoryIndex(-1);
+                  setCurrentInput('');
+                }
+              } else if (e.key === 'Escape') {
+                setShowSuggestions(false);
+                setSuggestions([]);
+              } else if (e.ctrlKey && e.key === 'a') {
+                e.preventDefault();
+                setCurrentInput('ai: ');
+                inputRef.current?.focus();
+              } else if (e.ctrlKey && e.key === 'c') {
+                if (isRunning && aiStreamId) {
+                  aiService.stopStream(aiStreamId);
+                  setIsAIThinking(false);
+                  setAiStreamId(null);
+                  setOutput(prev => [...prev, {
+                    type: 'warning',
+                    content: '^C - Operation cancelled',
+                    timestamp: new Date()
+                  }]);
+                }
+              }
+            }}
             className="flex-1 bg-transparent text-green-400 outline-none font-mono"
             placeholder="Type a command or 'ai: <question>' for AI help..."
             disabled={isRunning}

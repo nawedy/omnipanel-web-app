@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { useTheme } from 'next-themes';
+import Image from 'next/image';
+import { useTheme } from '@omnipanel/theme-engine/react';
 import { 
-  Bars3Icon, 
-  XMarkIcon,
-  SunIcon,
-  MoonIcon,
-  MagnifyingGlassIcon
-} from '@heroicons/react/24/outline';
+  Menu, 
+  X,
+  Sun,
+  Moon,
+  Search
+} from 'lucide-react';
 
 const navigation = [
   { name: 'Getting Started', href: '/getting-started' },
@@ -20,12 +21,18 @@ const navigation = [
   { name: 'CLI', href: '/cli' },
 ];
 
-export function Header(): JSX.Element {
+export function Header(): React.JSX.Element {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { theme, setTheme } = useTheme();
+  const { setTheme, isDark } = useTheme();
 
-  const toggleTheme = (): void => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
+  const toggleTheme = async (): Promise<void> => {
+    try {
+      // Toggle between light and dark themes
+      const newThemeId = isDark ? 'omnipanel-light' : 'omnipanel-dark';
+      await setTheme(newThemeId);
+    } catch (error) {
+      console.error('Failed to toggle theme:', error);
+    }
   };
 
   return (
@@ -37,9 +44,11 @@ export function Header(): JSX.Element {
             <span className="sr-only">OmniPanel Docs</span>
             <div className="flex items-center space-x-2">
               <div className="h-8 w-8 rounded-lg flex items-center justify-center">
-                <img 
+                <Image 
                   src="/omnipanel-logo.png" 
                   alt="OmniPanel Logo" 
+                  width={32}
+                  height={32}
                   className="h-8 w-8 object-contain"
                 />
               </div>
@@ -58,7 +67,7 @@ export function Header(): JSX.Element {
             onClick={() => setMobileMenuOpen(true)}
           >
             <span className="sr-only">Open main menu</span>
-            <Bars3Icon className="h-6 w-6" aria-hidden="true" />
+            <Menu className="h-6 w-6" aria-hidden="true" />
           </button>
         </div>
 
@@ -83,7 +92,7 @@ export function Header(): JSX.Element {
             className="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
             aria-label="Search documentation"
           >
-            <MagnifyingGlassIcon className="h-5 w-5" />
+            <Search className="h-5 w-5" />
           </button>
 
           {/* Theme toggle */}
@@ -93,10 +102,10 @@ export function Header(): JSX.Element {
             className="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
             aria-label="Toggle theme"
           >
-            {theme === 'dark' ? (
-              <SunIcon className="h-5 w-5" />
+            {isDark ? (
+              <Sun className="h-5 w-5" />
             ) : (
-              <MoonIcon className="h-5 w-5" />
+              <Moon className="h-5 w-5" />
             )}
           </button>
 
@@ -122,9 +131,11 @@ export function Header(): JSX.Element {
                 <span className="sr-only">OmniPanel Docs</span>
                 <div className="flex items-center space-x-2">
                   <div className="h-8 w-8 rounded-lg flex items-center justify-center">
-                    <img 
+                    <Image 
                       src="/omnipanel-logo.png" 
                       alt="OmniPanel Logo" 
+                      width={32}
+                      height={32}
                       className="h-8 w-8 object-contain"
                     />
                   </div>
@@ -139,7 +150,7 @@ export function Header(): JSX.Element {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <span className="sr-only">Close menu</span>
-                <XMarkIcon className="h-6 w-6" aria-hidden="true" />
+                <X className="h-6 w-6" aria-hidden="true" />
               </button>
             </div>
             <div className="mt-6 flow-root">
@@ -162,14 +173,14 @@ export function Header(): JSX.Element {
                     onClick={toggleTheme}
                     className="flex items-center space-x-2 text-sm font-semibold leading-6 text-gray-900 dark:text-white"
                   >
-                    {theme === 'dark' ? (
+                    {isDark ? (
                       <>
-                        <SunIcon className="h-5 w-5" />
+                        <Sun className="h-5 w-5" />
                         <span>Light mode</span>
                       </>
                     ) : (
                       <>
-                        <MoonIcon className="h-5 w-5" />
+                        <Moon className="h-5 w-5" />
                         <span>Dark mode</span>
                       </>
                     )}

@@ -3,7 +3,14 @@
 import { CheckIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import React from 'react';
-import { Card } from '@omnipanel/ui';
+// import { Card } from '@omnipanel/ui'; // TODO: Implement in Sprint 2 component library
+
+// Temporary Card component until ui package is implemented
+const Card = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+  <div className={`rounded-lg border bg-card text-card-foreground shadow-sm ${className}`} {...props}>
+    {children}
+  </div>
+);
 
 export interface PricingPlan {
   name: string;
@@ -31,15 +38,9 @@ export function PricingCard({ plan }: PricingCardProps): React.JSX.Element {
       )}
       
       <Card
-        variant={plan.featured ? "elevated" : "default"}
-        padding="lg"
-        rounded="lg"
-        shadow={plan.featured ? "lg" : "sm"}
-        hover
-        interactive
-        neon={plan.featured}
-        gradient={plan.featured}
-        className={`pricing-card h-full ${plan.featured ? 'border-primary-500/50' : ''}`}
+        className={`pricing-card h-full p-6 transition-all hover:scale-105 ${
+          plan.featured ? 'border-primary-500/50 shadow-lg bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/50 dark:to-primary-800/50' : 'hover:shadow-md'
+        }`}
       >
         <div className="text-center">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">

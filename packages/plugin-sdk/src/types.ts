@@ -1,4 +1,5 @@
 import { ReactNode, ComponentType } from 'react';
+import { EventEmitter } from 'events';
 
 // Plugin Status
 export type PluginStatus = 
@@ -8,41 +9,34 @@ export type PluginStatus =
   | 'unloading'
   | 'error';
 
-// Plugin Configuration
-export interface PluginConfig {
-  enabled: boolean;
-  settings?: Record<string, any>;
-  permissions?: PluginPermission[];
-}
-
 // Plugin Metadata
-export interface PluginManifest {
+export interface PluginMetadata {
   id: string;
   name: string;
   version: string;
   description: string;
   author: string;
-  license?: string;
   homepage?: string;
   repository?: string;
+  license?: string;
   keywords?: string[];
-  category: PluginCategory;
-  
-  // Plugin configuration
-  main: string;
-  icon?: string;
-  permissions: PluginPermission[];
-  dependencies?: Record<string, string>;
-  peerDependencies?: Record<string, string>;
-  
-  // Runtime requirements
-  engines: {
-    omnipanel: string;
+  engines?: {
+    omnipanel?: string;
     node?: string;
   };
-  
-  // UI contributions
-  contributes?: PluginContributions;
+}
+
+// Plugin Configuration
+export interface PluginConfig {
+  enabled: boolean;
+  settings: Record<string, any>;
+  permissions: PluginPermission[];
+}
+
+// Plugin Lifecycle
+export interface PluginLifecycle {
+  activate(): Promise<void> | void;
+  deactivate(): Promise<void> | void;
 }
 
 // Plugin Categories
@@ -57,17 +51,17 @@ export type PluginCategory =
   | 'extensions';
 
 // Plugin Permissions
-export type PluginPermission =
-  | 'file-system'
-  | 'network'
-  | 'workspace'
-  | 'chat'
-  | 'terminal'
-  | 'notebook'
-  | 'settings'
-  | 'clipboard'
-  | 'notifications'
-  | 'storage';
+export type PluginPermission = 
+  | 'filesystem:read'
+  | 'filesystem:write'
+  | 'network:request'
+  | 'ui:create'
+  | 'ui:modify'
+  | 'terminal:execute'
+  | 'notebook:read'
+  | 'notebook:write'
+  | 'workspace:read'
+  | 'workspace:write';
 
 // Plugin Contributions
 export interface PluginContributions {
@@ -152,29 +146,13 @@ export interface ModelContribution {
   config: Record<string, any>;
 }
 
-// Plugin Interface
-export interface Plugin {
-  manifest: PluginManifest;
-  activate(context: PluginContext): Promise<void> | void;
-  deactivate?(): Promise<void> | void;
-}
-
 // Plugin Context
 export interface PluginContext {
+  workspaceRoot: string;
   extensionPath: string;
-  extensionUri: string;
   globalState: PluginStorage;
   workspaceState: PluginStorage;
   subscriptions: PluginDisposable[];
-  
-  // API access
-  api: PluginAPI;
-  
-  // Logger
-  logger: PluginLogger;
-  
-  // Event emitter
-  events: PluginEventEmitter;
 }
 
 // Plugin Storage
@@ -190,6 +168,13 @@ export interface PluginDisposable {
   dispose(): void;
 }
 
+// Plugin Event Emitter
+export class PluginEventEmitter extends EventEmitter {
+  constructor() {
+    super();
+  }
+}
+
 // Plugin Logger
 export interface PluginLogger {
   trace(message: string, ...args: any[]): void;
@@ -199,109 +184,101 @@ export interface PluginLogger {
   error(message: string, ...args: any[]): void;
 }
 
-// Plugin Event Emitter
-export interface PluginEventEmitter {
-  on(event: string, listener: (...args: any[]) => void): PluginDisposable;
-  emit(event: string, ...args: any[]): void;
-  removeListener(event: string, listener: (...args: any[]) => void): void;
-}
-
-// Plugin API Interface
-export interface PluginAPI {
-  // Workspace API
-  workspace: {
-    getConfiguration(section?: string): any;
-    onDidChangeConfiguration: (listener: (e: any) => void) => PluginDisposable;
-    openTextDocument(uri: string): Promise<any>;
-    showTextDocument(document: any): Promise<any>;
-  };
-  
-  // Chat API
-  chat: {
-    sendMessage(message: string, options?: any): Promise<any>;
-    onDidReceiveMessage: (listener: (message: any) => void) => PluginDisposable;
-    addProvider(provider: ChatProvider): PluginDisposable;
-  };
-  
-  // Terminal API
-  terminal: {
-    createTerminal(options?: any): any;
-    onDidOpenTerminal: (listener: (terminal: any) => void) => PluginDisposable;
-    sendText(text: string): void;
-  };
-  
-  // Notebook API
-  notebook: {
-    createNotebook(type?: string): Promise<any>;
-    executeCell(cell: any): Promise<any>;
-    onDidChangeNotebook: (listener: (notebook: any) => void) => PluginDisposable;
-  };
-  
-  // File System API
-  fs: {
-    readFile(uri: string): Promise<Buffer>;
-    writeFile(uri: string, content: Buffer): Promise<void>;
-    exists(uri: string): Promise<boolean>;
-    readDirectory(uri: string): Promise<string[]>;
-    createDirectory(uri: string): Promise<void>;
-    delete(uri: string, options?: { recursive?: boolean }): Promise<void>;
-  };
-  
-  // UI API
-  ui: {
-    showInformationMessage(message: string, ...items: string[]): Promise<string | undefined>;
-    showWarningMessage(message: string, ...items: string[]): Promise<string | undefined>;
-    showErrorMessage(message: string, ...items: string[]): Promise<string | undefined>;
-    showInputBox(options?: any): Promise<string | undefined>;
-    showQuickPick(items: any[], options?: any): Promise<any>;
-    registerCommand(command: string, callback: (...args: any[]) => any): PluginDisposable;
-    registerWebviewPanel(type: string, title: string, column: any, options?: any): any;
-  };
-  
-  // Storage API
-  storage: {
-    get<T>(key: string): Promise<T | undefined>;
-    set(key: string, value: any): Promise<void>;
-    delete(key: string): Promise<void>;
-    clear(): Promise<void>;
-    keys(): Promise<string[]>;
-  };
-  
-  // HTTP API
-  http: {
-    request(options: RequestOptions): Promise<Response>;
-    get(url: string, options?: RequestOptions): Promise<Response>;
-    post(url: string, data?: any, options?: RequestOptions): Promise<Response>;
-    put(url: string, data?: any, options?: RequestOptions): Promise<Response>;
-    delete(url: string, options?: RequestOptions): Promise<Response>;
-  };
-}
-
-// Chat Provider Interface
-export interface ChatProvider {
+// UI Components
+export interface UIComponent {
   id: string;
-  name: string;
-  sendMessage(message: string, options?: any): Promise<string>;
-  streamMessage?(message: string, options?: any): AsyncGenerator<string, void, unknown>;
-  getModels?(): Promise<ModelInfo[]>;
+  type: 'panel' | 'sidebar' | 'statusbar' | 'modal' | 'notification';
+  title: string;
+  content: string | HTMLElement;
+  visible: boolean;
+  position?: 'left' | 'right' | 'top' | 'bottom' | 'center';
 }
 
-// Model Info
-export interface ModelInfo {
+// Terminal Interface
+export interface TerminalInterface {
+  execute(command: string, options?: TerminalOptions): Promise<TerminalResult>;
+  write(data: string): void;
+  clear(): void;
+  onData(callback: (data: string) => void): PluginDisposable;
+  onExit(callback: (code: number) => void): PluginDisposable;
+}
+
+export interface TerminalOptions {
+  cwd?: string;
+  env?: Record<string, string>;
+  shell?: string;
+  timeout?: number;
+}
+
+export interface TerminalResult {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+  signal?: string;
+}
+
+// Notebook Interface
+export interface NotebookInterface {
+  cells: NotebookCell[];
+  addCell(cell: Partial<NotebookCell>): void;
+  removeCell(id: string): void;
+  updateCell(id: string, updates: Partial<NotebookCell>): void;
+  executeCell(id: string): Promise<void>;
+  onCellChange(callback: (cell: NotebookCell) => void): PluginDisposable;
+}
+
+export interface NotebookCell {
   id: string;
-  name: string;
-  description?: string;
-  contextLength?: number;
-  pricing?: {
-    input?: number;
-    output?: number;
-  };
+  type: 'code' | 'markdown' | 'raw';
+  content: string;
+  language?: string;
+  outputs?: NotebookOutput[];
+  metadata?: Record<string, any>;
 }
 
-// Request/Response Types
+export interface NotebookOutput {
+  type: 'text' | 'html' | 'image' | 'error';
+  content: string;
+  metadata?: Record<string, any>;
+}
+
+// File System Interface
+export interface FileSystemInterface {
+  readFile(path: string): Promise<string>;
+  writeFile(path: string, content: string): Promise<void>;
+  readDir(path: string): Promise<string[]>;
+  exists(path: string): Promise<boolean>;
+  stat(path: string): Promise<FileStat>;
+  watch(path: string, callback: (event: FileEvent) => void): PluginDisposable;
+}
+
+export interface FileStat {
+  isFile: boolean;
+  isDirectory: boolean;
+  size: number;
+  mtime: Date;
+  ctime: Date;
+}
+
+export interface FileEvent {
+  type: 'create' | 'change' | 'delete';
+  path: string;
+}
+
+// Network Interface
+export interface NetworkInterface {
+  request(options: RequestOptions): Promise<Response>;
+  get(url: string, options?: Omit<RequestOptions, 'method' | 'url'>): Promise<Response>;
+  post(url: string, options?: Omit<RequestOptions, 'method' | 'url'>): Promise<Response>;
+  put(url: string, options?: Omit<RequestOptions, 'method' | 'url'>): Promise<Response>;
+  delete(url: string, options?: Omit<RequestOptions, 'method' | 'url'>): Promise<Response>;
+}
+
 export interface RequestOptions {
+  url: string;
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   headers?: Record<string, string>;
+  body?: string | FormData | URLSearchParams;
   timeout?: number;
 }
 
@@ -309,10 +286,85 @@ export interface Response {
   status: number;
   statusText: string;
   headers: Record<string, string>;
-  data: any;
   text(): Promise<string>;
   json(): Promise<any>;
   blob(): Promise<Blob>;
+}
+
+// Workspace Interface
+export interface WorkspaceInterface {
+  root: string;
+  name: string;
+  files: string[];
+  openFile(path: string): Promise<void>;
+  closeFile(path: string): Promise<void>;
+  saveFile(path: string): Promise<void>;
+  onFileOpen(callback: (path: string) => void): PluginDisposable;
+  onFileClose(callback: (path: string) => void): PluginDisposable;
+  onFileChange(callback: (path: string) => void): PluginDisposable;
+}
+
+// Plugin API Interface
+export interface PluginAPIInterface {
+  // Core
+  context: PluginContext;
+  metadata: PluginMetadata;
+  
+  // UI
+  ui: {
+    createComponent(component: Omit<UIComponent, 'id'>): UIComponent;
+    updateComponent(id: string, updates: Partial<UIComponent>): void;
+    removeComponent(id: string): void;
+    showNotification(message: string, type?: 'info' | 'warning' | 'error' | 'success'): void;
+  };
+  
+  // Terminal
+  terminal: TerminalInterface;
+  
+  // Notebook
+  notebook: NotebookInterface;
+  
+  // File System
+  fs: FileSystemInterface;
+  
+  // Network
+  network: NetworkInterface;
+  
+  // Workspace
+  workspace: WorkspaceInterface;
+  
+  // Events
+  events: PluginEventEmitter;
+  
+  // Utilities
+  utils: {
+    log(message: string, level?: 'debug' | 'info' | 'warn' | 'error'): void;
+    showProgress(title: string, task: () => Promise<void>): Promise<void>;
+    showInputBox(options: InputBoxOptions): Promise<string | undefined>;
+    showQuickPick(items: string[], options?: QuickPickOptions): Promise<string | undefined>;
+  };
+}
+
+export interface InputBoxOptions {
+  prompt?: string;
+  placeholder?: string;
+  value?: string;
+  password?: boolean;
+  validateInput?: (value: string) => string | undefined;
+}
+
+export interface QuickPickOptions {
+  placeholder?: string;
+  canPickMany?: boolean;
+  matchOnDescription?: boolean;
+  matchOnDetail?: boolean;
+}
+
+// Plugin Entry Point
+export interface Plugin extends PluginLifecycle {
+  metadata: PluginMetadata;
+  activate(api: PluginAPIInterface): Promise<void> | void;
+  deactivate(): Promise<void> | void;
 }
 
 // Plugin React Components
@@ -342,7 +394,7 @@ export interface PluginEvents {
 
 // Plugin Registry Types
 export interface PluginRegistryEntry {
-  manifest: PluginManifest;
+  manifest: PluginMetadata;
   path: string;
   enabled: boolean;
   instance?: Plugin;

@@ -7,44 +7,34 @@ import { Check, X } from 'lucide-react';
 
 export type ComparisonFeature = {
   name: string;
-  omnipanel: boolean | string;
+  omnipanelai: boolean | string;
   copilot: boolean | string;
   cursor: boolean | string;
   chatgpt: boolean | string;
 };
 
 export const comparisonFeatures: ComparisonFeature[] = [
-  { name: 'Unlimited AI Usage', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-  { name: 'Lifetime Access', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-  { name: 'Works with VS Code', omnipanel: true, copilot: true, cursor: true, chatgpt: true },
-  { name: 'No Data Harvesting', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-  { name: 'Team Collaboration', omnipanel: 'Coming Soon', copilot: false, cursor: true, chatgpt: false },
-  { name: 'Custom AI Models', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-  { name: 'Self-Hosting', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-  { name: 'Open Source', omnipanel: 'Partial', copilot: false, cursor: false, chatgpt: false },
-  { name: '24/7 Support', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-  
-    { name: 'Unlimited AI Usage', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-    { name: 'Lifetime Access', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-    { name: 'Works with VS Code', omnipanel: true, copilot: true, cursor: true, chatgpt: true },
-    { name: 'No Data Harvesting', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-    { name: 'Team Collaboration', omnipanel: 'Coming Soon', copilot: false, cursor: true, chatgpt: false },
-    { name: 'Custom AI Models', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-    { name: 'Self-Hosting', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-    { name: 'Open Source', omnipanel: 'Partial', copilot: false, cursor: false, chatgpt: false },
-    { name: '24/7 Support', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-    { name: 'AI Security Scanning', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-    { name: 'Privacy Protection', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-    { name: 'Local AI Execution', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-    { name: 'Code Editor Integration', omnipanel: true, copilot: true, cursor: true, chatgpt: false },
-    { name: 'Notebook Support', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-    { name: 'Terminal Integration', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-    { name: 'Multi-Provider AI', omnipanel: '9 providers', copilot: 'OpenAI only', cursor: 'Limited', chatgpt: 'OpenAI only' },
-    { name: 'Pricing Model', omnipanel: 'One-time', copilot: 'Subscription', cursor: 'Subscription', chatgpt: 'Subscription' },
-    { name: 'Data Harvesting', omnipanel: false, copilot: true, cursor: true, chatgpt: true },
-    { name: 'Air-Gap Deployment', omnipanel: true, copilot: false, cursor: false, chatgpt: false },
-    { name: 'Compliance Ready', omnipanel: true, copilot: 'Limited', cursor: false, chatgpt: false },
-    { name: 'Team Collaboration', omnipanel: true, copilot: false, cursor: false, chatgpt: false }
+  { name: 'Unlimited AI Usage', omnipanelai: true, copilot: false, cursor: false, chatgpt: false },
+  { name: 'Lifetime Access', omnipanelai: true, copilot: false, cursor: false, chatgpt: false },
+  { name: 'Works with VS Code', omnipanelai: true, copilot: true, cursor: true, chatgpt: true },
+  { name: 'No Data Harvesting', omnipanelai: true, copilot: false, cursor: false, chatgpt: false },
+  { name: 'Team Collaboration', omnipanelai: 'Coming Soon', copilot: false, cursor: true, chatgpt: false },
+  { name: 'Custom AI Models', omnipanelai: true, copilot: false, cursor: false, chatgpt: false },
+  { name: 'Self-Hosting', omnipanelai: true, copilot: false, cursor: false, chatgpt: false },
+  { name: 'Open Source', omnipanelai: 'Partial', copilot: false, cursor: false, chatgpt: false },
+  { name: '24/7 Support', omnipanelai: true, copilot: false, cursor: false, chatgpt: false },
+  { name: 'AI Security Scanning', omnipanelai: true, copilot: false, cursor: false, chatgpt: false },
+  { name: 'Privacy Protection', omnipanelai: true, copilot: false, cursor: false, chatgpt: false },
+  { name: 'Local AI Execution', omnipanelai: true, copilot: false, cursor: false, chatgpt: false },
+  { name: 'Code Editor Integration', omnipanelai: true, copilot: true, cursor: true, chatgpt: false },
+  { name: 'Notebook Support', omnipanelai: true, copilot: false, cursor: false, chatgpt: false },
+  { name: 'Terminal Integration', omnipanelai: true, copilot: false, cursor: false, chatgpt: false },
+  { name: 'Multi-Provider AI', omnipanelai: '9 providers', copilot: 'OpenAI only', cursor: 'Limited', chatgpt: 'OpenAI only' },
+  { name: 'Pricing Model', omnipanelai: 'One-time', copilot: 'Subscription', cursor: 'Subscription', chatgpt: 'Subscription' },
+  { name: 'Data Harvesting', omnipanelai: false, copilot: true, cursor: true, chatgpt: true },
+  { name: 'Air-Gap Deployment', omnipanelai: true, copilot: false, cursor: false, chatgpt: false },
+  { name: 'Compliance Ready', omnipanelai: true, copilot: 'Limited', cursor: false, chatgpt: false },
+  { name: 'Enterprise Team Features', omnipanelai: true, copilot: false, cursor: false, chatgpt: false }
 ];
 
 function renderCell(value: boolean | string) {
@@ -71,7 +61,7 @@ export default function FeaturesComparisonTable({
           <TableHeader>
             <TableRow className="bg-gray-900/60">
               <TableCell className="text-left p-6 text-white font-bold">Features</TableCell>
-              <TableCell className="text-center p-6">OmniPanel</TableCell>
+              <TableCell className="text-center p-6">OmniPanelAI</TableCell>
               <TableCell className="text-center p-6">Copilot</TableCell>
               <TableCell className="text-center p-6">Cursor</TableCell>
               <TableCell className="text-center p-6">ChatGPT</TableCell>
@@ -81,7 +71,7 @@ export default function FeaturesComparisonTable({
             {features.map((feature, idx) => (
               <TableRow key={feature.name} className={idx % 2 === 0 ? 'bg-gray-900/40' : ''}>
                 <TableCell className="text-left p-6 text-white">{feature.name}</TableCell>
-                <TableCell className="text-center p-6">{renderCell(feature.omnipanel)}</TableCell>
+                <TableCell className="text-center p-6">{renderCell(feature.omnipanelai)}</TableCell>
                 <TableCell className="text-center p-6">{renderCell(feature.copilot)}</TableCell>
                 <TableCell className="text-center p-6">{renderCell(feature.cursor)}</TableCell>
                 <TableCell className="text-center p-6">{renderCell(feature.chatgpt)}</TableCell>

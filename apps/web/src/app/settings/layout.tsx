@@ -18,7 +18,9 @@ import {
   Shield,
   ChevronLeft,
   Menu,
-  X
+  X,
+  Brain,
+  Bot
 } from 'lucide-react';
 
 interface SettingsSection {
@@ -51,6 +53,20 @@ const SETTINGS_SECTIONS: SettingsSection[] = [
     description: 'Customize keyboard shortcuts and hotkeys',
     icon: Keyboard,
     href: '/settings/keyboard'
+  },
+  {
+    id: 'ai-models',
+    name: 'AI Models',
+    description: 'Configure AI providers and local models',
+    icon: Bot,
+    href: '/settings/ai-models'
+  },
+  {
+    id: 'ai-rules',
+    name: 'AI Rules',
+    description: 'Manage AI behavior rules and templates',
+    icon: Brain,
+    href: '/settings/ai-rules'
   },
   {
     id: 'database',

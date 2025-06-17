@@ -1,7 +1,51 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { ThemeEngine, ThemeProvider as OmniThemeProvider } from '@omnipanel/theme-engine';
+// import { ThemeEngine, ThemeProvider as OmniThemeProvider } from '@omnipanel/theme-engine'; // TODO: Implement in Sprint 2
+
+// Temporary implementation until theme-engine package is implemented
+interface ThemeEngineConfig {
+  defaultTheme: string;
+  themes: string[];
+  storage: Storage | null;
+  storageKey: string;
+}
+
+class ThemeEngine {
+  private config: ThemeEngineConfig;
+  private currentTheme: string;
+
+  constructor(config: ThemeEngineConfig) {
+    this.config = config;
+    this.currentTheme = config.defaultTheme;
+  }
+
+  getCurrentTheme(): string {
+    if (typeof window !== 'undefined' && this.config.storage) {
+      return this.config.storage.getItem(this.config.storageKey) || this.config.defaultTheme;
+    }
+    return this.currentTheme;
+  }
+
+  setTheme(theme: string): void {
+    this.currentTheme = theme;
+    if (typeof window !== 'undefined' && this.config.storage) {
+      this.config.storage.setItem(this.config.storageKey, theme);
+    }
+  }
+}
+
+// Temporary OmniThemeProvider until theme-engine package is implemented
+const OmniThemeProvider = ({ children, theme }: { children: React.ReactNode; theme: string; engine: ThemeEngine }) => {
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.className = theme;
+    }
+  }, [theme]);
+
+  return <>{children}</>;
+};
 
 // Initialize the theme engine with default configuration
 const themeEngine = new ThemeEngine({

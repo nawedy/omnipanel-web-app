@@ -37,12 +37,19 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
           const service = getOmniPanelDatabaseService();
           setDatabaseService(service);
           
-          // Test the connection
-          const connected = await testDatabaseConnection();
-          setIsConnected(connected);
-          
-          if (!connected) {
-            setError(new Error('Database connection failed'));
+          if (service) {
+            // Test the connection only if service is available
+            const connected = await testDatabaseConnection();
+            setIsConnected(connected);
+            
+            if (!connected) {
+              setError(new Error('Database connection failed'));
+            }
+          } else {
+            // Database service not configured, but this is not an error in development
+            console.info('Database service not configured - running in offline mode');
+            setIsConnected(false);
+            setError(null); // Don't set error for missing configuration
           }
         }
       } catch (err) {

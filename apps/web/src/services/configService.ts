@@ -1,5 +1,5 @@
 // apps/web/src/services/configService.ts
-// Centralized configuration management service using robust @omnipanel packages
+// Configuration service for managing application settings and preferences
 
 "use client";
 
@@ -65,6 +65,41 @@ export interface AppConfig {
   keyboardShortcuts: KeyboardShortcutsConfig;
   general: GeneralConfig;
   ai: AIConfig;
+  
+  // Performance Settings
+  enableAnimations: boolean;
+  enableSounds: boolean;
+  maxHistorySize: number;
+  autoSave: boolean;
+  autoSaveInterval: number; // in seconds
+  
+  // Privacy Settings
+  enableTelemetry: boolean;
+  enableCrashReporting: boolean;
+  enableUsageAnalytics: boolean;
+  
+  // Workspace Settings
+  defaultWorkspaceLayout: 'horizontal' | 'vertical' | 'grid';
+  enableFileWatcher: boolean;
+  enableGitIntegration: boolean;
+  enableLinting: boolean;
+  
+  // Editor Settings
+  tabSize: number;
+  insertSpaces: boolean;
+  wordWrap: boolean;
+  lineNumbers: boolean;
+  minimap: boolean;
+  
+  // Terminal Settings
+  terminalShell: string;
+  terminalFontSize: number;
+  terminalScrollback: number;
+  
+  // Advanced Settings
+  debugMode: boolean;
+  experimentalFeatures: string[];
+  customCss: string;
 }
 
 // Configuration validation schemas
@@ -160,7 +195,42 @@ const defaultConfig: AppConfig = {
       endpoint: 'http://localhost:11434',
       models: []
     }
-  }
+  },
+  
+  // Performance Settings
+  enableAnimations: true,
+  enableSounds: false,
+  maxHistorySize: 1000,
+  autoSave: true,
+  autoSaveInterval: 30,
+  
+  // Privacy Settings
+  enableTelemetry: false,
+  enableCrashReporting: true,
+  enableUsageAnalytics: false,
+  
+  // Workspace Settings
+  defaultWorkspaceLayout: 'horizontal',
+  enableFileWatcher: true,
+  enableGitIntegration: true,
+  enableLinting: true,
+  
+  // Editor Settings
+  tabSize: 2,
+  insertSpaces: true,
+  wordWrap: true,
+  lineNumbers: true,
+  minimap: true,
+  
+  // Terminal Settings
+  terminalShell: typeof process !== 'undefined' && process.platform === 'win32' ? 'powershell' : 'bash',
+  terminalFontSize: 12,
+  terminalScrollback: 1000,
+  
+  // Advanced Settings
+  debugMode: false,
+  experimentalFeatures: [],
+  customCss: ''
 };
 
 export class ConfigService {

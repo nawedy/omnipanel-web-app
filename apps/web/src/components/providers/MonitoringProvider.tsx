@@ -3,7 +3,8 @@
 
 'use client';
 
-import React, { createContext, useContext, useCallback, ReactNode, useState } from 'react';
+import React, { createContext, useContext, useCallback, ReactNode, useState, useEffect } from 'react';
+import { setupConsoleErrorInterceptor, teardownConsoleErrorInterceptor } from '@/components/errors/intercept-console-error';
 
 export interface ErrorDetails {
   message: string;
@@ -74,48 +75,113 @@ export function MonitoringProvider({ children }: MonitoringProviderProps) {
   const [errorHistory, setErrorHistory] = useState<ErrorDetails[]>([]);
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetric[]>([]);
   const [activeMeasures, setActiveMeasures] = useState<Map<string, { startTime: number; metadata?: Record<string, any> }>>(new Map());
+  
+  // Rate limiting and recursion prevention
+  const [isReporting, setIsReporting] = useState(false);
+  const [errorCount, setErrorCount] = useState(0);
+  const [lastErrorTime, setLastErrorTime] = useState(0);
+  const MAX_ERRORS_PER_SECOND = 5;
+  const ERROR_COOLDOWN = 1000; // 1 second
 
   const reportError = useCallback((error: ErrorDetails) => {
-    console.error('[MonitoringProvider] Error:', error);
-    setErrorHistory(prev => [...prev, error].slice(-100)); // Keep last 100 errors
+    // Prevent recursive error reporting
+    if (isReporting) return;
     
-    // In production, send to error tracking service
-    if (process.env.NODE_ENV === 'production') {
-      // Send to error tracking service (Sentry, LogRocket, etc.)
+    // Rate limiting
+    const now = Date.now();
+    if (now - lastErrorTime < ERROR_COOLDOWN) {
+      setErrorCount(prev => prev + 1);
+      if (errorCount >= MAX_ERRORS_PER_SECOND) {
+        return; // Skip this error to prevent spam
+      }
+    } else {
+      setErrorCount(1);
+      setLastErrorTime(now);
     }
-  }, []);
+
+    try {
+      setIsReporting(true);
+      
+      // Safely log error without triggering interceptor
+      if (typeof window !== 'undefined' && window.console && window.console.warn) {
+        window.console.warn('[MonitoringProvider] Error:', {
+          message: error.message,
+          component: error.component,
+          severity: error.severity,
+          timestamp: error.timestamp
+        });
+      }
+      
+      setErrorHistory(prev => [...prev, error].slice(-100)); // Keep last 100 errors
+      
+      // In production, send to error tracking service
+      if (process.env.NODE_ENV === 'production') {
+        // Send to error tracking service (Sentry, LogRocket, etc.)
+      }
+    } catch (err) {
+      // Silently fail to prevent infinite loops
+    } finally {
+      setIsReporting(false);
+    }
+  }, [isReporting, errorCount, lastErrorTime]);
 
   const captureError = useCallback((error: Error | string, metadata?: Record<string, any>) => {
-    const errorDetails: ErrorDetails = {
-      message: typeof error === 'string' ? error : error.message,
-      stack: typeof error === 'object' ? error.stack : undefined,
-      component: metadata?.component,
-      timestamp: new Date(),
-      severity: 'medium',
-      context: metadata,
-      url: metadata?.url,
-      componentStack: metadata?.componentStack
-    };
-    reportError(errorDetails);
-  }, [reportError]);
+    if (isReporting) return;
+    
+    try {
+      const errorDetails: ErrorDetails = {
+        message: typeof error === 'string' ? error : (error.message || 'Unknown error'),
+        stack: typeof error === 'object' ? error.stack : undefined,
+        component: metadata?.component,
+        timestamp: new Date(),
+        severity: 'medium',
+        context: metadata ? { ...metadata, contextSize: Object.keys(metadata).length } : undefined,
+        url: typeof window !== 'undefined' ? window.location.href : undefined,
+        componentStack: metadata?.componentStack
+      };
+      reportError(errorDetails);
+    } catch (err) {
+      // Silently fail
+    }
+  }, [reportError, isReporting]);
 
   const captureMessage = useCallback((message: string, level: 'info' | 'warning' | 'error' = 'info', metadata?: Record<string, any>) => {
-    const errorDetails: ErrorDetails = {
-      message,
-      timestamp: new Date(),
-      severity: level === 'error' ? 'high' : level === 'warning' ? 'medium' : 'low',
-      component: metadata?.component,
-      context: metadata
-    };
-    reportError(errorDetails);
-  }, [reportError]);
+    if (isReporting) return;
+    
+    try {
+      // Filter out monitoring-related messages to prevent loops
+      if (message.includes('MonitoringProvider') || message.includes('console interceptor')) {
+        return;
+      }
+      
+      const errorDetails: ErrorDetails = {
+        message: typeof message === 'string' ? message : String(message),
+        timestamp: new Date(),
+        severity: level === 'error' ? 'high' : level === 'warning' ? 'medium' : 'low',
+        component: metadata?.component,
+        context: metadata ? { ...metadata, contextSize: Object.keys(metadata).length } : undefined
+      };
+      reportError(errorDetails);
+    } catch (err) {
+      // Silently fail
+    }
+  }, [reportError, isReporting]);
 
   const clearErrorHistory = useCallback(() => {
     setErrorHistory([]);
   }, []);
 
   const reportPerformance = useCallback((metric: PerformanceMetric) => {
-    console.log('[MonitoringProvider] Performance:', metric);
+    // Safely log performance without triggering interceptor
+    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined' && window.console && window.console.debug) {
+      window.console.debug('[MonitoringProvider] Performance:', {
+        name: metric.name,
+        value: metric.value,
+        duration: metric.duration,
+        timestamp: metric.timestamp
+      });
+    }
+    
     setPerformanceMetrics(prev => [...prev, metric].slice(-100)); // Keep last 100 metrics
     
     // In production, send to analytics service
@@ -187,6 +253,40 @@ export function MonitoringProvider({ children }: MonitoringProviderProps) {
   const clearPerformanceMetrics = useCallback(() => {
     setPerformanceMetrics([]);
   }, []);
+
+  // Set up error interceptor on mount - temporarily disabled to prevent loops
+  useEffect(() => {
+    // TODO: Re-enable after fixing the error loop issue
+    // setupConsoleErrorInterceptor({
+    //   onError: (interceptedError) => {
+    //     if (interceptedError.type === 'console.error') {
+    //       captureMessage(interceptedError.message, 'error', {
+    //         component: 'ConsoleErrorInterceptor',
+    //         interceptedAt: interceptedError.timestamp,
+    //         args: interceptedError.args
+    //       });
+    //     } else if (interceptedError.type === 'window.onerror') {
+    //       captureError(new Error(interceptedError.consoleError.message), {
+    //         component: 'WindowErrorInterceptor',
+    //         consoleError: interceptedError.consoleError,
+    //         interceptedAt: interceptedError.timestamp
+    //       });
+    //     } else if (interceptedError.type === 'unhandledrejection') {
+    //       captureError(interceptedError.reason, {
+    //         component: 'UnhandledRejectionInterceptor',
+    //         promise: interceptedError.promise,
+    //         interceptedAt: interceptedError.timestamp
+    //       });
+    //     }
+    //   },
+    //   suppressCommonErrors: true,
+    //   logOriginalErrors: process.env.NODE_ENV === 'development'
+    // });
+
+    return () => {
+      teardownConsoleErrorInterceptor();
+    };
+  }, [captureError, captureMessage]);
 
   // Generate performance report
   const performanceReport: PerformanceReport = {

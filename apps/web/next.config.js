@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Enable standalone output for Vercel deployment
-  output: 'standalone',
-  
   // TypeScript configuration
   typescript: {
     // Allow builds to succeed even with type errors during deployment

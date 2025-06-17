@@ -16,9 +16,15 @@ const NEON_API_KEY = process.env.NEON_API_KEY || '';
 
 /**
  * Creates a database configuration based on environment variables
- * @returns DatabaseConfig object
+ * @returns DatabaseConfig object or null if not configured
  */
-export function getOmniPanelDatabaseConfig(): DatabaseConfig {
+export function getOmniPanelDatabaseConfig(): DatabaseConfig | null {
+  // Return null if essential database configuration is missing
+  if (!DATABASE_URL) {
+    console.warn('Database configuration missing: NEON_DATABASE_URL or DATABASE_URL not found');
+    return null;
+  }
+
   return {
     provider: 'neon',
     neon: {
@@ -47,12 +53,21 @@ let dbServiceInstance: DatabaseService | null = null;
 
 /**
  * Gets or creates the OmniPanel database service instance
- * @returns DatabaseService instance
+ * @returns DatabaseService instance or null if not configured
  */
-export function getOmniPanelDatabaseService(): DatabaseService {
+export function getOmniPanelDatabaseService(): DatabaseService | null {
   if (!dbServiceInstance) {
     const config = getOmniPanelDatabaseConfig();
-    dbServiceInstance = createDatabaseService(config);
+    if (!config) {
+      console.warn('Database service not available: Missing configuration');
+      return null;
+    }
+    try {
+      dbServiceInstance = createDatabaseService(config);
+    } catch (error) {
+      console.error('Failed to create database service:', error);
+      return null;
+    }
   }
   return dbServiceInstance;
 }
@@ -64,6 +79,10 @@ export function getOmniPanelDatabaseService(): DatabaseService {
 export async function testDatabaseConnection(): Promise<boolean> {
   try {
     const dbService = getOmniPanelDatabaseService();
+    if (!dbService) {
+      console.warn('Database service not available for connection test');
+      return false;
+    }
     return await dbService.testConnection();
   } catch (error) {
     console.error('Database connection test failed:', error);
@@ -78,10 +97,17 @@ export async function testDatabaseConnection(): Promise<boolean> {
 export async function getDatabaseHealth(): Promise<any> {
   try {
     const dbService = getOmniPanelDatabaseService();
+    if (!dbService) {
+      return { 
+        status: 'unavailable', 
+        error: 'Database service not configured',
+        message: 'Please check your environment variables' 
+      };
+    }
     return await dbService.getHealth();
   } catch (error) {
     console.error('Failed to get database health:', error);
-    return { status: 'error', error };
+    return { status: 'error', error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 

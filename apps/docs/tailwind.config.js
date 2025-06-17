@@ -10,7 +10,14 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
         primary: {
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
           50: '#eff6ff',
           100: '#dbeafe',
           200: '#bfdbfe',
@@ -22,6 +29,30 @@ module.exports = {
           800: '#1e40af',
           900: '#1e3a8a',
           950: '#172554',
+        },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
         },
         gray: {
           50: '#f8fafc',
@@ -37,6 +68,11 @@ module.exports = {
           950: '#020617',
         },
       },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
@@ -44,15 +80,15 @@ module.exports = {
       typography: (theme) => ({
         DEFAULT: {
           css: {
-            color: theme('colors.gray.700'),
+            color: 'hsl(var(--foreground))',
             maxWidth: 'none',
             hr: {
-              borderColor: theme('colors.gray.200'),
+              borderColor: 'hsl(var(--border))',
               marginTop: '3rem',
               marginBottom: '3rem',
             },
             'h1, h2, h3, h4': {
-              color: theme('colors.gray.900'),
+              color: 'hsl(var(--foreground))',
               fontWeight: '600',
             },
             h1: {
@@ -76,8 +112,8 @@ module.exports = {
               marginBottom: '0.75rem',
             },
             code: {
-              color: theme('colors.primary.600'),
-              backgroundColor: theme('colors.gray.100'),
+              color: 'hsl(var(--primary))',
+              backgroundColor: 'hsl(var(--muted))',
               paddingLeft: '0.375rem',
               paddingRight: '0.375rem',
               paddingTop: '0.125rem',
@@ -93,8 +129,8 @@ module.exports = {
               content: '""',
             },
             pre: {
-              backgroundColor: theme('colors.gray.900'),
-              color: theme('colors.gray.100'),
+              backgroundColor: 'hsl(var(--muted))',
+              color: 'hsl(var(--foreground))',
               borderRadius: '0.5rem',
               padding: '1.5rem',
               fontSize: '0.875rem',
@@ -110,17 +146,16 @@ module.exports = {
               fontWeight: 'inherit',
             },
             a: {
-              color: theme('colors.primary.600'),
+              color: 'hsl(var(--primary))',
               textDecoration: 'none',
               fontWeight: '500',
               '&:hover': {
-                color: theme('colors.primary.700'),
                 textDecoration: 'underline',
               },
             },
             blockquote: {
-              borderLeftColor: theme('colors.primary.200'),
-              backgroundColor: theme('colors.primary.50'),
+              borderLeftColor: 'hsl(var(--border))',
+              backgroundColor: 'hsl(var(--muted))',
               padding: '1rem 1.5rem',
               borderRadius: '0.5rem',
               fontStyle: 'normal',
@@ -133,31 +168,55 @@ module.exports = {
             'blockquote p:last-of-type::after': {
               content: '""',
             },
+            table: {
+              marginTop: '2rem',
+              marginBottom: '2rem',
+              borderCollapse: 'collapse',
+            },
+            th: {
+              backgroundColor: 'hsl(var(--muted))',
+              color: 'hsl(var(--foreground))',
+              fontWeight: '600',
+              textAlign: 'left',
+              padding: '0.75rem 1rem',
+              border: '1px solid hsl(var(--border))',
+            },
+            td: {
+              padding: '0.75rem 1rem',
+              border: '1px solid hsl(var(--border))',
+            },
+            'tbody tr:nth-child(even)': {
+              backgroundColor: 'hsl(var(--muted) / 0.3)',
+            },
           },
         },
         dark: {
           css: {
-            color: theme('colors.gray.300'),
+            color: 'hsl(var(--foreground))',
             'h1, h2, h3, h4': {
-              color: theme('colors.gray.100'),
+              color: 'hsl(var(--foreground))',
             },
             hr: {
-              borderColor: theme('colors.gray.700'),
+              borderColor: 'hsl(var(--border))',
             },
             code: {
-              color: theme('colors.primary.400'),
-              backgroundColor: theme('colors.gray.800'),
+              color: 'hsl(var(--primary))',
+              backgroundColor: 'hsl(var(--muted))',
             },
             blockquote: {
-              borderLeftColor: theme('colors.primary.700'),
-              backgroundColor: theme('colors.primary.950'),
-              color: theme('colors.gray.300'),
+              borderLeftColor: 'hsl(var(--border))',
+              backgroundColor: 'hsl(var(--muted))',
+              color: 'hsl(var(--foreground))',
             },
             a: {
-              color: theme('colors.primary.400'),
-              '&:hover': {
-                color: theme('colors.primary.300'),
-              },
+              color: 'hsl(var(--primary))',
+            },
+            th: {
+              backgroundColor: 'hsl(var(--muted))',
+              color: 'hsl(var(--foreground))',
+            },
+            'tbody tr:nth-child(even)': {
+              backgroundColor: 'hsl(var(--muted) / 0.3)',
             },
           },
         },

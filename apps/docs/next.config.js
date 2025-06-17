@@ -1,28 +1,9 @@
-const withMDX = require('@next/mdx')({
-  extension: /\.mdx?$/,
-  options: {
-    remarkPlugins: [
-      require('remark-gfm'),
-      require('remark-prism'),
-    ],
-    rehypePlugins: [
-      require('rehype-slug'),
-      require('rehype-autolink-headings'),
-      require('rehype-highlight'),
-    ],
-  },
-});
-
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
-});
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
     typedRoutes: true,
   },
-  pageExtensions: ['ts', 'tsx', 'js', 'jsx', 'md', 'mdx'],
+  pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
   images: {
     domains: ['github.com', 'avatars.githubusercontent.com'],
     formats: ['image/webp', 'image/avif'],
@@ -70,4 +51,8 @@ const nextConfig = {
   },
 };
 
-module.exports = withBundleAnalyzer(withMDX(nextConfig)); 
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
+module.exports = withBundleAnalyzer(nextConfig); 

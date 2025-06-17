@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, X, FileText, Code, Cpu } from 'lucide-react';
 
 interface SearchResult {
@@ -17,7 +17,7 @@ interface SearchModalProps {
   onClose: () => void;
 }
 
-function SearchModal({ isOpen, onClose }: SearchModalProps) {
+function SearchModal({ isOpen, onClose }: SearchModalProps): React.JSX.Element | null {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +25,7 @@ function SearchModal({ isOpen, onClose }: SearchModalProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Mock search data - in production, this would come from a search API
-  const searchData: SearchResult[] = [
+  const searchData: SearchResult[] = useMemo(() => [
     {
       id: '1',
       title: 'Getting Started',
@@ -90,7 +90,7 @@ function SearchModal({ isOpen, onClose }: SearchModalProps) {
       type: 'api',
       category: 'API Reference'
     }
-  ];
+  ], []);
 
   useEffect(() => {
     if (isOpen && inputRef.current) {
@@ -99,7 +99,7 @@ function SearchModal({ isOpen, onClose }: SearchModalProps) {
   }, [isOpen]);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
       if (!isOpen) return;
 
       if (e.key === 'Escape') {
@@ -119,7 +119,7 @@ function SearchModal({ isOpen, onClose }: SearchModalProps) {
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    return (): void => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose, results, selectedIndex]);
 
   useEffect(() => {
@@ -131,7 +131,7 @@ function SearchModal({ isOpen, onClose }: SearchModalProps) {
     setIsLoading(true);
     
     // Simulate search delay
-    const timeoutId = setTimeout(() => {
+    const timeoutId = setTimeout((): void => {
       const filtered = searchData.filter(item =>
         item.title.toLowerCase().includes(query.toLowerCase()) ||
         item.description.toLowerCase().includes(query.toLowerCase()) ||
@@ -143,10 +143,10 @@ function SearchModal({ isOpen, onClose }: SearchModalProps) {
       setIsLoading(false);
     }, 200);
 
-    return () => clearTimeout(timeoutId);
-  }, [query]);
+    return (): void => clearTimeout(timeoutId);
+  }, [query, searchData]);
 
-  const getIcon = (type: SearchResult['type']) => {
+  const getIcon = (type: SearchResult['type']): typeof FileText => {
     switch (type) {
       case 'guide':
         return FileText;
@@ -159,7 +159,7 @@ function SearchModal({ isOpen, onClose }: SearchModalProps) {
     }
   };
 
-  const getTypeColor = (type: SearchResult['type']) => {
+  const getTypeColor = (type: SearchResult['type']): string => {
     switch (type) {
       case 'guide':
         return 'text-blue-600 bg-blue-100 dark:text-blue-400 dark:bg-blue-900/30';
@@ -206,7 +206,7 @@ function SearchModal({ isOpen, onClose }: SearchModalProps) {
               </div>
             ) : results.length > 0 ? (
               <div className="py-2">
-                {results.map((result, index) => {
+                {results.map((result, index): React.JSX.Element => {
                   const Icon = getIcon(result.type);
                   return (
                     <a
@@ -241,7 +241,7 @@ function SearchModal({ isOpen, onClose }: SearchModalProps) {
               <div className="flex items-center justify-center py-8">
                 <div className="text-center">
                   <FileText className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
-                  <div className="text-gray-500 dark:text-gray-400">No results found for "{query}"</div>
+                  <div className="text-gray-500 dark:text-gray-400">No results found for &ldquo;{query}&rdquo;</div>
                   <div className="text-sm text-gray-400 dark:text-gray-500 mt-1">
                     Try searching for components, guides, or API references
                   </div>
@@ -290,7 +290,7 @@ function SearchModal({ isOpen, onClose }: SearchModalProps) {
   );
 }
 
-export function SearchButton(): JSX.Element {
+export function SearchButton(): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleClick = (): void => {
@@ -303,7 +303,7 @@ export function SearchButton(): JSX.Element {
 
   // Global keyboard shortcut
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setIsOpen(true);
@@ -311,7 +311,7 @@ export function SearchButton(): JSX.Element {
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    return (): void => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   return (

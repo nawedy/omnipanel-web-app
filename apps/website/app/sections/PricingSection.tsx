@@ -7,13 +7,13 @@ import { AnimatedBeam } from '@/components/magicui/animated-beam';
 import { AuroraText } from '@/components/magicui/aurora-text';
 import { AnimatedGradientText } from '@/components/magicui/animated-gradient-text';
 import { AnimatedShinyText } from '@/components/magicui/animated-shiny-text';
-import { Meteors } from '@/components/magicui/meteors';
+// import { Meteors } from '@/components/magicui/meteors'; // TODO: Implement in Sprint 3
 import FeaturesComparisonTable from '@/app/sections/FeaturesComparisonTable';
 import CostCalculatorSection from '@/app/sections/CostCalculatorSection';
 import CountdownClock from '@/app/sections/CountdownClock';
-import { Check, X, Crown, Shield, Users, Building, Zap, Clock, AlertTriangle, Calculator, TrendingUp, Star, ArrowRight, Download, Phone } from 'lucide-react';
+import { Check, Crown, Shield, Users, Building, Zap, Clock, AlertTriangle, TrendingUp, Star, Download, Phone } from 'lucide-react';
 import React, { useState } from 'react';
-import { initial } from 'lodash';
+// import { initial } from 'lodash'; // TODO: Remove unused import
 
 // Pricing Data
 export type PricingTier = {
@@ -123,7 +123,7 @@ export const pricingTiers: PricingTier[] = [
 
 export default function PricingSection() {
   const [billingCycle, setBillingCycle] = useState<'lifetime' | 'monthly'>('lifetime');
-  const [teamSize, setTeamSize] = useState(10);
+  // const [teamSize, setTeamSize] = useState(10); // TODO: Implement in Sprint 3
 
   return (
     <section className="py-20 bg-gradient-to-b from-black/40 to-black/60">

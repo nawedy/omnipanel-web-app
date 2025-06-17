@@ -23,6 +23,7 @@ import {
 import { projectService, type Project, type ProjectTemplate } from '@/services/projectService';
 import { useCurrentProject, useRecentProjects } from '@/stores/projectStore';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { ProjectOpener } from '@/components/project/ProjectOpener';
 
 interface WorkspaceSidebarProps {
   onFileSelect?: (filePath: string) => void;
@@ -72,49 +73,26 @@ export function WorkspaceSidebar({ onFileSelect, onToolSelect }: WorkspaceSideba
   const router = useRouter();
   const currentProject = useCurrentProject();
   const recentProjects = useRecentProjects();
-  const { activeTabId, setActiveTab } = useWorkspaceStore();
+  const { activeTabId, setActiveTab, addTab } = useWorkspaceStore();
   const [searchQuery, setSearchQuery] = useState('');
-  const [isCreatingProject, setIsCreatingProject] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState<ProjectTemplate | null>(null);
-  const [newProjectName, setNewProjectName] = useState('');
-  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showProjectOpener, setShowProjectOpener] = useState(false);
+  const [projectOpenerMode, setProjectOpenerMode] = useState<'open' | 'create'>('open');
   const [activeToolId, setActiveToolId] = useState<string>('chat');
 
-  const handleOpenProject = async () => {
-    try {
-      // This would open a file picker in a real implementation
-      console.log('Open project clicked - would show file picker');
-    } catch (error) {
-      console.error('Failed to open project:', error);
-    }
+  const handleOpenProject = () => {
+    setProjectOpenerMode('open');
+    setShowProjectOpener(true);
   };
 
   const handleNewProject = () => {
-    setIsCreatingProject(true);
+    setProjectOpenerMode('create');
+    setShowProjectOpener(true);
   };
 
-  const handleCreateProject = async () => {
-    if (!selectedTemplate || !newProjectName.trim()) return;
-
-    try {
-      const project = await projectService.createProject({
-        name: newProjectName.trim(),
-        description: `${selectedTemplate.name} project created with OmniPanel`,
-        path: `/projects/${newProjectName.trim().toLowerCase().replace(/\s+/g, '-')}`,
-        template: selectedTemplate,
-        gitInit: true,
-        visibility: 'private'
-      });
-
-      if (project) {
-        console.log('Created project:', project.name);
-        setIsCreatingProject(false);
-        setSelectedTemplate(null);
-        setNewProjectName('');
-      }
-    } catch (error) {
-      console.error('Failed to create project:', error);
-    }
+  const handleProjectSelected = (project: Project) => {
+    console.log('Project selected:', project.name);
+    setShowProjectOpener(false);
+    // The ProjectOpener component handles setting the current project
   };
 
   const handleRecentProjectClick = async (project: Project) => {
@@ -132,18 +110,28 @@ export function WorkspaceSidebar({ onFileSelect, onToolSelect }: WorkspaceSideba
 
   const handleToolSelect = (tool: typeof WORKSPACE_TOOLS[0]) => {
     setActiveToolId(tool.id);
+    
+    // Create a new tab for the tool within the workspace
+    const tabId = addTab({
+      title: tool.name,
+      type: tool.id as any,
+      icon: tool.name.toLowerCase(),
+      content: { toolId: tool.id }
+    });
+    
+    setActiveTab(tabId);
+    
     if (onToolSelect) {
       onToolSelect(tool.id);
     }
-    // For now, we'll just set the active tool
-    // In a full implementation, this would switch the main content area
-    console.log(`Selected tool: ${tool.name}`);
+    
+    // Don't navigate - keep tools within the workspace
+    // router.push(tool.route); // REMOVED
   };
 
   const handleCommandPalette = () => {
-    setShowCommandPalette(!showCommandPalette);
-    // In a full implementation, this would open a command palette modal
-    console.log('Command palette toggled');
+    // TODO: Implement command palette modal
+    console.log('Command palette - TODO: Implement modal');
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -158,229 +146,160 @@ export function WorkspaceSidebar({ onFileSelect, onToolSelect }: WorkspaceSideba
     project.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (isCreatingProject) {
-    const templates = projectService.getTemplates();
-    
-    return (
+  return (
+    <>
       <div className="w-80 bg-slate-900 border-r border-slate-800 flex flex-col h-full">
+        {/* Header */}
         <div className="p-4 border-b border-slate-800">
-          <h2 className="text-lg font-semibold text-slate-100 mb-4">Create New Project</h2>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Project Name
-              </label>
-              <Input
-                value={newProjectName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewProjectName(e.target.value)}
-                placeholder="Enter project name"
-                className="bg-slate-800 border-slate-700 text-slate-100"
-              />
-            </div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-100">Workspace</h2>
+            <Button
+              onClick={handleSettingsClick}
+              variant="ghost"
+              size="sm"
+              className="text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+            >
+              <SettingsIcon className="h-4 w-4" />
+            </Button>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Template
-              </label>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {templates.map((template) => (
-                  <div
-                    key={template.id}
-                    className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                      selectedTemplate?.id === template.id
-                        ? 'border-blue-500 bg-blue-500/10'
-                        : 'border-slate-700 bg-slate-800 hover:bg-slate-700'
-                    }`}
-                    onClick={() => setSelectedTemplate(template)}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-slate-200">{template.name}</span>
-                      <span className="text-lg">{template.icon}</span>
-                    </div>
-                    <p className="text-sm text-slate-400">{template.description}</p>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {template.features.slice(0, 3).map((feature) => (
-                        <span
-                          key={feature}
-                          className="px-2 py-1 text-xs bg-slate-700 text-slate-300 rounded"
-                        >
-                          {feature}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+          {/* Project Actions */}
+          <div className="flex gap-2 mb-4">
+            <Button
+              onClick={handleOpenProject}
+              variant="outline"
+              size="sm"
+              className="flex-1 text-xs"
+            >
+              <FolderOpenIcon className="h-3 w-3 mr-1" />
+              Open
+            </Button>
+            <Button
+              onClick={handleNewProject}
+              variant="outline"
+              size="sm"
+              className="flex-1 text-xs"
+            >
+              <PlusIcon className="h-3 w-3 mr-1" />
+              New
+            </Button>
+          </div>
+
+          {/* Search */}
+          <div className="relative">
+            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input
+              value={searchQuery}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
+              placeholder="Search projects..."
+              className="pl-10 bg-slate-800 border-slate-700 text-slate-100 text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Workspace Tools */}
+        <div className="p-4 border-b border-slate-800">
+          <h3 className="text-sm font-medium text-slate-300 mb-3">Tools</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {WORKSPACE_TOOLS.map((tool) => {
+              const Icon = tool.icon;
+              const isActive = activeToolId === tool.id;
+              
+              return (
+                <Button
+                  key={tool.id}
+                  onClick={() => handleToolSelect(tool)}
+                  variant={isActive ? "default" : "outline"}
+                  size="sm"
+                  className={`flex flex-col items-center gap-1 h-auto py-3 text-xs border transition-colors ${
+                    isActive 
+                      ? 'bg-blue-600 border-blue-500 text-white' 
+                      : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-slate-100'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{tool.name}</span>
+                </Button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Current Project */}
+        {currentProject && (
+          <div className="p-4 border-b border-slate-800">
+            <h3 className="text-sm font-medium text-slate-300 mb-2">Current Project</h3>
+            <div className="p-3 bg-slate-800 rounded-lg">
+              <div className="flex items-center mb-2">
+                <FolderIcon className="h-4 w-4 text-blue-400 mr-2" />
+                <span className="font-medium text-slate-200 truncate">{currentProject.name}</span>
+              </div>
+              <p className="text-xs text-slate-400 mb-2 line-clamp-2">{currentProject.description}</p>
+              <div className="flex items-center justify-between text-xs text-slate-500">
+                <span>{currentProject.metadata?.fileCount || 0} files</span>
+                <span>{currentProject.metadata?.framework || 'Unknown'}</span>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <div className="p-4 mt-auto border-t border-slate-800">
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setIsCreatingProject(false)}
-              variant="outline"
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreateProject}
-              disabled={!selectedTemplate || !newProjectName.trim()}
-              className="flex-1"
-            >
-              Create
-            </Button>
+        {/* Recent Projects */}
+        <div className="flex-1 overflow-hidden">
+          <div className="p-4">
+            <h3 className="text-sm font-medium text-slate-300 mb-3">Recent Projects</h3>
+            <div className="space-y-2 overflow-y-auto max-h-96">
+              {filteredRecentProjects.length > 0 ? (
+                filteredRecentProjects.map((project) => (
+                  <div
+                    key={project.id}
+                    className="p-3 bg-slate-800 hover:bg-slate-700 rounded-lg cursor-pointer transition-colors"
+                    onClick={() => handleRecentProjectClick(project)}
+                  >
+                    <div className="flex items-center mb-1">
+                      <FolderIcon className="h-3 w-3 text-blue-400 mr-2" />
+                      <span className="text-sm font-medium text-slate-200 truncate">{project.name}</span>
+                    </div>
+                    <p className="text-xs text-slate-400 truncate">{project.description}</p>
+                    <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
+                      <span>{project.metadata?.framework || 'Unknown'}</span>
+                      <span>{new Date(project.lastAccessedAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <FolderIcon className="h-8 w-8 text-slate-600 mx-auto mb-2" />
+                  <p className="text-sm text-slate-500">
+                    {searchQuery ? 'No projects found' : 'No recent projects'}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    );
-  }
 
-  return (
-    <div className="w-80 bg-slate-900 border-r border-slate-800 flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 border-b border-slate-800">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-slate-100">Workspace</h2>
+        {/* Command Palette */}
+        <div className="p-4 border-t border-slate-800">
           <Button
-            onClick={handleSettingsClick}
+            onClick={handleCommandPalette}
             variant="ghost"
             size="sm"
-            className="text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+            className="w-full text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
           >
-            <SettingsIcon className="h-4 w-4" />
+            <CommandIcon className="h-4 w-4 mr-2" />
+            <span className="text-xs">Command Palette</span>
           </Button>
-        </div>
-
-        {/* Project Actions */}
-        <div className="flex gap-2 mb-4">
-          <Button
-            onClick={handleOpenProject}
-            variant="outline"
-            size="sm"
-            className="flex-1 text-xs"
-          >
-            <FolderOpenIcon className="h-3 w-3 mr-1" />
-            Open
-          </Button>
-          <Button
-            onClick={handleNewProject}
-            variant="outline"
-            size="sm"
-            className="flex-1 text-xs"
-          >
-            <PlusIcon className="h-3 w-3 mr-1" />
-            New
-          </Button>
-        </div>
-
-        {/* Search */}
-        <div className="relative">
-          <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            value={searchQuery}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-            placeholder="Search projects..."
-            className="pl-10 bg-slate-800 border-slate-700 text-slate-100 text-sm"
-          />
         </div>
       </div>
 
-      {/* Workspace Tools */}
-      <div className="p-4 border-b border-slate-800">
-        <h3 className="text-sm font-medium text-slate-300 mb-3">Tools</h3>
-        <div className="grid grid-cols-2 gap-2">
-          {WORKSPACE_TOOLS.map((tool) => {
-            const Icon = tool.icon;
-            const isActive = activeToolId === tool.id;
-            
-            return (
-              <Button
-                key={tool.id}
-                onClick={() => handleToolSelect(tool)}
-                variant={isActive ? "default" : "outline"}
-                size="sm"
-                className={`flex flex-col items-center gap-1 h-auto py-3 text-xs border transition-colors ${
-                  isActive 
-                    ? 'bg-blue-600 border-blue-500 text-white' 
-                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-slate-100'
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                <span>{tool.name}</span>
-              </Button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Current Project */}
-      {currentProject && (
-        <div className="p-4 border-b border-slate-800">
-          <h3 className="text-sm font-medium text-slate-300 mb-2">Current Project</h3>
-          <div className="p-3 bg-slate-800 rounded-lg">
-            <div className="flex items-center mb-2">
-              <FolderIcon className="h-4 w-4 text-blue-400 mr-2" />
-              <span className="font-medium text-slate-200 truncate">{currentProject.name}</span>
-            </div>
-            <p className="text-xs text-slate-400 mb-2 line-clamp-2">{currentProject.description}</p>
-            <div className="flex items-center justify-between text-xs text-slate-500">
-              <span>{currentProject.metadata?.fileCount || 0} files</span>
-              <span>{currentProject.metadata?.framework || 'Unknown'}</span>
-            </div>
-          </div>
-        </div>
+      {/* Project Opener Modal */}
+      {showProjectOpener && (
+        <ProjectOpener
+          mode={projectOpenerMode}
+          onClose={() => setShowProjectOpener(false)}
+          onProjectSelected={handleProjectSelected}
+        />
       )}
-
-      {/* Recent Projects */}
-      <div className="flex-1 overflow-hidden">
-        <div className="p-4">
-          <h3 className="text-sm font-medium text-slate-300 mb-3">Recent Projects</h3>
-          <div className="space-y-2 overflow-y-auto max-h-96">
-            {filteredRecentProjects.length > 0 ? (
-              filteredRecentProjects.map((project) => (
-                <div
-                  key={project.id}
-                  className="p-3 bg-slate-800 hover:bg-slate-700 rounded-lg cursor-pointer transition-colors"
-                  onClick={() => handleRecentProjectClick(project)}
-                >
-                  <div className="flex items-center mb-1">
-                    <FolderIcon className="h-3 w-3 text-blue-400 mr-2" />
-                    <span className="text-sm font-medium text-slate-200 truncate">{project.name}</span>
-                  </div>
-                  <p className="text-xs text-slate-400 truncate">{project.description}</p>
-                  <div className="flex items-center justify-between mt-2 text-xs text-slate-500">
-                    <span>{project.metadata?.framework || 'Unknown'}</span>
-                    <span>{new Date(project.lastAccessedAt).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <FolderIcon className="h-8 w-8 text-slate-600 mx-auto mb-2" />
-                <p className="text-sm text-slate-500">
-                  {searchQuery ? 'No projects found' : 'No recent projects'}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Command Palette */}
-      <div className="p-4 border-t border-slate-800">
-        <Button
-          onClick={handleCommandPalette}
-          variant="ghost"
-          size="sm"
-          className="w-full text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
-        >
-          <CommandIcon className="h-4 w-4 mr-2" />
-          <span className="text-xs">Command Palette</span>
-        </Button>
-      </div>
-    </div>
+    </>
   );
 } 

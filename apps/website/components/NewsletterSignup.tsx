@@ -26,7 +26,7 @@ export function NewsletterSignup(): React.JSX.Element {
     resolver: zodResolver(schema),
   });
 
-  const onSubmit = async (data: FormData): Promise<void> => {
+  const onSubmit = async (_data: FormData): Promise<void> => {
     setIsLoading(true);
     
     try {

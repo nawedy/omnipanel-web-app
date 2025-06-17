@@ -27,7 +27,11 @@ import {
   Image as ImageIcon,
   Table,
   BarChart,
-  FileText
+  FileText,
+  BookOpen,
+  Sparkles,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { Editor } from '@monaco-editor/react';
 import { useWorkspaceStore } from '@/stores/workspace';
@@ -35,6 +39,11 @@ import { contextService } from '@/services/contextService';
 import { aiService } from '@/services/aiService';
 import { useMonitoring } from '@/components/providers/MonitoringProvider';
 import { v4 as uuidv4 } from 'uuid';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { useWorkspaceContext } from '@/hooks/useWorkspaceContext';
+import { useContextStore } from '@/stores/contextStore';
 
 // Dynamic import for markdown rendering to avoid SSR issues
 import dynamic from 'next/dynamic';
@@ -524,6 +533,8 @@ export default function Notebook({ filePath, initialContent, onSave }: NotebookP
   
   const monitoring = useMonitoring();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { getRelevantContext } = useWorkspaceContext();
+  const { contextEnabled, addNotebookCell } = useContextStore();
   
   // Initialize notebook with default cells if no content provided
   useEffect(() => {
@@ -545,6 +556,10 @@ export default function Notebook({ filePath, initialContent, onSave }: NotebookP
       
       setCells(defaultCells);
       setSelectedCellId(defaultCells[0].id);
+      setIsLoading(false);
+    } else {
+      // Handle existing content initialization
+      setIsLoading(false);
     }
   }, [initialContent]);
   
@@ -665,6 +680,12 @@ export default function Notebook({ filePath, initialContent, onSave }: NotebookP
           } : cell
         )
       );
+
+      // Add to context if enabled
+      if (contextEnabled) {
+        addNotebookCell(cell.content);
+      }
+
     } catch (error) {
       console.error('Error executing cell:', error);
       

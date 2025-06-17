@@ -2,7 +2,7 @@
 
 import React, { ReactNode } from "react";
 import { Header } from "./Header";
-import { Footer } from "./Footer";
+// import { Footer } from "./Footer"; // TODO: Implement in layout if needed
 
 interface SiteLayoutProps {
   children: ReactNode;

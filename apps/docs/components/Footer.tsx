@@ -1,3 +1,4 @@
+import React from 'react';
 import Link from 'next/link';
 
 const navigation = {
@@ -33,7 +34,7 @@ const navigation = {
   ],
 };
 
-export function Footer(): JSX.Element {
+export function Footer(): React.JSX.Element {
   return (
     <footer className="bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800">
       <div className="mx-auto max-w-7xl px-6 py-16 sm:py-24 lg:px-8 lg:py-32">

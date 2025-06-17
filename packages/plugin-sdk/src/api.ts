@@ -1,382 +1,288 @@
 import { 
-  PluginAPI, 
-  ChatProvider, 
-  ModelInfo, 
-  RequestOptions, 
-  Response, 
-  PluginDisposable 
+  PluginAPIInterface,
+  PluginContext,
+  PluginMetadata,
+  UIComponent,
+  TerminalInterface,
+  TerminalOptions,
+  TerminalResult,
+  NotebookInterface,
+  NotebookCell,
+  FileSystemInterface,
+  FileStat,
+  FileEvent,
+  NetworkInterface,
+  RequestOptions,
+  Response,
+  WorkspaceInterface,
+  PluginEventEmitter,
+  PluginDisposable,
+  InputBoxOptions,
+  QuickPickOptions
 } from './types';
 
-export class PluginAPI implements PluginAPI {
-  workspace: WorkspaceAPI;
-  chat: ChatAPI;
-  terminal: TerminalAPI;
-  notebook: NotebookAPI;
-  fs: FileSystemAPI;
-  ui: UIAPI;
-  storage: StorageAPI;
-  http: HttpAPI;
+export class PluginAPI implements PluginAPIInterface {
+  public context: PluginContext;
+  public metadata: PluginMetadata;
+  public events: PluginEventEmitter;
 
-  constructor() {
-    this.workspace = new WorkspaceAPI();
-    this.chat = new ChatAPI();
-    this.terminal = new TerminalAPI();
-    this.notebook = new NotebookAPI();
-    this.fs = new FileSystemAPI();
-    this.ui = new UIAPI();
-    this.storage = new StorageAPI();
-    this.http = new HttpAPI();
+  constructor(context: PluginContext, metadata: PluginMetadata) {
+    this.context = context;
+    this.metadata = metadata;
+    this.events = new PluginEventEmitter();
   }
-}
 
-class WorkspaceAPI {
-  private configuration = new Map<string, any>();
-  private configurationListeners = new Set<(e: any) => void>();
+  // UI API
+  public ui = {
+    createComponent: (component: Omit<UIComponent, 'id'>): UIComponent => {
+      const id = `${this.metadata.id}-${Date.now()}`;
+      const fullComponent: UIComponent = { ...component, id };
+      
+      // Implementation would integrate with OmniPanel's UI system
+      this.events.emit('ui:component:created', fullComponent);
+      
+      return fullComponent;
+    },
 
-  getConfiguration(section?: string): any {
-    if (section) {
-      return this.configuration.get(section);
+    updateComponent: (id: string, updates: Partial<UIComponent>): void => {
+      this.events.emit('ui:component:updated', { id, updates });
+    },
+
+    removeComponent: (id: string): void => {
+      this.events.emit('ui:component:removed', { id });
+    },
+
+    showNotification: (message: string, type: 'info' | 'warning' | 'error' | 'success' = 'info'): void => {
+      this.events.emit('ui:notification', { message, type });
     }
-    return Object.fromEntries(this.configuration);
-  }
+  };
 
-  onDidChangeConfiguration(listener: (e: any) => void): PluginDisposable {
-    this.configurationListeners.add(listener);
-    return {
-      dispose: () => this.configurationListeners.delete(listener),
-    };
-  }
+  // Terminal API
+  public terminal: TerminalInterface = {
+    execute: async (command: string, options?: TerminalOptions): Promise<TerminalResult> => {
+      return new Promise((resolve, reject) => {
+        this.events.emit('terminal:execute', { command, options, resolve, reject });
+      });
+    },
 
-  async openTextDocument(uri: string): Promise<any> {
-    // Mock implementation
-    return {
-      uri,
-      getText: () => 'File content',
-      languageId: 'typescript',
-    };
-  }
+    write: (data: string): void => {
+      this.events.emit('terminal:write', { data });
+    },
 
-  async showTextDocument(document: any): Promise<any> {
-    // Mock implementation
-    console.log('Opening document:', document);
-    return document;
-  }
+    clear: (): void => {
+      this.events.emit('terminal:clear');
+    },
 
-  updateConfiguration(section: string, value: any): void {
-    this.configuration.set(section, value);
-    const event = { section, value };
-    this.configurationListeners.forEach(listener => {
-      try {
-        listener(event);
-      } catch (error) {
-        console.error('Error in configuration listener:', error);
-      }
-    });
-  }
-}
+    onData: (callback: (data: string) => void): PluginDisposable => {
+      this.events.on('terminal:data', callback);
+      return {
+        dispose: () => this.events.removeListener('terminal:data', callback)
+      };
+    },
 
-class ChatAPI {
-  private providers = new Map<string, ChatProvider>();
-  private messageListeners = new Set<(message: any) => void>();
-
-  async sendMessage(message: string, options?: any): Promise<any> {
-    // Mock implementation
-    const response = `Echo: ${message}`;
-    const messageEvent = { message, response, timestamp: Date.now() };
-    
-    this.messageListeners.forEach(listener => {
-      try {
-        listener(messageEvent);
-      } catch (error) {
-        console.error('Error in message listener:', error);
-      }
-    });
-
-    return {
-      id: Math.random().toString(36),
-      message,
-      response,
-      timestamp: Date.now(),
-    };
-  }
-
-  onDidReceiveMessage(listener: (message: any) => void): PluginDisposable {
-    this.messageListeners.add(listener);
-    return {
-      dispose: () => this.messageListeners.delete(listener),
-    };
-  }
-
-  addProvider(provider: ChatProvider): PluginDisposable {
-    this.providers.set(provider.id, provider);
-    return {
-      dispose: () => this.providers.delete(provider.id),
-    };
-  }
-
-  getProviders(): ChatProvider[] {
-    return Array.from(this.providers.values());
-  }
-
-  getProvider(id: string): ChatProvider | undefined {
-    return this.providers.get(id);
-  }
-}
-
-class TerminalAPI {
-  private terminals = new Map<string, any>();
-  private terminalListeners = new Set<(terminal: any) => void>();
-
-  createTerminal(options?: any): any {
-    const terminal = {
-      id: Math.random().toString(36),
-      name: options?.name || 'Terminal',
-      sendText: (text: string) => this.sendText(text),
-      dispose: () => this.terminals.delete(terminal.id),
-    };
-
-    this.terminals.set(terminal.id, terminal);
-    this.notifyTerminalOpened(terminal);
-    
-    return terminal;
-  }
-
-  onDidOpenTerminal(listener: (terminal: any) => void): PluginDisposable {
-    this.terminalListeners.add(listener);
-    return {
-      dispose: () => this.terminalListeners.delete(listener),
-    };
-  }
-
-  sendText(text: string): void {
-    console.log('Terminal input:', text);
-  }
-
-  private notifyTerminalOpened(terminal: any): void {
-    this.terminalListeners.forEach(listener => {
-      try {
-        listener(terminal);
-      } catch (error) {
-        console.error('Error in terminal listener:', error);
-      }
-    });
-  }
-}
-
-class NotebookAPI {
-  private notebooks = new Map<string, any>();
-  private notebookListeners = new Set<(notebook: any) => void>();
-
-  async createNotebook(type = 'jupyter'): Promise<any> {
-    const notebook = {
-      id: Math.random().toString(36),
-      type,
-      cells: [],
-      addCell: (cell: any) => notebook.cells.push(cell),
-      executeCell: (cell: any) => this.executeCell(cell),
-    };
-
-    this.notebooks.set(notebook.id, notebook);
-    return notebook;
-  }
-
-  async executeCell(cell: any): Promise<any> {
-    // Mock cell execution
-    const result = {
-      output: `Executed: ${cell.source}`,
-      type: 'text/plain',
-    };
-
-    this.notifyNotebookChanged({ cell, result });
-    return result;
-  }
-
-  onDidChangeNotebook(listener: (notebook: any) => void): PluginDisposable {
-    this.notebookListeners.add(listener);
-    return {
-      dispose: () => this.notebookListeners.delete(listener),
-    };
-  }
-
-  private notifyNotebookChanged(event: any): void {
-    this.notebookListeners.forEach(listener => {
-      try {
-        listener(event);
-      } catch (error) {
-        console.error('Error in notebook listener:', error);
-      }
-    });
-  }
-}
-
-class FileSystemAPI {
-  async readFile(uri: string): Promise<Buffer> {
-    // Mock implementation
-    return Buffer.from(`Content of ${uri}`, 'utf-8');
-  }
-
-  async writeFile(uri: string, content: Buffer): Promise<void> {
-    // Mock implementation
-    console.log(`Writing ${content.length} bytes to ${uri}`);
-  }
-
-  async exists(uri: string): Promise<boolean> {
-    // Mock implementation
-    return true;
-  }
-
-  async readDirectory(uri: string): Promise<string[]> {
-    // Mock implementation
-    return ['file1.txt', 'file2.js', 'folder1/'];
-  }
-
-  async createDirectory(uri: string): Promise<void> {
-    // Mock implementation
-    console.log(`Creating directory: ${uri}`);
-  }
-
-  async delete(uri: string, options?: { recursive?: boolean }): Promise<void> {
-    // Mock implementation
-    console.log(`Deleting: ${uri}`, options);
-  }
-}
-
-class UIAPI {
-  private commands = new Map<string, (...args: any[]) => any>();
-
-  async showInformationMessage(message: string, ...items: string[]): Promise<string | undefined> {
-    // Mock implementation
-    console.log('Info:', message);
-    return items[0];
-  }
-
-  async showWarningMessage(message: string, ...items: string[]): Promise<string | undefined> {
-    // Mock implementation
-    console.warn('Warning:', message);
-    return items[0];
-  }
-
-  async showErrorMessage(message: string, ...items: string[]): Promise<string | undefined> {
-    // Mock implementation
-    console.error('Error:', message);
-    return items[0];
-  }
-
-  async showInputBox(options?: any): Promise<string | undefined> {
-    // Mock implementation
-    const input = prompt(options?.prompt || 'Enter value:');
-    return input || undefined;
-  }
-
-  async showQuickPick(items: any[], options?: any): Promise<any> {
-    // Mock implementation
-    return items[0];
-  }
-
-  registerCommand(command: string, callback: (...args: any[]) => any): PluginDisposable {
-    this.commands.set(command, callback);
-    return {
-      dispose: () => this.commands.delete(command),
-    };
-  }
-
-  registerWebviewPanel(type: string, title: string, column: any, options?: any): any {
-    // Mock implementation
-    return {
-      type,
-      title,
-      webview: {
-        html: '',
-        onDidReceiveMessage: () => ({ dispose: () => {} }),
-        postMessage: (message: any) => console.log('Webview message:', message),
-      },
-      dispose: () => console.log(`Disposed webview: ${title}`),
-    };
-  }
-
-  executeCommand(command: string, ...args: any[]): Promise<any> {
-    const commandHandler = this.commands.get(command);
-    if (commandHandler) {
-      return Promise.resolve(commandHandler(...args));
+    onExit: (callback: (code: number) => void): PluginDisposable => {
+      this.events.on('terminal:exit', callback);
+      return {
+        dispose: () => this.events.removeListener('terminal:exit', callback)
+      };
     }
-    return Promise.reject(new Error(`Command '${command}' not found`));
-  }
-}
+  };
 
-class StorageAPI {
-  private storage = new Map<string, any>();
+  // Notebook API
+  public notebook: NotebookInterface = {
+    cells: [],
 
-  async get<T>(key: string): Promise<T | undefined> {
-    return this.storage.get(key);
-  }
+    addCell: (cell: Partial<NotebookCell>): void => {
+      const fullCell: NotebookCell = {
+        id: `cell-${Date.now()}`,
+        type: 'code',
+        content: '',
+        ...cell
+      };
+      this.notebook.cells.push(fullCell);
+      this.events.emit('notebook:cell:added', fullCell);
+    },
 
-  async set(key: string, value: any): Promise<void> {
-    this.storage.set(key, value);
-  }
+    removeCell: (id: string): void => {
+      const index = this.notebook.cells.findIndex(cell => cell.id === id);
+      if (index !== -1) {
+        this.notebook.cells.splice(index, 1);
+        this.events.emit('notebook:cell:removed', { id });
+      }
+    },
 
-  async delete(key: string): Promise<void> {
-    this.storage.delete(key);
-  }
+    updateCell: (id: string, updates: Partial<NotebookCell>): void => {
+      const cell = this.notebook.cells.find(c => c.id === id);
+      if (cell) {
+        Object.assign(cell, updates);
+        this.events.emit('notebook:cell:updated', { id, updates });
+      }
+    },
 
-  async clear(): Promise<void> {
-    this.storage.clear();
-  }
+    executeCell: async (id: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        this.events.emit('notebook:cell:execute', { id, resolve, reject });
+      });
+    },
 
-  async keys(): Promise<string[]> {
-    return Array.from(this.storage.keys());
-  }
-}
+    onCellChange: (callback: (cell: NotebookCell) => void): PluginDisposable => {
+      this.events.on('notebook:cell:changed', callback);
+      return {
+        dispose: () => this.events.removeListener('notebook:cell:changed', callback)
+      };
+    }
+  };
 
-class HttpAPI {
-  async request(options: RequestOptions): Promise<Response> {
-    const response = await fetch(options.url || '', {
-      method: options.method || 'GET',
-      headers: options.headers,
-      // Add timeout and other options
-    });
+  // File System API
+  public fs: FileSystemInterface = {
+    readFile: async (path: string): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        this.events.emit('fs:readFile', { path, resolve, reject });
+      });
+    },
 
-    return {
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.fromEntries(response.headers.entries()),
-      data: await response.json().catch(() => null),
-      text: () => response.text(),
-      json: () => response.json(),
-      blob: () => response.blob(),
-    };
-  }
+    writeFile: async (path: string, content: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        this.events.emit('fs:writeFile', { path, content, resolve, reject });
+      });
+    },
 
-  async get(url: string, options?: RequestOptions): Promise<Response> {
-    return this.request({ ...options, url, method: 'GET' });
-  }
+    readDir: async (path: string): Promise<string[]> => {
+      return new Promise((resolve, reject) => {
+        this.events.emit('fs:readDir', { path, resolve, reject });
+      });
+    },
 
-  async post(url: string, data?: any, options?: RequestOptions): Promise<Response> {
-    return this.request({
-      ...options,
-      url,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-      body: JSON.stringify(data),
-    } as any);
-  }
+    exists: async (path: string): Promise<boolean> => {
+      return new Promise((resolve, reject) => {
+        this.events.emit('fs:exists', { path, resolve, reject });
+      });
+    },
 
-  async put(url: string, data?: any, options?: RequestOptions): Promise<Response> {
-    return this.request({
-      ...options,
-      url,
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options?.headers,
-      },
-      body: JSON.stringify(data),
-    } as any);
-  }
+    stat: async (path: string): Promise<FileStat> => {
+      return new Promise((resolve, reject) => {
+        this.events.emit('fs:stat', { path, resolve, reject });
+      });
+    },
 
-  async delete(url: string, options?: RequestOptions): Promise<Response> {
-    return this.request({ ...options, url, method: 'DELETE' });
-  }
+    watch: (path: string, callback: (event: FileEvent) => void): PluginDisposable => {
+      this.events.emit('fs:watch', { path, callback });
+      return {
+        dispose: () => this.events.emit('fs:unwatch', { path, callback })
+      };
+    }
+  };
+
+  // Network API
+  public network: NetworkInterface = {
+    request: async (options: RequestOptions): Promise<Response> => {
+      const response = await fetch(options.url, {
+        method: options.method || 'GET',
+        headers: options.headers,
+        body: options.body,
+        signal: options.timeout ? AbortSignal.timeout(options.timeout) : undefined
+      });
+
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        text: () => response.text(),
+        json: () => response.json(),
+        blob: () => response.blob()
+      };
+    },
+
+    get: async (url: string, options?: Omit<RequestOptions, 'method' | 'url'>): Promise<Response> => {
+      return this.network.request({ ...options, url, method: 'GET' });
+    },
+
+    post: async (url: string, options?: Omit<RequestOptions, 'method' | 'url'>): Promise<Response> => {
+      return this.network.request({ ...options, url, method: 'POST' });
+    },
+
+    put: async (url: string, options?: Omit<RequestOptions, 'method' | 'url'>): Promise<Response> => {
+      return this.network.request({ ...options, url, method: 'PUT' });
+    },
+
+    delete: async (url: string, options?: Omit<RequestOptions, 'method' | 'url'>): Promise<Response> => {
+      return this.network.request({ ...options, url, method: 'DELETE' });
+    }
+  };
+
+  // Workspace API
+  public workspace: WorkspaceInterface = {
+    root: this.context.workspaceRoot,
+    name: '',
+    files: [],
+
+    openFile: async (path: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        this.events.emit('workspace:openFile', { path, resolve, reject });
+      });
+    },
+
+    closeFile: async (path: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        this.events.emit('workspace:closeFile', { path, resolve, reject });
+      });
+    },
+
+    saveFile: async (path: string): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        this.events.emit('workspace:saveFile', { path, resolve, reject });
+      });
+    },
+
+    onFileOpen: (callback: (path: string) => void): PluginDisposable => {
+      this.events.on('workspace:fileOpened', callback);
+      return {
+        dispose: () => this.events.removeListener('workspace:fileOpened', callback)
+      };
+    },
+
+    onFileClose: (callback: (path: string) => void): PluginDisposable => {
+      this.events.on('workspace:fileClosed', callback);
+      return {
+        dispose: () => this.events.removeListener('workspace:fileClosed', callback)
+      };
+    },
+
+    onFileChange: (callback: (path: string) => void): PluginDisposable => {
+      this.events.on('workspace:fileChanged', callback);
+      return {
+        dispose: () => this.events.removeListener('workspace:fileChanged', callback)
+      };
+    }
+  };
+
+  // Utilities API
+  public utils = {
+    log: (message: string, level: 'debug' | 'info' | 'warn' | 'error' = 'info'): void => {
+      this.events.emit('utils:log', { message, level, plugin: this.metadata.id });
+    },
+
+    showProgress: async (title: string, task: () => Promise<void>): Promise<void> => {
+      this.events.emit('utils:progress:start', { title });
+      try {
+        await task();
+        this.events.emit('utils:progress:end', { title });
+      } catch (error) {
+        this.events.emit('utils:progress:error', { title, error });
+        throw error;
+      }
+    },
+
+    showInputBox: async (options: InputBoxOptions): Promise<string | undefined> => {
+      return new Promise((resolve) => {
+        this.events.emit('utils:inputBox', { options, resolve });
+      });
+    },
+
+    showQuickPick: async (items: string[], options?: QuickPickOptions): Promise<string | undefined> => {
+      return new Promise((resolve) => {
+        this.events.emit('utils:quickPick', { items, options, resolve });
+      });
+    }
+  };
 } 

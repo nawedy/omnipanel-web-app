@@ -3,7 +3,7 @@
 export interface Tab {
   id: string;
   title: string;
-  type: 'chat' | 'code' | 'notebook' | 'terminal' | 'file';
+  type: 'chat' | 'code' | 'notebook' | 'terminal' | 'file' | 'editor' | 'research';
   path?: string;
   content?: string;
   isActive: boolean;

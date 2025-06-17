@@ -4,7 +4,7 @@ import { devtools } from 'zustand/middleware';
 export interface Tab {
   id: string;
   title: string;
-  type: 'chat' | 'code' | 'notebook' | 'terminal' | 'file';
+  type: 'chat' | 'code' | 'notebook' | 'terminal' | 'file' | 'editor' | 'research';
   icon?: string;
   content?: any;
   isActive?: boolean;
