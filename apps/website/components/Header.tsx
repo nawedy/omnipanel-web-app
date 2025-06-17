@@ -2,16 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useTheme } from 'next-themes';
+
 import { useIsMobile } from '@/hooks/use-media-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Bars3Icon, 
   XMarkIcon,
-  SunIcon,
-  MoonIcon,
   ChevronDownIcon,
 } from '@heroicons/react/24/outline';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 const navigation = [
   { 
@@ -51,17 +50,12 @@ const navigation = [
 export function Header(): React.JSX.Element {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const isMobile = useIsMobile();
 
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  const toggleTheme = (): void => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
 
   const handleDropdownEnter = (name: string): void => {
     setActiveDropdown(name);
@@ -181,20 +175,14 @@ export function Header(): React.JSX.Element {
         {/* Desktop CTA and theme toggle - only show on non-mobile */}
         {!isMobile && (
           <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:gap-x-6">
-            {/* Theme toggle */}
+            {/* Enhanced Theme toggle */}
             {mounted && (
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="rounded-full p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-                aria-label="Toggle dark mode"
-              >
-                {theme === 'dark' ? (
-                  <SunIcon className="h-5 w-5" aria-hidden="true" />
-                ) : (
-                  <MoonIcon className="h-5 w-5" aria-hidden="true" />
-                )}
-              </button>
+              <ThemeToggle 
+                showLabel={true} 
+                variant="default"
+                size="default"
+                className="bg-white/10 hover:bg-white/20 border-white/20 text-white hover:text-white"
+              />
             )}
 
             {/* Sign in */}
@@ -291,23 +279,14 @@ export function Header(): React.JSX.Element {
                   
                   <div className="py-6 space-y-4">
                     {mounted && (
-                      <button
-                        type="button"
-                        onClick={toggleTheme}
-                        className="flex items-center space-x-2 text-base font-semibold leading-7 text-gray-900 dark:text-white w-full px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
-                      >
-                        {theme === 'dark' ? (
-                          <>
-                            <SunIcon className="h-5 w-5" />
-                            <span>Light mode</span>
-                          </>
-                        ) : (
-                          <>
-                            <MoonIcon className="h-5 w-5" />
-                            <span>Dark mode</span>
-                          </>
-                        )}
-                      </button>
+                      <div className="px-3 py-2">
+                        <ThemeToggle 
+                          showLabel={true} 
+                          variant="default"
+                          size="default"
+                          className="w-full justify-start"
+                        />
+                      </div>
                     )}
                     
                     <Link

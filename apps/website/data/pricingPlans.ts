@@ -1,44 +1,78 @@
-// Strictly typed pricing plan data for homepage integration
-import type { PricingPlan } from '@/components/PricingCard';
+// apps/website/data/pricingPlans.ts
+// Complete pricing plans data for OmniPanel website
+
+export interface PricingPlan {
+  name: string;
+  description: string;
+  price: number;
+  originalPrice?: number;
+  period: string;
+  features: string[];
+  cta: string;
+  popular?: boolean;
+}
 
 export const pricingPlans: PricingPlan[] = [
   {
-    name: 'Free',
-    price: '$0',
-    description: 'Basic access to AI chat and code features. Great for individuals.',
+    name: 'Starter',
+    description: 'Perfect for individual developers',
+    price: 29,
+    originalPrice: 49,
+    period: 'month',
     features: [
-      'Unlimited AI chat',
-      'Basic code editing',
-      'Community support',
+      'AI Guardian security scanning',
+      '100% local AI execution',
+      'Basic code analysis',
+      'Email support',
+      'Up to 5 projects',
+      'Standard encryption',
+      'Community access',
+      '30-day money-back guarantee'
     ],
-    cta: 'Get Started',
-    href: '/signup',
+    cta: 'Start Free Trial',
+    popular: false,
   },
   {
-    name: 'Pro',
-    price: '$19/mo',
-    description: 'Advanced features for professionals and teams.',
+    name: 'Professional',
+    description: 'Best for growing teams',
+    price: 79,
+    originalPrice: 129,
+    period: 'month',
     features: [
-      'Everything in Free',
+      'Everything in Starter',
+      'Advanced threat detection',
+      'Team collaboration tools',
       'Priority support',
-      'Team collaboration',
-      'Advanced model integrations',
+      'Unlimited projects',
+      'Enterprise-grade encryption',
+      'Custom security policies',
+      'Advanced analytics dashboard',
+      'API access',
+      'White-label options'
     ],
-    cta: 'Upgrade to Pro',
-    href: '/signup',
-    featured: true,
+    cta: 'Start Professional',
+    popular: true,
   },
   {
     name: 'Enterprise',
-    price: 'Contact Us',
-    description: 'Custom solutions and dedicated support for organizations.',
+    description: 'For large organizations',
+    price: 199,
+    originalPrice: 299,
+    period: 'month',
     features: [
-      'Everything in Pro',
-      'Custom integrations',
+      'Everything in Professional',
+      'Air-gap deployment',
+      'Custom compliance integration',
       'Dedicated account manager',
-      'SLAs & compliance',
+      'SLA guarantees',
+      'Advanced audit trails',
+      'Custom training',
+      '24/7 phone support',
+      'On-premise deployment',
+      'Custom integrations',
+      'Volume discounts available'
     ],
     cta: 'Contact Sales',
-    href: '/contact',
+    popular: false,
   },
 ];

@@ -14,12 +14,17 @@
     "clean": "rm -rf .next out",
     "test": "jest",
     "test:watch": "jest --watch",
-    "sitemap": "next-sitemap"
+    "sitemap": "next-sitemap",
+    "deploy:vercel": "./scripts/deploy.sh && vercel --prod",
+    "deploy:preview": "./scripts/deploy.sh && vercel",
+    "deploy:local": "./scripts/deploy.sh",
+    "vercel-build": "npm run build"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.0.18",
     "@hookform/resolvers": "^3.3.2",
+    "@omnipanel/theme-engine": "workspace:*",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-aspect-ratio": "^1.1.7",
     "@radix-ui/react-collapsible": "^1.1.11",

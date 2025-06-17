@@ -1,9 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-// import { ThemeEngine, ThemeProvider as OmniThemeProvider } from '@omnipanel/theme-engine'; // TODO: Implement in Sprint 2
 
-// Temporary implementation until theme-engine package is implemented
 interface ThemeEngineConfig {
   defaultTheme: string;
   themes: string[];
@@ -35,7 +33,6 @@ class ThemeEngine {
   }
 }
 
-// Temporary OmniThemeProvider until theme-engine package is implemented
 const OmniThemeProvider = ({ children, theme }: { children: React.ReactNode; theme: string; engine: ThemeEngine }) => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -47,7 +44,6 @@ const OmniThemeProvider = ({ children, theme }: { children: React.ReactNode; the
   return <>{children}</>;
 };
 
-// Initialize the theme engine with default configuration
 const themeEngine = new ThemeEngine({
   defaultTheme: 'dark',
   themes: ['light', 'dark', 'system'],
@@ -55,7 +51,6 @@ const themeEngine = new ThemeEngine({
   storageKey: 'omnipanel-website-theme',
 });
 
-// Create context for theme state
 type ThemeContextType = {
   theme: string;
   setTheme: (theme: string) => void;
@@ -67,15 +62,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<string>(themeEngine.getCurrentTheme());
   
-  // Set theme in the DOM
   const setTheme = (newTheme: string) => {
     themeEngine.setTheme(newTheme);
     setThemeState(newTheme);
   };
 
-  // Initialize theme on mount
   useEffect(() => {
-    // Sync with system preference changes
     const handleSystemPreferenceChange = (e: MediaQueryListEvent) => {
       if (theme === 'system') {
         setThemeState(e.matches ? 'dark' : 'light');
@@ -85,7 +77,6 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const systemDarkMode = window.matchMedia('(prefers-color-scheme: dark)');
     systemDarkMode.addEventListener('change', handleSystemPreferenceChange);
 
-    // Initialize theme
     const savedTheme = themeEngine.getCurrentTheme();
     setThemeState(savedTheme);
 

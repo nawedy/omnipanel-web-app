@@ -1,19 +1,17 @@
 "use client";
 
-import React, { ReactNode } from "react";
-import { Header } from "./Header";
-// import { Footer } from "./Footer"; // TODO: Implement in layout if needed
+import React from 'react';
+import { Header } from './Header';
 
 interface SiteLayoutProps {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 export function SiteLayout({ children }: SiteLayoutProps): React.JSX.Element {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="min-h-screen bg-background">
       <Header />
       <main className="flex-1">{children}</main>
-      {/* <Footer /> */}
     </div>
   );
 }

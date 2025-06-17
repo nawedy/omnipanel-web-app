@@ -1,384 +1,241 @@
 // Pricing Section Component - Comprehensive & Conversion Optimized
 'use client';
 
-import { motion } from 'framer-motion';
+import React, { useState, useRef } from 'react';
+import { motion, useInView } from 'motion/react';
+import { Check, Zap, Shield, Users, Star, Crown, Rocket, Lock } from 'lucide-react';
 import { BentoGrid, BentoCard } from '@/components/magicui/bento-grid';
-import { AnimatedBeam } from '@/components/magicui/animated-beam';
-import { AuroraText } from '@/components/magicui/aurora-text';
-import { AnimatedGradientText } from '@/components/magicui/animated-gradient-text';
-import { AnimatedShinyText } from '@/components/magicui/animated-shiny-text';
-// import { Meteors } from '@/components/magicui/meteors'; // TODO: Implement in Sprint 3
-import FeaturesComparisonTable from '@/app/sections/FeaturesComparisonTable';
-import CostCalculatorSection from '@/app/sections/CostCalculatorSection';
-import CountdownClock from '@/app/sections/CountdownClock';
-import { Check, Crown, Shield, Users, Building, Zap, Clock, AlertTriangle, TrendingUp, Star, Download, Phone } from 'lucide-react';
-import React, { useState } from 'react';
-// import { initial } from 'lodash'; // TODO: Remove unused import
+import { cn } from '@/lib/utils';
+import { pricingPlans } from '@/data/pricingPlans';
+import { Meteors } from '@/components/magicui/meteors';
 
-// Pricing Data
-export type PricingTier = {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ElementType;
-  lifetimePrice: number;
-  originalPrice: number;
-  monthlyPrice: number;
-  popular: boolean;
-  features: string[];
-  cta: string;
-  note: string;
-};
+interface PricingCardProps {
+  plan: typeof pricingPlans[0];
+  isPopular?: boolean;
+  index: number;
+}
 
-export const pricingTiers: PricingTier[] = [
-  {
-    id: 'early-believer',
-    name: 'Early Believer',
-    description: 'First 500 customers only',
-    icon: Zap,
-    lifetimePrice: 149,
-    originalPrice: 499,
-    monthlyPrice: 8,
-    popular: true,
-    features: [
-      'Complete OmniPanel workspace',
-      'AI Guardian security scanning',
-      'Local AI model execution',
-      'Lifetime updates included',
-      'Beta access in 2 weeks',
-      'Founding member status',
-      'Priority support queue',
-      '60-day money-back guarantee'
-    ],
-    cta: 'Save Developer Privacy - $149',
-    note: 'Price increases to $199 in 47 hours'
-  },
-  {
-    id: 'team',
-    name: 'Team Security',
-    description: '5-25 developers',
-    icon: Users,
-    lifetimePrice: 129,
-    originalPrice: 299,
-    monthlyPrice: 12,
-    popular: false,
-    features: [
-      'Everything in Early Believer',
-      'Team workspace management',
-      'Shared security policies',
-      'Admin dashboard access',
-      'Team collaboration features',
-      'Bulk license management',
-      'Team training included',
-      'Priority enterprise support'
-    ],
-    cta: 'Secure Team Privacy',
-    note: 'Per seat pricing'
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise Plus',
-    description: '25+ developers',
-    icon: Building,
-    lifetimePrice: 99,
-    originalPrice: 199,
-    monthlyPrice: 15,
-    popular: false,
-    features: [
-      'Everything in Team Security',
-      'Air-gap deployment option',
-      'Custom compliance integration',
-      'Advanced audit trails',
-      'White-label options',
-      'Dedicated account manager',
-      'Custom security auditing',
-      '24/7 priority support'
-    ],
-    cta: 'Enterprise Demo',
-    note: 'Volume discounts available'
-  },
-  {
-    id: 'government',
-    name: 'Government',
-    description: 'Agencies & defense',
-    icon: Shield,
-    lifetimePrice: 299,
-    originalPrice: 599,
-    monthlyPrice: 25,
-    popular: false,
-    features: [
-      'Everything in Enterprise Plus',
-      'FedRAMP/FISMA compliance',
-      'Classified environment ready',
-      'No foreign dependencies',
-      'Complete audit logging',
-      'Security clearance compatible',
-      'Custom implementation',
-      'Government contract ready'
-    ],
-    cta: 'Contact Government Sales',
-    note: 'Custom pricing for large deployments'
-  }
-];
+const PricingCard: React.FC<PricingCardProps> = ({ plan, isPopular, index }) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(cardRef, { once: true, margin: "-100px" });
 
-export default function PricingSection() {
-  const [billingCycle, setBillingCycle] = useState<'lifetime' | 'monthly'>('lifetime');
-  // const [teamSize, setTeamSize] = useState(10); // TODO: Implement in Sprint 3
+  const getIcon = (planName: string) => {
+    switch (planName.toLowerCase()) {
+      case 'starter': return <Zap className="w-6 h-6" />;
+      case 'professional': return <Shield className="w-6 h-6" />;
+      case 'enterprise': return <Crown className="w-6 h-6" />;
+      default: return <Star className="w-6 h-6" />;
+    }
+  };
+
+  const getGradient = (planName: string) => {
+    switch (planName.toLowerCase()) {
+      case 'starter': return 'from-neon-blue/20 to-neon-green/20';
+      case 'professional': return 'from-neon-purple/20 to-neon-blue/20';
+      case 'enterprise': return 'from-neon-yellow/20 to-neon-purple/20';
+      default: return 'from-neon-blue/20 to-neon-green/20';
+    }
+  };
 
   return (
-    <section className="py-20 bg-gradient-to-b from-black/40 to-black/60">
-      <div className="container mx-auto px-4 max-w-7xl">
-        
-        {/* Section Header */}
-        <motion.div 
+    <motion.div
+      ref={cardRef}
+      initial={{ opacity: 0, y: 50 }}
+      animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
+      transition={{ duration: 0.6, delay: index * 0.1 }}
+      className={cn(
+        "relative p-8 rounded-2xl border bg-gradient-to-br",
+        getGradient(plan.name),
+        isPopular 
+          ? "border-neon-blue/50 shadow-2xl shadow-neon-blue/20 scale-105" 
+          : "border-white/10 hover:border-white/20",
+        "transition-all duration-300 hover:shadow-xl backdrop-blur-sm"
+      )}
+    >
+      {isPopular && (
+        <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+          <div className="bg-gradient-to-r from-neon-blue to-neon-purple text-white px-4 py-2 rounded-full text-sm font-semibold">
+            Most Popular
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-center gap-3 mb-6">
+        <div className={cn(
+          "p-3 rounded-xl bg-gradient-to-br",
+          isPopular ? "from-neon-blue/30 to-neon-purple/30" : "from-white/10 to-white/5"
+        )}>
+          {getIcon(plan.name)}
+        </div>
+        <div>
+          <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
+          <p className="text-gray-300">{plan.description}</p>
+        </div>
+      </div>
+
+      <div className="mb-8">
+        <div className="flex items-baseline gap-2">
+          <span className="text-4xl font-bold text-white">${plan.price}</span>
+          <span className="text-gray-300">/{plan.period}</span>
+        </div>
+        {plan.originalPrice && (
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-lg text-gray-400 line-through">${plan.originalPrice}</span>
+            <span className="text-sm bg-neon-green/20 text-neon-green px-2 py-1 rounded-full">
+              Save ${plan.originalPrice - plan.price}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <ul className="space-y-4 mb-8">
+        {plan.features.map((feature, featureIndex) => (
+          <li key={featureIndex} className="flex items-start gap-3">
+            <Check className="w-5 h-5 text-neon-green mt-0.5 flex-shrink-0" />
+            <span className="text-gray-200">{feature}</span>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        className={cn(
+          "w-full py-3 px-6 rounded-xl font-semibold transition-all duration-300",
+          isPopular
+            ? "bg-gradient-to-r from-neon-blue to-neon-purple text-white hover:shadow-lg hover:shadow-neon-blue/30"
+            : "bg-white/10 text-white hover:bg-white/20 border border-white/20"
+        )}
+      >
+        {plan.cta}
+      </button>
+
+      {isPopular && <Meteors number={6} />}
+    </motion.div>
+  );
+};
+
+const PricingSection: React.FC = () => {
+  const sectionRef = useRef<HTMLElement>(null);
+  const isInView = useInView(sectionRef, { once: true, margin: "-100px" });
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
+
+  const handleBillingToggle = () => {
+    setBillingCycle(prev => prev === 'monthly' ? 'yearly' : 'monthly');
+  };
+
+  const bentoItems = [
+    {
+      title: "AI Guardian Protection",
+      description: "Real-time security scanning and threat detection for all your code",
+      icon: Shield,
+      gradient: "from-neon-blue/20 to-neon-green/20"
+    },
+    {
+      title: "100% Local Execution", 
+      description: "Your code never leaves your machine - complete privacy guaranteed",
+      icon: Lock,
+      gradient: "from-neon-green/20 to-neon-yellow/20"
+    },
+    {
+      title: "Multi-Platform Support",
+      description: "Works seamlessly across Windows, macOS, and Linux", 
+      icon: Users,
+      gradient: "from-neon-purple/20 to-neon-blue/20"
+    },
+    {
+      title: "Lightning Fast Performance",
+      description: "Optimized for speed with advanced caching and efficient algorithms",
+      icon: Rocket,
+      gradient: "from-neon-yellow/20 to-neon-purple/20"
+    }
+  ];
+
+  return (
+    <section ref={sectionRef} className="py-24 bg-gradient-to-b from-black/40 to-black/60 relative overflow-hidden">
+      <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+        <motion.div
           initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
           transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
-          {/* Animated Beam with proper refs */}
-          {(() => {
-            const containerRef = React.useRef<HTMLDivElement | null>(null);
-            const fromRef = React.useRef<HTMLDivElement | null>(null);
-            const toRef = React.useRef<HTMLDivElement | null>(null);
-            return (
-              <div ref={containerRef} className="relative">
-                <div ref={fromRef} className="absolute left-1/4 top-0" />
-                <div ref={toRef} className="absolute right-1/4 top-0" />
-                <AnimatedBeam containerRef={containerRef} fromRef={fromRef} toRef={toRef} className="mx-auto mb-6 max-w-lg" gradientStartColor="#a21caf" gradientStopColor="#7c3aed" />
-              </div>
-            );
-          })()}
-          <div className="inline-flex items-center px-4 py-2 bg-neon-purple/10 border border-neon-purple/20 rounded-full mb-6">
-            <Crown className="w-5 h-5 text-neon-purple mr-2" />
-            <span className="text-neon-purple font-medium">Emergency Pricing - 72 Hours Only</span>
-          </div>
-          <AuroraText className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
-            Own Your AI Tools
-            <AnimatedGradientText className="block">Forever</AnimatedGradientText>
-          </AuroraText>
-          <AnimatedShinyText className="text-xl text-gray-300 max-w-4xl mx-auto leading-relaxed mb-8">
-            While competitors trap you in expensive subscriptions that harvest your data, 
-            OmniPanel offers lifetime ownership with complete privacy protection.
-          </AnimatedShinyText>
-          {/* Countdown Clock Integration */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1, ease: 'easeOut' }}
-            className="max-w-2xl mx-auto p-6 bg-red-500/10 border border-red-500/20 rounded-xl shadow-lg"
-          >
-            <div className="flex items-center justify-center space-x-4 text-red-400 mb-4">
-              <Clock className="w-6 h-6 animate-pulse" />
-              <CountdownClock targetDate={new Date(Date.now() + 72 * 60 * 60 * 1000)} className="font-bold text-2xl" finishedMessage="Emergency pricing has ended!" />
-              <Clock className="w-6 h-6 animate-pulse" />
-            </div>
-            <p className="text-red-300 text-lg">
-              Emergency pricing increases to $199, then $249, then $499 at launch
-            </p>
-            <div className="mt-4 bg-red-500/20 rounded-full h-3">
-              <div className="bg-red-500 h-3 rounded-full w-3/4 animate-pulse"></div>
-            </div>
-            <p className="text-red-300 text-sm mt-2">347 spots remaining at this price</p>
-          </motion.div>
-        </motion.div>
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            Choose Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-neon-blue to-neon-purple">Security Level</span>
+          </h2>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
+            From individual developers to enterprise teams, we have the perfect plan to keep your code secure and your productivity high.
+          </p>
 
-        {/* Billing Toggle */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="flex justify-center mb-12"
-        >
-          <div className="bg-gray-800 p-2 rounded-xl">
-            <button
-              onClick={() => setBillingCycle('lifetime')}
-              className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                billingCycle === 'lifetime'
-                  ? 'bg-neon-blue text-black'
-                  : 'text-gray-300 hover:text-white'
-              }`}
-            >
-              Lifetime (Recommended)
-            </button>
-            <button
-              onClick={() => setBillingCycle('monthly')}
-              className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                billingCycle === 'monthly'
-                  ? 'bg-neon-blue text-black'
-                  : 'text-gray-300 hover:text-white'
-              }`}
-            >
+          <div className="flex items-center justify-center gap-4 mb-12">
+            <span className={cn("text-lg", billingCycle === 'monthly' ? "text-white" : "text-gray-400")}>
               Monthly
-            </button>
-          </div>
-        </motion.div>
-
-        {/* Pricing Cards - Magic UI Bento Grid */}
-        <BentoGrid className="mb-16">
-          {pricingTiers.map((tier, index) => (
-            <motion.div
-              key={tier.id}
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              className={`relative h-full flex flex-col ${tier.popular ? 'lg:-mt-8 border-4 border-neon-purple/80 shadow-xl z-10' : ''}`}
+            </span>
+            <button
+              onClick={handleBillingToggle}
+              className="relative w-16 h-8 bg-gray-600 rounded-full transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-neon-blue"
             >
-              <BentoCard
-                name={tier.name}
-                className="h-full"
-                background={null}
-                Icon={tier.icon}
-                description={tier.description}
-                href="#pricing"
-                cta={tier.cta}
+              <div
+                className={cn(
+                  "absolute top-1 w-6 h-6 bg-white rounded-full transition-transform duration-300",
+                  billingCycle === 'yearly' ? "translate-x-9" : "translate-x-1"
+                )}
               />
-            </motion.div>
-          ))}
-        </BentoGrid>
-
-        {/* Cost Comparison Calculator */}
-        <CostCalculatorSection />
-
-        {/* Feature Comparison Table */}
-        <FeaturesComparisonTable />
-
-        {/* Enterprise Contact Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="mb-16"
-        >
-          <div className="grid lg:grid-cols-2 gap-12">
-            {/* Enterprise Package */}
-            <div className="glass-card p-8">
-              <div className="mb-6">
-                <Building className="w-12 h-12 text-neon-purple mb-4" />
-                <h3 className="text-2xl font-bold text-white mb-2">Enterprise & Government</h3>
-                <p className="text-gray-300">Custom solutions for large organizations</p>
-              </div>
-
-              <div className="space-y-4 mb-8">
-                <div className="flex items-center space-x-3">
-                  <Check className="w-5 h-5 text-neon-green" />
-                  <span className="text-gray-300">Air-gap deployment capability</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Check className="w-5 h-5 text-neon-green" />
-                  <span className="text-gray-300">Custom compliance integration</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Check className="w-5 h-5 text-neon-green" />
-                  <span className="text-gray-300">Dedicated security auditing</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Check className="w-5 h-5 text-neon-green" />
-                  <span className="text-gray-300">White-label options available</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Check className="w-5 h-5 text-neon-green" />
-                  <span className="text-gray-300">24/7 priority support</span>
-                </div>
-              </div>
-
-              <div className="text-center mb-6">
-                <div className="text-3xl font-bold text-white mb-2">Custom Pricing</div>
-                <div className="text-gray-300">Starting at $99/seat for 100+ users</div>
-              </div>
-
-              <button className="w-full btn btn-outline btn-lg">
-                <Phone className="w-5 h-5 mr-2" />
-                Schedule Enterprise Demo
-              </button>
-            </div>
-
-            {/* Government Package */}
-            <div className="glass-card p-8 border-neon-purple">
-              <div className="mb-6">
-                <Shield className="w-12 h-12 text-neon-purple mb-4" />
-                <h3 className="text-2xl font-bold text-white mb-2">Government & Defense</h3>
-                <p className="text-gray-300">Security clearance ready solutions</p>
-              </div>
-
-              <div className="space-y-4 mb-8">
-                <div className="flex items-center space-x-3">
-                  <Check className="w-5 h-5 text-neon-green" />
-                  <span className="text-gray-300">FedRAMP and FISMA compliance</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Check className="w-5 h-5 text-neon-green" />
-                  <span className="text-gray-300">Classified environment deployment</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Check className="w-5 h-5 text-neon-green" />
-                  <span className="text-gray-300">No foreign dependencies</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Check className="w-5 h-5 text-neon-green" />
-                  <span className="text-gray-300">Complete audit trail logging</span>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Check className="w-5 h-5 text-neon-green" />
-                  <span className="text-gray-300">Security clearance compatible</span>
-                </div>
-              </div>
-
-              <div className="text-center mb-6">
-                <div className="text-3xl font-bold text-white mb-2">$500K - $2M</div>
-                <div className="text-gray-300">Per agency implementation</div>
-              </div>
-
-              <button className="w-full btn btn-primary btn-lg neon-glow">
-                <Download className="w-5 h-5 mr-2" />
-                Download Security Specifications
-              </button>
-            </div>
+            </button>
+            <span className={cn("text-lg", billingCycle === 'yearly' ? "text-white" : "text-gray-400")}>
+              Yearly
+            </span>
+            <span className="bg-neon-green/20 text-neon-green px-3 py-1 rounded-full text-sm font-semibold">
+              Save 20%
+            </span>
           </div>
         </motion.div>
 
-        {/* Final CTA Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          {pricingPlans.map((plan, index) => (
+            <PricingCard
+              key={plan.name}
+              plan={plan}
+              isPopular={plan.name === 'Professional'}
+              index={index}
+            />
+          ))}
+        </div>
+
         <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
+          initial={{ opacity: 0, y: 30 }}
+          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
           className="text-center"
         >
-          <div className="glass-card p-8 md:p-12">
-            <div className="mb-8">
-              <AlertTriangle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-              <h3 className="text-4xl font-bold text-white mb-4">
-                Don't Let This Opportunity Disappear
-              </h3>
-              <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-                After 72 hours, pricing increases and this privacy solution might be gone forever. 
-                Join 500+ developers who've already secured their intellectual property protection.
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6 mb-8">
-              <div className="text-center p-6 bg-gray-800/50 rounded-xl">
-                <Star className="w-8 h-8 text-yellow-400 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">4.9/5</div>
-                <div className="text-gray-300">Beta user rating</div>
-              </div>
-              <div className="text-center p-6 bg-gray-800/50 rounded-xl">
-                <TrendingUp className="w-8 h-8 text-green-400 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">90%</div>
-                <div className="text-gray-300">Development complete</div>
-              </div>
-              <div className="text-center p-6 bg-gray-800/50 rounded-xl">
-                <Shield className="w-8 h-8 text-neon-blue mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">100%</div>
-                <div className="text-gray-300">Security focused</div>
-              </div>
-            </div>
-            <p className="text-sm text-gray-400 mt-6">
-              60-day money-back guarantee • Beta access in 2 weeks • Full product in 6 weeks
-            </p>
-          </div>
+          <h3 className="text-2xl font-bold text-white mb-8">
+            All Plans Include
+          </h3>
+          
+          <BentoGrid className="max-w-4xl mx-auto grid-cols-1 md:grid-cols-2">
+            {bentoItems.map((item, index) => (
+              <BentoCard
+                key={item.title}
+                name={item.title}
+                className={cn("col-span-1", index === 0 || index === 3 ? "md:col-span-2" : "")}
+                background={
+                  <div className={cn("h-32 bg-gradient-to-br rounded-lg flex items-center justify-center", item.gradient)}>
+                    <item.icon className="w-12 h-12 text-white" />
+                  </div>
+                }
+                Icon={item.icon}
+                description={item.description}
+                href="#pricing"
+                cta="Learn More"
+              />
+            ))}
+          </BentoGrid>
         </motion.div>
       </div>
+
+      <div className="absolute inset-0 bg-gradient-to-r from-neon-blue/5 via-transparent to-neon-purple/5" />
+      <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-neon-blue/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-neon-purple/10 rounded-full blur-3xl" />
     </section>
   );
-}
+};
+
+export default PricingSection;

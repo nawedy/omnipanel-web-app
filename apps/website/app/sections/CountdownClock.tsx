@@ -1,116 +1,134 @@
 // CountdownClock.tsx
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 
-export type CountdownClockProps = {
-  targetDate: Date | string;
+interface CountdownClockProps {
+  targetDate: Date;
   className?: string;
-  onExpire?: () => void;
   finishedMessage?: string;
-};
+  onExpire?: () => void;
+}
 
-const getTimeRemaining = (target: Date) => {
-  const total = target.getTime() - new Date().getTime();
-  const seconds = Math.max(Math.floor((total / 1000) % 60), 0);
-  const minutes = Math.max(Math.floor((total / 1000 / 60) % 60), 0);
-  const hours = Math.max(Math.floor((total / (1000 * 60 * 60)) % 24), 0);
-  const days = Math.max(Math.floor(total / (1000 * 60 * 60 * 24)), 0);
-  return { total, days, hours, minutes, seconds };
-};
+interface TimeLeft {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+}
 
-const pad = (n: number) => n.toString().padStart(2, '0');
-
-const CountdownClock: React.FC<CountdownClockProps> = ({
+export default function CountdownClock({
   targetDate,
   className = '',
+  finishedMessage = 'Time expired!',
   onExpire,
-  finishedMessage = 'Time is up!',
-}) => {
-  const target = typeof targetDate === 'string' ? new Date(targetDate) : targetDate;
-  const [timeLeft, setTimeLeft] = useState({ total: 0, days: 0, hours: 0, minutes: 0, seconds: 0 });
-  const [expired, setExpired] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-
-  // Initialize on client-side only to prevent hydration mismatch
-  useEffect(() => {
-    setIsClient(true);
-    const initialTime = getTimeRemaining(target);
-    setTimeLeft(initialTime);
-    if (initialTime.total <= 0) {
-      setExpired(true);
-      if (onExpire) onExpire();
-      return;
-    }
-  }, []);
+}: CountdownClockProps): React.JSX.Element {
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [isExpired, setIsExpired] = useState<boolean>(false);
+  const [isMounted, setIsMounted] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!isClient) return;
+    setIsMounted(true);
     
-    if (timeLeft.total <= 0 && !expired) {
-      setExpired(true);
-      if (onExpire) onExpire();
-      return;
-    }
-    if (expired) return;
-    
+    const calculateTimeLeft = (): TimeLeft => {
+      const difference = +targetDate - +new Date();
+      
+      if (difference > 0) {
+        return {
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          minutes: Math.floor((difference / 1000 / 60) % 60),
+          seconds: Math.floor((difference / 1000) % 60),
+        };
+      }
+      
+      return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+    };
+
     const timer = setInterval(() => {
-      const updated = getTimeRemaining(target);
-      setTimeLeft(updated);
-      if (updated.total <= 0) {
-        setExpired(true);
+      const newTimeLeft = calculateTimeLeft();
+      setTimeLeft(newTimeLeft);
+      
+      if (newTimeLeft.days === 0 && newTimeLeft.hours === 0 && 
+          newTimeLeft.minutes === 0 && newTimeLeft.seconds === 0) {
+        setIsExpired(true);
+        if (onExpire) {
+          onExpire();
+        }
         clearInterval(timer);
-        if (onExpire) onExpire();
       }
     }, 1000);
-    return () => clearInterval(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, targetDate, timeLeft.total, expired, onExpire]);
 
-  // Show placeholder during server render to prevent hydration mismatch
-  if (!isClient) {
-    return <div className={`${className}`}></div>;
-  }
-  
-  if (expired) {
+    return () => clearInterval(timer);
+  }, [targetDate, onExpire]);
+
+  if (!isMounted) {
     return (
-      <div
-        className={`text-center text-lg font-semibold text-red-400 dark:text-red-300 ${className}`}
-        role="status"
-        aria-live="polite"
-      >
-        {finishedMessage}
+      <div className={`flex items-center justify-center gap-4 ${className}`}>
+        <div className="bg-neon-blue/20 rounded-lg p-4 min-w-[60px] text-center">
+          <div className="text-2xl font-bold text-white">00</div>
+          <div className="text-xs text-gray-300">DAYS</div>
+        </div>
+        <div className="text-neon-blue text-2xl">:</div>
+        <div className="bg-neon-blue/20 rounded-lg p-4 min-w-[60px] text-center">
+          <div className="text-2xl font-bold text-white">00</div>
+          <div className="text-xs text-gray-300">HRS</div>
+        </div>
+        <div className="text-neon-blue text-2xl">:</div>
+        <div className="bg-neon-blue/20 rounded-lg p-4 min-w-[60px] text-center">
+          <div className="text-2xl font-bold text-white">00</div>
+          <div className="text-xs text-gray-300">MIN</div>
+        </div>
+        <div className="text-neon-blue text-2xl">:</div>
+        <div className="bg-neon-blue/20 rounded-lg p-4 min-w-[60px] text-center">
+          <div className="text-2xl font-bold text-white">00</div>
+          <div className="text-xs text-gray-300">SEC</div>
+        </div>
       </div>
     );
   }
 
+  if (isExpired) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className={`text-center ${className}`}
+      >
+        <div className="text-2xl font-bold text-red-400">{finishedMessage}</div>
+      </motion.div>
+    );
+  }
+
+  const timeUnits = [
+    { value: timeLeft.days, label: 'DAYS' },
+    { value: timeLeft.hours, label: 'HRS' },
+    { value: timeLeft.minutes, label: 'MIN' },
+    { value: timeLeft.seconds, label: 'SEC' },
+  ];
+
   return (
-    <div
-      className={`flex justify-center items-center gap-4 text-2xl font-mono text-white dark:text-gray-100 ${className}`}
-      role="timer"
-      aria-live="polite"
-    >
-      <div className="flex flex-col items-center">
-        <span className="text-4xl font-bold">{pad(timeLeft.days)}</span>
-        <span className="text-xs uppercase text-gray-400">Days</span>
-      </div>
-      <span className="text-3xl font-bold text-neon-purple">:</span>
-      <div className="flex flex-col items-center">
-        <span className="text-4xl font-bold">{pad(timeLeft.hours)}</span>
-        <span className="text-xs uppercase text-gray-400">Hours</span>
-      </div>
-      <span className="text-3xl font-bold text-neon-purple">:</span>
-      <div className="flex flex-col items-center">
-        <span className="text-4xl font-bold">{pad(timeLeft.minutes)}</span>
-        <span className="text-xs uppercase text-gray-400">Minutes</span>
-      </div>
-      <span className="text-3xl font-bold text-neon-purple">:</span>
-      <div className="flex flex-col items-center">
-        <span className="text-4xl font-bold">{pad(timeLeft.seconds)}</span>
-        <span className="text-xs uppercase text-gray-400">Seconds</span>
-      </div>
+    <div className={`flex items-center justify-center gap-4 ${className}`}>
+      {timeUnits.map((unit, index) => (
+        <React.Fragment key={unit.label}>
+          <motion.div
+            key={`${unit.label}-${unit.value}`}
+            initial={{ scale: 1 }}
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 0.3 }}
+            className="bg-neon-blue/20 rounded-lg p-4 min-w-[60px] text-center border border-neon-blue/30"
+          >
+            <div className="text-2xl font-bold text-white">
+              {unit.value.toString().padStart(2, '0')}
+            </div>
+            <div className="text-xs text-gray-300">{unit.label}</div>
+          </motion.div>
+          {index < timeUnits.length - 1 && (
+            <div className="text-neon-blue text-2xl animate-pulse">:</div>
+          )}
+        </React.Fragment>
+      ))}
     </div>
   );
-};
-
-export default CountdownClock;
+}
