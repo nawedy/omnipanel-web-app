@@ -60,7 +60,7 @@ export function generateMetadata(config: SEOConfig): Metadata {
     title: fullTitle,
     description,
     keywords: [...defaultSEO.keywords, ...keywords].join(', '),
-    authors: authors ? authors.map(name => ({ name })) : null,
+    authors: authors?.map(name => ({ name })),
     creator: siteName,
     publisher: siteName,
     robots: {

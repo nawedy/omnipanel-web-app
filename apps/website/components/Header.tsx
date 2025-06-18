@@ -24,6 +24,16 @@ const navigation = [
     ]
   },
   { 
+    name: 'Developers', 
+    href: '#',
+    dropdown: [
+      { name: 'Documentation', href: '/docs', description: 'Complete guides and references' },
+      { name: 'API Reference', href: '/docs/api', description: 'RESTful API documentation' },
+      { name: 'Plugins', href: '/plugins', description: 'Extend OmniPanel functionality' },
+      { name: 'GitHub', href: '/github', description: 'View source code' },
+    ]
+  },
+  { 
     name: 'Solutions', 
     href: '#',
     dropdown: [
@@ -33,22 +43,8 @@ const navigation = [
       { name: 'For Researchers', href: '/solutions/research', description: 'Advanced research workflows' },
     ]
   },
-  { name: 'Features', href: '/features' },
   { name: 'Pricing', href: '/pricing' },
-  { 
-    name: 'Resources', 
-    href: '#',
-    dropdown: [
-      { name: 'Documentation', href: '/docs', description: 'Complete guides and references' },
-      { name: 'API Reference', href: '/docs/api', description: 'RESTful API documentation' },
-      { name: 'Plugins', href: '/plugins', description: 'Extend OmniPanel functionality' },
-      { name: 'GitHub', href: '/github', description: 'View source code' },
-      { name: 'News', href: '/resources/news', description: 'Latest updates and announcements' },
-      { name: 'Education', href: '/resources/education', description: 'Learning materials and tutorials' },
-      { name: 'Whitepapers', href: '/resources/whitepapers', description: 'In-depth research and analysis' },
-      { name: 'Blog', href: '/blog', description: 'Insights and thought leadership' },
-    ]
-  },
+  { name: 'Blog', href: '/blog' },
 ];
 
 export function Header(): React.JSX.Element {

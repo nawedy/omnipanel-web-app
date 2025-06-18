@@ -4,8 +4,7 @@ import React from 'react';
 import { SiteLayout } from '@/components/site-layout';
 import { TestimonialCard } from '@/components/TestimonialCard';
 import { NewsletterSignup } from '@/components/NewsletterSignup';
-import { ResourcesCarousel } from '@/components/ResourcesCarousel';
-import { PricingPhases } from '@/components/PricingPhases';
+import { Footer } from '@/components/Footer';
 
 import FeaturesSection from './sections/FeaturesSection';
 import PricingSection from './sections/PricingSection';
@@ -187,17 +186,14 @@ export default function HomePage(): React.JSX.Element {
           </div>
         </section>
 
-        {/* Pricing Phases Section */}
-        <PricingPhases />
-
         {/* Pricing Section */}
         <PricingSection />
 
-        {/* Resources Carousel Section */}
-        <ResourcesCarousel />
-
         {/* Newsletter Signup Section */}
         <NewsletterSignup />
+
+        {/* Footer Section */}
+        <Footer />
       </main>
     </SiteLayout>
   );

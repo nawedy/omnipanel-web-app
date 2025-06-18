@@ -36,7 +36,6 @@ const navigation = {
   legal: [
     { name: 'Privacy Policy', href: '/privacy' },
     { name: 'Terms of Service', href: '/terms' },
-    { name: 'OmniPanel Pledge', href: '/pledge' },
     { name: 'Cookie Policy', href: '/cookies' },
     { name: 'Security', href: '/security' },
     { name: 'License', href: '/license' },
@@ -205,12 +204,12 @@ export function Footer(): React.JSX.Element {
               ))}
             </div>
             <p className="mt-4 text-xs leading-5 text-gray-500 dark:text-gray-400 sm:mt-0">
-              &copy; {new Date().getFullYear()} OmniPanelAI by Cipher Intelligence, Inc. All rights reserved.
+              &copy; {new Date().getFullYear()} OmniPanel Technologies, Inc. All rights reserved.
             </p>
           </div>
           <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between text-xs text-gray-500 dark:text-gray-400">
             <p>Made with ❤️ for developers worldwide</p>
-            {/* <p>Version 1.0.0 • Built with Next.js and Tailwind CSS</p> */}
+            <p>Version 1.0.0 • Built with Next.js and Tailwind CSS</p>
           </div>
         </div>
       </div>
