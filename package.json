@@ -26,6 +26,8 @@
     "build:desktop": "cd apps/desktop && npm run build",
     "build:docs": "cd apps/docs && npm run build",
     "build:website": "cd apps/website && npm run build",
+    "build:website-with-deps": "npm run build:theme-engine && cd apps/website && npm run build",
+    "build:theme-engine": "tsc --build packages/theme-engine",
     "dev:types": "tsc --build --watch packages/types",
     "dev:config": "tsc --build --watch packages/config",
     "dev:database": "tsc --build --watch packages/database",

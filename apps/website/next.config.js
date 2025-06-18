@@ -1,24 +1,9 @@
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-  enabled: process.env.ANALYZE === 'true',
-});
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Vercel-optimized experimental features
   experimental: {
     scrollRestoration: true,
   },
-  // Enable transpilation of custom packages
-  transpilePackages: [
-    '@omnipanel/types',
-    '@omnipanel/config', 
-    '@omnipanel/database',
-    '@omnipanel/ui',
-    '@omnipanel/llm-adapters',
-    '@omnipanel/core',
-    '@omnipanel/theme-engine',
-    '@omnipanel/plugin-sdk'
-  ],
   // Optimized image configuration for Vercel
   images: {
     remotePatterns: [
@@ -48,10 +33,9 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: false,
   },
-  // Redirects, headers, and rewrites are now handled in vercel.json
-  // for better performance and caching
+  // Environment variables
   env: {
-    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3004',
+    NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || 'https://omnipanel.ai',
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://api.omnipanel.ai',
     NEXT_PUBLIC_DOCS_URL: process.env.NEXT_PUBLIC_DOCS_URL || 'https://docs.omnipanel.ai',
   },
@@ -61,4 +45,4 @@ const nextConfig = {
   trailingSlash: false,
 };
 
-module.exports = withBundleAnalyzer(nextConfig); 
+module.exports = nextConfig; 

@@ -416,6 +416,7 @@ module.exports = {
     require('@tailwindcss/typography'),
     require('@tailwindcss/forms'),
     require("tailwindcss-animate"),
+    require("daisyui"),
     function ({ addUtilities }) {
       const newUtilities = {
         '.transform-style-preserve-3d': {
@@ -505,5 +506,33 @@ module.exports = {
     'shadow-neon-blue',
     'shadow-neon-purple',
     'shadow-neon-green'
-  ]
+  ],
+  daisyui: {
+    themes: [
+      {
+        omnipanel: {
+          "primary": "#3b82f6",
+          "secondary": "#0ea5e9", 
+          "accent": "#d946ef",
+          "neutral": "#1e293b",
+          "base-100": "#0f172a",
+          "base-200": "#1e293b",
+          "base-300": "#334155",
+          "info": "#0ea5e9",
+          "success": "#22c55e",
+          "warning": "#f59e0b",
+          "error": "#ef4444",
+        },
+      },
+      "dark",
+      "light",
+    ],
+    darkTheme: "omnipanel",
+    base: true,
+    styled: true,
+    utils: true,
+    prefix: "",
+    logs: true,
+    themeRoot: ":root",
+  },
 }; 

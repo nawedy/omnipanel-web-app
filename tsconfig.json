@@ -41,7 +41,7 @@
       "apps/*/*.tsx",
       "*.ts",
       "*.js"
-    ],
+, "scripts/fix-linting.js", "scripts/fix-workspace-deps.js"    ],
     "exclude": [
       "node_modules",
       "dist",

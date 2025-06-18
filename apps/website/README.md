@@ -1,224 +1,172 @@
-# OmniPanel Website
+# OmniPanel AI - Official Website
 
-The official marketing website for OmniPanel AI Workspace, built with Next.js 14, TypeScript, and Tailwind CSS.
+🚀 **The future of AI-powered productivity is here.**
 
-## 🚀 Features
+This is the official website for OmniPanel AI - a revolutionary platform that transforms how you interact with artificial intelligence. Built with cutting-edge technology and designed for seamless user experience.
 
-- **Modern Design**: Beautiful, responsive design with dark/light mode support
-- **Performance Optimized**: Next.js 14 with App Router, image optimization, and bundle analysis
-- **SEO Ready**: Comprehensive meta tags, structured data, and sitemap generation
-- **Animations**: Smooth animations with Framer Motion
-- **Forms**: Contact forms with validation using React Hook Form and Zod
-- **Analytics**: Built-in analytics with Vercel Analytics
-- **Accessibility**: WCAG compliant with proper ARIA labels and keyboard navigation
+## 🌟 Features
+
+- **Modern Next.js Architecture** - Built with Next.js 15+ and React 19
+- **Beautiful UI Components** - Powered by Tailwind CSS and Radix UI
+- **Performance Optimized** - Turbopack, code splitting, and optimized assets
+- **SEO Ready** - Built-in SEO optimization and meta management
+- **Responsive Design** - Mobile-first approach with stunning animations
+- **TypeScript** - Fully typed for better development experience
 
 ## 🛠️ Tech Stack
 
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Animations**: Framer Motion
-- **Forms**: React Hook Form + Zod
-- **Icons**: Heroicons + Lucide React
-- **Analytics**: Vercel Analytics
-- **Deployment**: Vercel (recommended)
+- **Frontend**: Next.js 15+, React 19, TypeScript
+- **Styling**: Tailwind CSS, Framer Motion, Magic UI
+- **Components**: Radix UI, Lucide React Icons
+- **Development**: Turbopack, ESLint, Prettier
+- **Deployment**: Vercel (Auto-deployment enabled)
 
-## 📁 Project Structure
-
-```
-apps/website/
-├── app/                    # Next.js App Router pages
-│   ├── globals.css        # Global styles
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx           # Homepage
-├── components/            # Reusable components
-│   ├── Header.tsx         # Navigation header
-│   ├── Footer.tsx         # Site footer
-│   ├── FeatureCard.tsx    # Feature showcase cards
-│   ├── TestimonialCard.tsx # Customer testimonials
-│   ├── VideoModal.tsx     # Demo video modal
-│   ├── NewsletterSignup.tsx # Email subscription
-│   └── PricingCard.tsx    # Pricing plan cards
-├── lib/                   # Utility functions
-├── public/               # Static assets
-├── next.config.js        # Next.js configuration
-├── tailwind.config.js    # Tailwind CSS configuration
-├── tsconfig.json         # TypeScript configuration
-└── package.json          # Dependencies and scripts
-```
-
-## 🚦 Getting Started
+## 🚀 Quick Start
 
 ### Prerequisites
 
 - Node.js 22+ 
-- npm 8+
+- pnpm 8+
 
 ### Installation
 
-1. **Install dependencies**:
+1. **Clone the repository**
    ```bash
-   npm install
+   git clone https://github.com/nawedy/omnipanel-website-0620.git
+   cd omnipanel-website-0620
    ```
 
-2. **Start development server**:
+2. **Install dependencies**
    ```bash
-   npm run dev
+   pnpm install
    ```
 
-3. **Open in browser**:
-   Navigate to [http://localhost:3004](http://localhost:3004)
+3. **Start development server**
+   ```bash
+   pnpm dev
+   ```
 
-### Available Scripts
+4. **Open your browser**
+   Navigate to `http://localhost:3004`
 
-- `npm run dev` - Start development server on port 3004
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-- `npm run lint:fix` - Fix ESLint errors
-- `npm run type-check` - Run TypeScript type checking
-- `npm run analyze` - Analyze bundle size
-- `npm run export` - Export static site
+### Build for Production
 
-## 🎨 Customization
+```bash
+# Build the application
+pnpm build
 
-### Design System
-
-The website uses a comprehensive design system defined in `tailwind.config.js`:
-
-- **Colors**: Primary, secondary, accent, and semantic colors
-- **Typography**: Inter font family with custom font weights
-- **Spacing**: Consistent spacing scale
-- **Animations**: Custom animations and transitions
-
-### Components
-
-All components are built with:
-- TypeScript for type safety
-- Tailwind CSS for styling
-- Framer Motion for animations
-- Responsive design principles
-- Dark mode support
-
-### Content Management
-
-- **Static Content**: Edit directly in component files
-- **SEO Metadata**: Configure in `app/layout.tsx`
-- **Navigation**: Update in `components/Header.tsx`
-- **Footer Links**: Modify in `components/Footer.tsx`
-
-## 🔧 Configuration
-
-### Environment Variables
-
-Create a `.env.local` file:
-
-```env
-# Analytics
-NEXT_PUBLIC_VERCEL_ANALYTICS_ID=your_analytics_id
-
-# Newsletter API
-NEWSLETTER_API_KEY=your_api_key
-NEWSLETTER_API_URL=your_api_url
-
-# Contact Form
-CONTACT_FORM_API_KEY=your_api_key
+# Start production server
+pnpm start
 ```
 
-### SEO Configuration
+## 📁 Project Structure
 
-Update SEO settings in `app/layout.tsx`:
-
-```typescript
-export const metadata: Metadata = {
-  title: 'Your Title',
-  description: 'Your Description',
-  // ... other metadata
-};
+```
+omnipanel-website/
+├── app/                    # Next.js App Router
+│   ├── globals.css        # Global styles
+│   ├── layout.tsx         # Root layout
+│   ├── page.tsx           # Homepage
+│   └── sections/          # Page sections
+├── components/            # Reusable UI components
+│   ├── ui/               # Base UI components
+│   ├── magicui/          # Magic UI components
+│   └── layout/           # Layout components
+├── assets/               # Static assets
+│   ├── icons/           # Icon files
+│   ├── videos/          # Video assets
+│   └── section-images/  # Section images
+├── lib/                 # Utilities and configs
+├── data/               # Static data
+└── packages/           # Local packages
+    └── theme-engine/   # Custom theme engine
 ```
 
-## 📱 Responsive Design
+## 🎨 Theme System
 
-The website is fully responsive with breakpoints:
+This website uses a custom theme engine (`@omnipanel/theme-engine`) that provides:
 
-- **Mobile**: 320px - 767px
-- **Tablet**: 768px - 1023px  
-- **Desktop**: 1024px+
-
-## 🎯 Performance
-
-- **Lighthouse Score**: 95+ across all metrics
-- **Core Web Vitals**: Optimized for LCP, FID, and CLS
-- **Bundle Size**: Optimized with code splitting and tree shaking
-- **Images**: Next.js Image component with WebP/AVIF support
+- **Dynamic Theme Switching** - Light/Dark mode support
+- **Custom Color Palettes** - Brand-consistent color system
+- **Component Theming** - Consistent styling across components
+- **CSS Variables** - Dynamic theme customization
 
 ## 🚀 Deployment
 
-### Vercel (Recommended)
+### Automatic Deployment
 
-1. **Connect repository** to Vercel
-2. **Configure build settings**:
-   - Build Command: `npm run build`
-   - Output Directory: `.next`
-   - Install Command: `npm install`
+This repository is configured for automatic deployment on Vercel:
 
-3. **Set environment variables** in Vercel dashboard
+- **Production**: Deploys automatically on push to `main` branch
+- **Preview**: Deploys automatically on pull requests
+- **Custom Domain**: Configure in Vercel dashboard
 
-### Other Platforms
-
-The website can be deployed to any platform supporting Node.js:
-
-- **Netlify**: Use `npm run build && npm run export`
-- **AWS Amplify**: Standard Next.js deployment
-- **Docker**: Use provided Dockerfile
-
-## 🧪 Testing
+### Manual Deployment
 
 ```bash
-# Run tests
-npm test
+# Deploy to Vercel
+pnpm deploy:vercel
 
-# Run tests in watch mode
-npm run test:watch
-
-# Generate coverage report
-npm run test:coverage
+# Deploy preview
+pnpm deploy:preview
 ```
 
-## 📊 Analytics
+## 📝 Development
 
-The website includes:
+### Available Scripts
 
-- **Vercel Analytics**: Page views and performance metrics
-- **Google Analytics**: User behavior tracking (optional)
-- **Custom Events**: Form submissions, video plays, etc.
+- `pnpm dev` - Start development server
+- `pnpm build` - Build for production
+- `pnpm start` - Start production server
+- `pnpm lint` - Run ESLint
+- `pnpm lint:fix` - Fix ESLint issues
+- `pnpm type-check` - Run TypeScript checks
+- `pnpm test` - Run tests
 
-## 🔒 Security
+### Code Quality
 
-- **Content Security Policy**: Configured in `next.config.js`
-- **HTTPS**: Enforced in production
-- **Form Validation**: Client and server-side validation
-- **Rate Limiting**: API route protection
+- **TypeScript Strict Mode** - Full type safety
+- **ESLint Configuration** - Code quality enforcement
+- **Prettier Integration** - Consistent code formatting
+- **Pre-commit Hooks** - Automated quality checks
 
 ## 🤝 Contributing
 
-1. **Fork the repository**
-2. **Create feature branch**: `git checkout -b feature/amazing-feature`
-3. **Commit changes**: `git commit -m 'Add amazing feature'`
-4. **Push to branch**: `git push origin feature/amazing-feature`
-5. **Open Pull Request**
+We welcome contributions! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Follow TypeScript strict mode
+- Use conventional commit messages
+- Write tests for new features
+- Update documentation as needed
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](../../LICENSE) file for details.
+This project is private and proprietary. All rights reserved.
+
+## 🔗 Links
+
+- **Website**: [https://omnipanel.ai](https://omnipanel.ai)
+- **Documentation**: [Coming Soon]
+- **Support**: [Coming Soon]
 
 ## 🆘 Support
 
-- **Documentation**: [docs.omnipanel.ai](https://docs.omnipanel.ai)
-- **Issues**: [GitHub Issues](https://github.com/omnipanel/omnipanel/issues)
-- **Discord**: [Join our community](https://discord.gg/omnipanel)
-- **Email**: support@omnipanel.ai
+For support and questions:
+
+- Create an issue in this repository
+- Contact our development team
+- Check the documentation
 
 ---
 
-Built with ❤️ by the OmniPanel team 
+**Built with ❤️ by the OmniPanel AI Team**
+
+*Transforming AI interaction, one feature at a time.* 

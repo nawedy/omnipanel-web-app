@@ -1,0 +1,282 @@
+\documentclass[12pt]{article}
+\usepackage{geometry}
+\geometry{a4paper, margin=1in}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{titling}
+\usepackage{sectsty}
+\usepackage{tocloft}
+\usepackage{enumitem}
+\usepackage{parskip}
+\usepackage{noto}
+
+% Define colors for code listings
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+% Configure code listings
+\lstset{
+  backgroundcolor=\color{backcolour},
+  commentstyle=\color{codegreen},
+  keywordstyle=\color{magenta},
+  numberstyle=\tiny\color{codegray},
+  stringstyle=\color{codepurple},
+  basicstyle=\ttfamily\footnotesize,
+  breakatwhitespace=true,
+  breaklines=true,
+  captionpos=b,
+  keepspaces=true,
+  numbers=left,
+  numbersep=5pt,
+  showspaces=false,
+  showstringspaces=false,
+  showtabs=false,
+  tabsize=2
+}
+
+% Configure hyperlinks
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  urlcolor=blue,
+  citecolor=blue
+}
+
+% Configure section fonts
+\sectionfont{\sffamily\large}
+\subsectionfont{\sffamily\normalsize}
+\subsubsectionfont{\sffamily\small}
+
+% Title page
+\pretitle{\begin{center}\Huge\sffamily}
+\posttitle{\end{center}}
+\predate{\begin{center}\large\sffamily}
+\postdate{\end{center}}
+
+% Set font
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage[sfdefault]{noto}
+
+\begin{document}
+
+% Title page
+\begin{titlepage}
+  \vspace*{\fill}
+  \centering
+  {\Huge\bfseries Building a Zero-Budget AI Code Generator: A Context-Augmented Generation Approach\par}
+  \vspace{1cm}
+  {\Large Your Guide to High-Quality, Production-Ready Code with Free Tools in 2025\par}
+  \vspace{2cm}
+  {\large OmniPanel AI \& Secure Cipher Coder Team\par}
+  \vspace{0.5cm}
+  {\large June 18, 2025\par}
+  \vspace*{\fill}
+\end{titlepage}
+
+% Table of Contents
+\tableofcontents
+\newpage
+
+% Introduction
+\section{Introduction}
+\subsection{Why This E-Book?}
+In today's fast-paced tech landscape, generating high-quality, production-ready code efficiently and cost-effectively is a game-changer. For startups and developers with limited budgets, leveraging free tools like Google Colab and Hugging Face can make advanced AI code generation accessible. This e-book introduces \textbf{Context-Augmented Generation (CAG)}, a powerful, zero-budget approach to building an AI code generator that rivals fine-tuned models. Whether you're working on web applications (like OmniPanel AI) or cryptography solutions (like Secure Cipher Coder), this guide provides actionable steps to create a robust system with minimal bugs, up-to-date dependencies, and best practices.
+
+\subsection{What You'll Learn}
+\begin{itemize}
+  \item The advantages of CAG over traditional fine-tuning.
+  \item How to build a CAG engine using free tools.
+  \item Designing a high-quality dataset for code generation.
+  \item Practical code examples for implementation.
+  \item Strategies for post-processing and deployment.
+  \item Tips to engage your audience and generate leads.
+\end{itemize}
+
+\subsection{Who Should Read This?}
+This e-book is for developers, startups, and AI enthusiasts looking to build cost-effective code generation systems without financial investment. No prior AI expertise is required—just a willingness to dive into free, open-source tools!
+
+\subsection{Call to Action}
+Ready to transform your code generation process? Join our mailing list at \href{https://example.com/join}{example.com/join} for exclusive updates, templates, and support. Let’s build the future of AI together!
+
+% Section 1: Understanding CAG
+\section{Understanding Context-Augmented Generation}
+\subsection{What is CAG?}
+Context-Augmented Generation (CAG) leverages pre-trained large language models (LLMs) like StarCoder2-7B, combined with a retrieval system (e.g., FAISS), to generate high-quality code without fine-tuning. By retrieving relevant code snippets, dependency metadata, and linting rules, CAG enhances the LLM's output, ensuring accuracy and compliance with best practices. \href{https://x.com/omarsar0/status/1745131234567890}{Recent discussions on X} highlight CAG’s potential to reduce latency and errors compared to Retrieval-Augmented Generation (RAG).[](https://x.com/omarsar0/status/1876721221083214200)
+
+\subsection{Why Choose CAG?}
+\begin{itemize}
+  \item \textbf{Zero Cost}: Runs on free platforms like Google Colab and Hugging Face.
+  \item \textbf{Faster Setup}: 3–5 days vs. 1–2 weeks for fine-tuning.
+  \item \textbf{Easy Updates}: Add new snippets without retraining.
+  \item \textbf{Scalability}: Fits within Colab’s T4 GPU limits.
+\end{itemize}
+
+\subsection{CAG vs. Fine-Tuning}
+Fine-tuning an LLM (e.g., StarCoder2-7B) requires significant compute and time for data curation and training. CAG, by contrast, uses pre-trained models and a lightweight retrieval system, making it ideal for zero-budget projects. While fine-tuning offers tailored performance, CAG delivers comparable results with less effort.
+
+% Section 2: Building a CAG Engine
+\section{Building Your CAG Engine}
+\subsection{Step 1: Select a Model}
+Choose \textbf{StarCoder2-7B-instruct} (\texttt{bigcode/starcoder2-7b-instruct}) from Hugging Face for its code generation capabilities and compatibility with Colab’s T4 GPU. Alternative: \textbf{DeepSeek-Coder-6.7B-instruct}.
+
+\begin{lstlisting}[language=Python, caption=Loading StarCoder2 in Colab]
+from transformers import AutoModelForCausalLM, AutoTokenizer, pipeline
+model = AutoModelForCausalLM.from_pretrained(
+    "bigcode/starcoder2-7b-instruct",
+    load_in_4bit=True,
+    device_map="auto"
+)
+tokenizer = AutoTokenizer.from_pretrained("bigcode/starcoder2-7b-instruct")
+pipe = pipeline("text-generation", model=model, tokenizer=tokenizer)
+\end{lstlisting}
+
+\subsection{Step 2: Curate a Context Dataset}
+Create a dataset of high-quality Python code snippets with metadata (see Section 3). Use Hugging Face datasets like \texttt{bigcode/the-stack-dedup} or scrape GitHub repositories (>1K stars).
+
+\subsection{Step 3: Build a Retrieval System}
+Use FAISS for efficient context retrieval. Embed snippets using StarCoder2’s embeddings and store in a vectorstore.
+
+\begin{lstlisting}[language=Python, caption=Creating FAISS Vectorstore]
+from langchain.vectorstores import FAISS
+from langchain.embeddings import HuggingFaceEmbeddings
+embeddings = HuggingFaceEmbeddings(model_name="bigcode/starcoder2-7b")
+texts = [f"{item['prompt']}\n{item['code']}" for item in dataset]
+vectorstore = FAISS.from_texts(texts, embeddings)
+vectorstore.save_local("/content/drive/MyDrive/vectorstore")
+\end{lstlisting}
+
+\subsection{Step 4: Implement Inference}
+Combine retrieved context with user prompts for generation.
+
+\begin{lstlisting}[language=Python, caption=Generating Code with Context]
+def generate_code(prompt):
+    context = vectorstore.similarity_search(prompt, k=5)
+    context_text = "\n".join([doc.page_content for doc in context])
+    full_prompt = f"""
+    Using the following context, generate production-ready Python code:
+    Context: {context_text}
+    Prompt: {prompt}
+    """
+    output = pipe(full_prompt, max_length=500, temperature=0.7)
+    return output[0]["generated_text"]
+\end{lstlisting}
+
+\subsection{Step 5: Post-Processing}
+Validate output with linters and dependency checkers.
+
+\begin{lstlisting}[language=Bash, caption=Post-Processing Code]
+!pip install flake8 mypy black pipdeptree
+!flake8 --max-line-length=100 generated_code.py
+!mypy generated_code.py
+!black generated_code.py
+!pipdeptree
+\end{lstlisting}
+
+\subsection{Step 6: Deploy a Demo}
+Host a Gradio interface on Hugging Face Spaces (free tier).
+
+\begin{lstlisting}[language=Python, caption=Gradio Interface]
+import gradio as gr
+iface = gr.Interface(fn=generate_code, inputs="text", outputs="text")
+iface.launch(share=True)
+\end{lstlisting}
+
+% Section 3: Designing the Dataset
+\section{Designing Your Dataset}
+\subsection{Dataset Structure}
+Store data as JSON Lines (\texttt{.jsonl}) with the following fields:
+\begin{itemize}
+  \item \texttt{id}: Unique identifier (UUID).
+  \item \texttt{code}: Verified Python code.
+  \item \texttt{prompt}: Task description.
+  \item \texttt{dependencies}: Library versions (e.g., \texttt{"numpy": ">=1.26.4"}).
+  \item \texttt{tests}: Unit tests.
+  \item \texttt{linting\_rules}: Linting configurations.
+  \item \texttt{metadata}: Language, framework, source.
+  \item \texttt{embedding}: Optional FAISS embedding.
+\end{itemize}
+
+\begin{lstlisting}[language=JSON, caption=Sample Data Point]
+{
+  "id": "a1b2c3d4-5678-90ef-ghij-klmnopqrstuv",
+  "code": "from typing import List\n\ndef quicksort(arr: List[int]) -> List[int]:\n    if len(arr) <= 1:\n        return arr\n    pivot = arr[len(arr) // 2]\n    left = [x for x in arr if x < pivot]\n    middle = [x for x in arr if x == pivot]\n    right = [x for x in arr if x > pivot]\n    return quicksort(left) + middle + quicksort(right)",
+  "prompt": "Write a Python function to sort a list using QuickSort with type hints.",
+  "dependencies": {},
+  "tests": [
+    "def test_quicksort(): assert quicksort([3, 1, 4, 1, 5]) == [1, 1, 3, 4, 5]"
+  ],
+  "linting_rules": {"flake8": {"max-line-length": 100}, "black": {"line-length": 88}},
+  "metadata": {"language": "python", "source": "github:python/cpython"},
+  "embedding": null
+}
+\end{lstlisting}
+
+\subsection{Data Collection}
+\begin{itemize}
+  \item \textbf{Hugging Face}: Use \texttt{bigcode/the-stack-dedup} (Python subset, <1GB).
+  \item \textbf{GitHub}: Scrape repos with >1K stars using the GitHub API.
+  \item \textbf{Synthetic Data}: Generate snippets with \texttt{microsoft/phi-2}.
+\end{itemize}
+
+\subsection{Curation Process}
+\begin{enumerate}
+  \item \textbf{Filter}: Remove buggy code with \texttt{flake8} and \texttt{mypy}.
+  \item \textbf{Normalize}: Apply \texttt{black} for PEP 8 compliance.
+  \item \textbf{Annotate}: Add dependencies, tests, and metadata.
+  \item \textbf{Validate}: Test in a Docker container and check dependencies with \texttt{pipdeptree}.
+\end{enumerate}
+
+% Section 4: Tailoring for Your Projects
+\section{Tailoring for OmniPanel AI and Secure Cipher Coder}
+\subsection{OmniPanel AI}
+Focus on web frameworks like FastAPI:
+\begin{lstlisting}[language=JSON, caption=FastAPI Snippet]
+{
+  "code": "from fastapi import FastAPI\napp = FastAPI()\n@app.get('/')\nasync def root(): return {'message': 'Hello'}",
+  "prompt": "Write a FastAPI endpoint that returns a JSON greeting.",
+  "dependencies": {"fastapi": "==0.111.0", "uvicorn": ">=0.29.0"},
+  "metadata": {"framework": "fastapi"}
+}
+\end{lstlisting}
+
+\subsection{Secure Cipher Coder}
+Include cryptography snippets:
+\begin{lstlisting}[language=JSON, caption=Cryptography Snippet]
+{
+  "code": "from cryptography.fernet import Fernet\nkey = Fernet.generate_key()\ncipher = Fernet(key)\nencrypted = cipher.encrypt(b'Secret')",
+  "prompt": "Write a Python function to encrypt a string using Fernet.",
+  "dependencies": {"cryptography": "==42.0.5"},
+  "metadata": {"framework": "cryptography"}
+}
+\end{lstlisting}
+
+% Section 5: Best Practices and Tips
+\section{Best Practices and Tips}
+\begin{itemize}
+  \item \textbf{Quality Over Quantity}: Curate 10,000 high-quality snippets (<10MB).
+  \item \textbf{Frequent Updates}: Refresh dependencies weekly using PyPI.
+  \item \textbf{Robust Post-Processing}: Use \texttt{flake8}, \texttt{mypy}, \texttt{black}, and \texttt{pipdeptree}.
+  \item \textbf{Leverage Community}: Explore Hugging Face notebooks and forums.
+  \item \textbf{Monitor Performance}: Test on HumanEval and custom benchmarks.
+\end{itemize}
+
+% Section 6: Call to Action
+\section{Get Started Today!}
+Ready to build your own AI code generator? This e-book provides the blueprint, but we’re here to help you succeed. Join our mailing list at \href{https://example.com/join}{example.com/join} for:
+\begin{itemize}
+  \item Exclusive templates and datasets.
+  \item Monthly updates on AI code generation.
+  \item Free consultations for your projects.
+\end{itemize}
+Contact us at \href{mailto:info@example.com}{info@example.com} to share your success story or ask for support. Let’s code the future together!
+
+% About the Authors
+\section{About the Authors}
+The OmniPanel AI and Secure Cipher Coder team is dedicated to advancing AI-driven code generation for startups and developers. With expertise in machine learning and software engineering, we’re passionate about making AI accessible to all.
+
+\end{document}

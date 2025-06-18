@@ -3,7 +3,6 @@
 
 import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
-import { BentoCard, BentoGrid } from '@/components/magicui/bento-grid';
 import { AnimatedBeam } from '@/components/magicui/animated-beam';
 import { AuroraText } from '@/components/magicui/aurora-text';
 import { AnimatedGradientText } from '@/components/magicui/animated-gradient-text';
@@ -31,7 +30,7 @@ export default function FeaturesSection() {
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-20"
+          style={{ textAlign: 'center', marginBottom: '5rem' }}
         >
           <AnimatedBeam
             className="mx-auto mb-6 max-w-lg"

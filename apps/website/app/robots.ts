@@ -1,10 +1,14 @@
-// apps/website/app/robots.ts
-// Robots.txt configuration for SEO optimization
+// app/robots.ts
+// Comprehensive robots.txt for SEO optimization
 
 import { MetadataRoute } from 'next';
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://omnipanel.ai';
+  const baseUrl = process.env.VERCEL_URL 
+    ? `https://${process.env.VERCEL_URL}`
+    : process.env.NODE_ENV === 'development'
+    ? 'http://localhost:3000'
+    : 'https://omnipanel.cipher-intelligence.com';
 
   return {
     rules: [
@@ -14,8 +18,9 @@ export default function robots(): MetadataRoute.Robots {
         disallow: [
           '/api/',
           '/admin/',
+          '/private/',
           '/_next/',
-          '/studio/',
+          '/test',
           '*.json',
         ],
       },
@@ -24,11 +29,19 @@ export default function robots(): MetadataRoute.Robots {
         disallow: '/',
       },
       {
-        userAgent: 'Google-Extended',
+        userAgent: 'ChatGPT-User',
         disallow: '/',
       },
       {
         userAgent: 'CCBot',
+        disallow: '/',
+      },
+      {
+        userAgent: 'anthropic-ai',
+        disallow: '/',
+      },
+      {
+        userAgent: 'Claude-Web',
         disallow: '/',
       },
     ],

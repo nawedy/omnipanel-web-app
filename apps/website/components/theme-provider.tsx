@@ -18,14 +18,19 @@ interface EnhancedThemeProviderProps {
   children: React.ReactNode;
   initialTheme?: string;
   enableHotReload?: boolean;
+  attribute?: string;
+  defaultTheme?: string;
+  enableSystem?: boolean;
+  disableTransitionOnChange?: boolean;
 }
 
 export function ThemeProvider({ 
   children,
   initialTheme = "dark",
+  defaultTheme = "dark",
   // enableHotReload = process.env.NODE_ENV === "development" // Unused variable removed
 }: EnhancedThemeProviderProps): React.JSX.Element {
-  const [theme, setThemeState] = React.useState<string>(initialTheme);
+  const [theme, setThemeState] = React.useState<string>(defaultTheme || initialTheme);
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
