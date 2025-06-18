@@ -6,7 +6,10 @@
   "framework": "nextjs",
   "regions": ["iad1", "sfo1"],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "NEXT_PUBLIC_APP_URL": "https://omnipanel.cipher-intelligence.com",
+    "NEXT_PUBLIC_API_URL": "https://api.omnipanel.cipher-intelligence.com",
+    "NEXT_PUBLIC_DOCS_URL": "https://docs.omnipanel.cipher-intelligence.com"
   },
   "functions": {
     "app/api/**/*.ts": {
@@ -75,7 +78,7 @@
       ]
     },
     {
-      "source": "/(.*\\.(js|css|ico|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot))",
+      "source": "/:path*.(js|css|ico|png|jpg|jpeg|gif|svg|webp|woff|woff2|ttf|eot)",
       "headers": [
         {
           "key": "Cache-Control",
@@ -87,7 +90,7 @@
   "redirects": [
     {
       "source": "/github",
-      "destination": "https://github.com/omnipanel/omnipanel",
+      "destination": "https://github.com/nawedy/omnipanel-project-0615",
       "permanent": false
     },
     {
@@ -97,17 +100,17 @@
     },
     {
       "source": "/twitter",
-      "destination": "https://twitter.com/omnipanel",
+      "destination": "https://twitter.com/omnipanelai",
       "permanent": false
     },
     {
       "source": "/app",
-      "destination": "https://app.omnipanel.ai",
+      "destination": "https://omnipanel.cipher-intelligence.com",
       "permanent": false
     },
     {
       "source": "/docs",
-      "destination": "https://docs.omnipanel.ai",
+      "destination": "https://docs.omnipanel.cipher-intelligence.com",
       "permanent": false
     }
   ],
@@ -120,11 +123,5 @@
       "source": "/robots.txt",
       "destination": "/api/robots"
     }
-  ],
-  "env": {
-    "NEXT_PUBLIC_APP_URL": "https://omnipanel.ai",
-    "NEXT_PUBLIC_API_URL": "https://api.omnipanel.ai",
-    "NEXT_PUBLIC_DOCS_URL": "https://docs.omnipanel.ai"
-  },
-  "crons": []
+  ]
 }
