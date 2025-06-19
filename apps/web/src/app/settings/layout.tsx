@@ -126,8 +126,9 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
             <Link 
-              href="/dashboard"
+              href="/"
               className="p-2 hover:bg-muted rounded-lg transition-colors"
+              title="Back to Workspace"
             >
               <ChevronLeft className="w-5 h-5" />
             </Link>

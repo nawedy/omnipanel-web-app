@@ -10,16 +10,23 @@ import { persist } from 'zustand/middleware';
 export interface AIModel {
   id: string;
   name: string;
-  provider: 'openai' | 'anthropic' | 'google' | 'local' | 'ollama' | 'custom';
-  type: 'chat' | 'completion' | 'embedding' | 'image' | 'audio';
+  provider: 'openai' | 'anthropic' | 'google' | 'mistral' | 'cohere' | 'meta' | 'deepseek' | 'qwen' | 'huggingface' | 'openrouter' | 'local' | 'ollama' | 'custom';
+  type?: 'chat' | 'completion' | 'embedding' | 'image' | 'audio';
   maxTokens: number;
-  contextWindow: number;
+  contextWindow?: number;
   costPer1kTokens?: number;
-  isLocal: boolean;
+  isLocal?: boolean;
   isAvailable: boolean;
-  capabilities: string[];
+  capabilities?: string[];
   description?: string;
   version?: string;
+  category?: string;
+  supportsVision?: boolean;
+  supportsAudio?: boolean;
+  pricing?: {
+    input: number;
+    output: number;
+  };
 }
 
 // API Configuration
@@ -120,59 +127,328 @@ interface AIConfigState {
   testAPIConnection: (configId: string) => Promise<boolean>;
 }
 
-// Default models
-const defaultModels: AIModel[] = [
+// Available AI models with their capabilities
+const availableModels: AIModel[] = [
+  // OpenAI Models (Latest as of June 2025)
   {
-    id: 'gpt-4',
-    name: 'GPT-4',
+    id: 'gpt-4o',
+    name: 'GPT-4o',
     provider: 'openai',
     type: 'chat',
-    maxTokens: 4096,
-    contextWindow: 8192,
-    costPer1kTokens: 0.03,
+    description: 'Most advanced multimodal model, 2x faster and 50% cheaper than GPT-4 Turbo',
+    maxTokens: 128000,
+    contextWindow: 128000,
     isLocal: false,
+    supportsVision: true,
+    supportsAudio: true,
     isAvailable: false,
-    capabilities: ['chat', 'code', 'analysis', 'reasoning'],
-    description: 'Most capable GPT model for complex tasks'
+    category: 'flagship',
+    capabilities: ['text-generation', 'vision', 'audio'],
+    pricing: { input: 2.5, output: 10.0 }
   },
   {
-    id: 'gpt-3.5-turbo',
-    name: 'GPT-3.5 Turbo',
+    id: 'gpt-4o-mini',
+    name: 'GPT-4o Mini',
     provider: 'openai',
     type: 'chat',
-    maxTokens: 4096,
-    contextWindow: 4096,
-    costPer1kTokens: 0.002,
+    description: 'Efficient and cost-effective version of GPT-4o',
+    maxTokens: 128000,
+    contextWindow: 128000,
     isLocal: false,
+    supportsVision: true,
+    supportsAudio: true,
     isAvailable: false,
-    capabilities: ['chat', 'code', 'analysis'],
-    description: 'Fast and efficient for most tasks'
+    category: 'efficient',
+    capabilities: ['text-generation', 'vision', 'audio'],
+    pricing: { input: 0.15, output: 0.6 }
   },
   {
-    id: 'claude-3-opus',
-    name: 'Claude 3 Opus',
-    provider: 'anthropic',
-    type: 'chat',
-    maxTokens: 4096,
-    contextWindow: 200000,
-    costPer1kTokens: 0.015,
-    isLocal: false,
+    id: 'o3',
+    name: 'o3',
+    provider: 'openai',
+    description: 'Advanced reasoning model with enhanced problem-solving capabilities',
+    maxTokens: 200000,
+    supportsVision: false,
+    supportsAudio: false,
     isAvailable: false,
-    capabilities: ['chat', 'code', 'analysis', 'reasoning', 'long-context'],
-    description: 'Most powerful Claude model with large context window'
+    category: 'reasoning',
+    pricing: { input: 2.0, output: 8.0 }
   },
   {
-    id: 'claude-3-sonnet',
-    name: 'Claude 3 Sonnet',
-    provider: 'anthropic',
-    type: 'chat',
-    maxTokens: 4096,
-    contextWindow: 200000,
-    costPer1kTokens: 0.003,
-    isLocal: false,
+    id: 'o3-mini',
+    name: 'o3 Mini',
+    provider: 'openai',
+    description: 'Efficient reasoning model for STEM domains',
+    maxTokens: 200000,
+    supportsVision: false,
+    supportsAudio: false,
     isAvailable: false,
-    capabilities: ['chat', 'code', 'analysis', 'long-context'],
-    description: 'Balanced performance and cost'
+    category: 'reasoning',
+    pricing: { input: 1.1, output: 4.4 }
+  },
+  {
+    id: 'gpt-4.1',
+    name: 'GPT-4.1',
+    provider: 'openai',
+    description: 'Latest flagship model with 1M context window',
+    maxTokens: 1000000,
+    supportsVision: true,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'flagship',
+    pricing: { input: 2.0, output: 8.0 }
+  },
+  {
+    id: 'gpt-4.1-mini',
+    name: 'GPT-4.1 Mini',
+    provider: 'openai',
+    description: 'Efficient version of GPT-4.1 with 1M context',
+    maxTokens: 1000000,
+    supportsVision: true,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'efficient',
+    pricing: { input: 0.4, output: 1.6 }
+  },
+
+  // Anthropic Models (Latest as of June 2025)
+  {
+    id: 'claude-3-5-sonnet-20241022',
+    name: 'Claude 3.5 Sonnet',
+    provider: 'anthropic',
+    description: 'High-performance model with excellent reasoning and coding abilities',
+    maxTokens: 200000,
+    supportsVision: true,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'flagship',
+    pricing: { input: 3.0, output: 15.0 }
+  },
+  {
+    id: 'claude-3-7-sonnet',
+    name: 'Claude 3.7 Sonnet',
+    provider: 'anthropic',
+    description: 'Latest Claude model with enhanced capabilities',
+    maxTokens: 200000,
+    supportsVision: true,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'flagship',
+    pricing: { input: 3.0, output: 15.0 }
+  },
+  {
+    id: 'claude-3-5-haiku-20241022',
+    name: 'Claude 3.5 Haiku',
+    provider: 'anthropic',
+    description: 'Fast and efficient model for quick tasks',
+    maxTokens: 200000,
+    supportsVision: true,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'efficient',
+    pricing: { input: 0.8, output: 4.0 }
+  },
+
+  // Google Models (Latest as of June 2025)
+  {
+    id: 'gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
+    provider: 'google',
+    description: 'Latest multimodal model with 1M context window',
+    maxTokens: 1000000,
+    supportsVision: true,
+    supportsAudio: true,
+    isAvailable: false,
+    category: 'efficient',
+    pricing: { input: 0.15, output: 0.6 }
+  },
+  {
+    id: 'gemini-2.5-pro',
+    name: 'Gemini 2.5 Pro',
+    provider: 'google',
+    description: 'Advanced reasoning model with multimodal capabilities',
+    maxTokens: 1000000,
+    supportsVision: true,
+    supportsAudio: true,
+    isAvailable: false,
+    category: 'flagship',
+    pricing: { input: 2.5, output: 15.0 }
+  },
+  {
+    id: 'gemini-2.0-flash',
+    name: 'Gemini 2.0 Flash',
+    provider: 'google',
+    description: 'Fast and efficient multimodal model',
+    maxTokens: 1000000,
+    supportsVision: true,
+    supportsAudio: true,
+    isAvailable: false,
+    category: 'efficient',
+    pricing: { input: 0.1, output: 0.4 }
+  },
+
+  // Mistral Models (Latest as of June 2025)
+  {
+    id: 'mistral-medium-2505',
+    name: 'Mistral Medium',
+    provider: 'mistral',
+    description: 'Frontier-class multimodal model with balanced performance',
+    maxTokens: 128000,
+    supportsVision: true,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'flagship',
+    pricing: { input: 0.4, output: 2.0 }
+  },
+  {
+    id: 'magistral-medium-2506',
+    name: 'Magistral Medium',
+    provider: 'mistral',
+    description: 'Frontier-class reasoning model for domain-specific tasks',
+    maxTokens: 40000,
+    supportsVision: false,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'reasoning',
+    pricing: { input: 2.0, output: 5.0 }
+  },
+  {
+    id: 'codestral-2501',
+    name: 'Codestral',
+    provider: 'mistral',
+    description: 'Specialized coding model with 256k context',
+    maxTokens: 256000,
+    supportsVision: false,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'coding',
+    pricing: { input: 0.3, output: 0.9 }
+  },
+  {
+    id: 'mistral-small-2503',
+    name: 'Mistral Small 3.1',
+    provider: 'mistral',
+    description: 'SOTA multimodal small model, Apache 2.0',
+    maxTokens: 128000,
+    supportsVision: true,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'efficient',
+    pricing: { input: 0.1, output: 0.3 }
+  },
+
+  // Cohere Models (Latest as of June 2025)
+  {
+    id: 'command-a-03-2025',
+    name: 'Command A',
+    provider: 'cohere',
+    description: 'Most performant model for agentic AI and multilingual tasks',
+    maxTokens: 256000,
+    supportsVision: false,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'flagship',
+    pricing: { input: 2.5, output: 10.0 }
+  },
+  {
+    id: 'command-r-plus-08-2024',
+    name: 'Command R+',
+    provider: 'cohere',
+    description: 'Powerful model for complex RAG workflows and multi-step tool use',
+    maxTokens: 128000,
+    supportsVision: false,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'flagship',
+    pricing: { input: 2.5, output: 10.0 }
+  },
+  {
+    id: 'command-r-08-2024',
+    name: 'Command R',
+    provider: 'cohere',
+    description: 'Balanced model for RAG, tool use, and agents',
+    maxTokens: 128000,
+    supportsVision: false,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'balanced',
+    pricing: { input: 0.15, output: 0.6 }
+  },
+  {
+    id: 'command-r7b-12-2024',
+    name: 'Command R7B',
+    provider: 'cohere',
+    description: 'Small, fast model for efficient processing',
+    maxTokens: 128000,
+    supportsVision: false,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'efficient',
+    pricing: { input: 0.0375, output: 0.15 }
+  },
+
+  // Meta Llama Models (Latest as of June 2025)
+  {
+    id: 'llama-4-maverick',
+    name: 'Llama 4 Maverick',
+    provider: 'meta',
+    description: 'Latest flagship Llama model with advanced capabilities',
+    maxTokens: 128000,
+    supportsVision: false,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'flagship',
+    pricing: { input: 1.0, output: 2.0 }
+  },
+  {
+    id: 'llama-4-scout',
+    name: 'Llama 4 Scout',
+    provider: 'meta',
+    description: 'Efficient Llama 4 model for production use',
+    maxTokens: 128000,
+    supportsVision: false,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'efficient',
+    pricing: { input: 0.5, output: 1.0 }
+  },
+  {
+    id: 'llama-3.3-70b-instruct',
+    name: 'Llama 3.3 70B',
+    provider: 'meta',
+    description: 'High-performance open-source model',
+    maxTokens: 128000,
+    supportsVision: false,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'balanced',
+    pricing: { input: 0.23, output: 0.4 }
+  },
+
+  // DeepSeek Models (Latest as of June 2025)
+  {
+    id: 'deepseek-v3',
+    name: 'DeepSeek V3',
+    provider: 'deepseek',
+    description: 'Advanced reasoning model with competitive performance',
+    maxTokens: 128000,
+    supportsVision: false,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'reasoning',
+    pricing: { input: 0.14, output: 0.28 }
+  },
+  {
+    id: 'deepseek-r1',
+    name: 'DeepSeek R1',
+    provider: 'deepseek',
+    description: 'Latest reasoning model with enhanced capabilities',
+    maxTokens: 128000,
+    supportsVision: false,
+    supportsAudio: false,
+    isAvailable: false,
+    category: 'reasoning',
+    pricing: { input: 0.55, output: 2.19 }
   }
 ];
 
@@ -180,7 +456,7 @@ export const useAIConfigStore = create<AIConfigState>()(
   persist(
     (set, get) => ({
       // Initial state
-      availableModels: defaultModels,
+      availableModels: availableModels,
       selectedModel: null,
       modelPerformance: {},
       apiConfigs: [],
@@ -402,7 +678,7 @@ export const useAIConfigStore = create<AIConfigState>()(
       },
       
       resetToDefaults: () => set({
-        availableModels: defaultModels,
+        availableModels: availableModels,
         selectedModel: null,
         modelPerformance: {},
         apiConfigs: [],

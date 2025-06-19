@@ -38,9 +38,12 @@ import { useContextStore } from '@/stores/contextStore';
 // Dynamic import for markdown rendering to avoid SSR issues
 import dynamic from 'next/dynamic';
 
-const ReactMarkdown = dynamic<React.ComponentProps<typeof import('react-markdown').default>>(
-  () => import('react-markdown').then((mod) => mod.default),
-  { ssr: false }
+const ReactMarkdown = dynamic(
+  () => import('react-markdown'),
+  { 
+    ssr: false,
+    loading: () => <div className="animate-pulse bg-muted/20 h-4 w-full rounded"></div>
+  }
 );
 
 // TypeScript interfaces for notebook cells and related types

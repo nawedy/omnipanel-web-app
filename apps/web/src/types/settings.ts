@@ -1,7 +1,7 @@
 // apps/web/src/types/settings.ts
 // Settings type definitions for OmniPanel configuration
 
-export type AIProvider = 'openai' | 'anthropic' | 'deepseek' | 'gemini' | 'ollama' | 'custom';
+export type AIProvider = 'openai' | 'anthropic' | 'google' | 'mistral' | 'cohere' | 'meta' | 'deepseek' | 'qwen' | 'huggingface' | 'openrouter' | 'ollama' | 'local' | 'custom';
 
 export interface AIModelConfig {
   provider: AIProvider;

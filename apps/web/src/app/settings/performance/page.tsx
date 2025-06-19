@@ -26,7 +26,7 @@ export default function PerformancePage() {
   };
   
   return (
-    <div className="container mx-auto py-6 px-4 max-w-7xl">
+    <div className="container mx-auto py-6 px-4 max-w-7xl max-h-screen overflow-y-auto">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -58,7 +58,7 @@ export default function PerformancePage() {
         
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {/* First Contentful Paint */}
-          <Card className="p-4">
+          <Card className="p-4 h-full flex flex-col">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium">First Contentful Paint</h3>
               <div className={`w-2 h-2 rounded-full ${
@@ -69,7 +69,7 @@ export default function PerformancePage() {
                     : 'bg-red-500'
               }`} />
             </div>
-            <p className="text-2xl font-bold">
+            <p className="text-2xl font-bold flex-1">
               {performanceReport.vitals.fcp 
                 ? formatTime(performanceReport.vitals.fcp) 
                 : 'Not available'}
@@ -80,7 +80,7 @@ export default function PerformancePage() {
           </Card>
           
           {/* Largest Contentful Paint */}
-          <Card className="p-4">
+          <Card className="p-4 h-full flex flex-col">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium">Largest Contentful Paint</h3>
               <div className={`w-2 h-2 rounded-full ${
@@ -91,7 +91,7 @@ export default function PerformancePage() {
                     : 'bg-red-500'
               }`} />
             </div>
-            <p className="text-2xl font-bold">
+            <p className="text-2xl font-bold flex-1">
               {performanceReport.vitals.lcp 
                 ? formatTime(performanceReport.vitals.lcp) 
                 : 'Not available'}
@@ -102,7 +102,7 @@ export default function PerformancePage() {
           </Card>
           
           {/* First Input Delay */}
-          <Card className="p-4">
+          <Card className="p-4 h-full flex flex-col">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium">First Input Delay</h3>
               <div className={`w-2 h-2 rounded-full ${
@@ -113,7 +113,7 @@ export default function PerformancePage() {
                     : 'bg-red-500'
               }`} />
             </div>
-            <p className="text-2xl font-bold">
+            <p className="text-2xl font-bold flex-1">
               {performanceReport.vitals.fid 
                 ? formatTime(performanceReport.vitals.fid) 
                 : 'Not available'}
@@ -124,7 +124,7 @@ export default function PerformancePage() {
           </Card>
           
           {/* Cumulative Layout Shift */}
-          <Card className="p-4">
+          <Card className="p-4 h-full flex flex-col">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-medium">Cumulative Layout Shift</h3>
               <div className={`w-2 h-2 rounded-full ${
@@ -135,7 +135,7 @@ export default function PerformancePage() {
                     : 'bg-red-500'
               }`} />
             </div>
-            <p className="text-2xl font-bold">
+            <p className="text-2xl font-bold flex-1">
               {performanceReport.vitals.cls 
                 ? performanceReport.vitals.cls.toFixed(3) 
                 : 'Not available'}
@@ -155,9 +155,9 @@ export default function PerformancePage() {
         </h2>
         
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card className="p-4">
+          <Card className="p-4 h-full flex flex-col">
             <h3 className="text-sm font-medium mb-2">Total Operations</h3>
-            <p className="text-2xl font-bold">
+            <p className="text-2xl font-bold flex-1">
               {performanceReport.summary.totalMetrics || 0}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -165,9 +165,9 @@ export default function PerformancePage() {
             </p>
           </Card>
           
-          <Card className="p-4">
+          <Card className="p-4 h-full flex flex-col">
             <h3 className="text-sm font-medium mb-2">Average Duration</h3>
-            <p className="text-2xl font-bold">
+            <p className="text-2xl font-bold flex-1">
               {formatTime(performanceReport.summary.averageDuration || 0)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -175,9 +175,9 @@ export default function PerformancePage() {
             </p>
           </Card>
           
-          <Card className="p-4">
+          <Card className="p-4 h-full flex flex-col">
             <h3 className="text-sm font-medium mb-2">Slowest Operation</h3>
-            <p className="text-2xl font-bold">
+            <p className="text-2xl font-bold flex-1">
               {performanceReport.summary.slowestOperation 
                 ? formatTime(performanceReport.summary.slowestOperation.duration) 
                 : 'N/A'}
@@ -187,9 +187,9 @@ export default function PerformancePage() {
             </p>
           </Card>
           
-          <Card className="p-4">
+          <Card className="p-4 h-full flex flex-col">
             <h3 className="text-sm font-medium mb-2">Fastest Operation</h3>
-            <p className="text-2xl font-bold">
+            <p className="text-2xl font-bold flex-1">
               {performanceReport.summary.fastestOperation 
                 ? formatTime(performanceReport.summary.fastestOperation.duration) 
                 : 'N/A'}

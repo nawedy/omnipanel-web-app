@@ -518,25 +518,21 @@ export default function AIModelsPage(): React.JSX.Element {
                       {config.isValid ? 'Valid' : 'Invalid'}
                     </Badge>
                   )}
-                  <IconTooltip content="Test API connection">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleTestConnection(config.id)}
-                      disabled={isTestingConnection === config.id}
-                    >
-                      <TestTube className="h-4 w-4" />
-                    </Button>
-                  </IconTooltip>
-                  <IconTooltip content="Delete this API configuration">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => deleteAPIConfig(config.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </IconTooltip>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleTestConnection(config.id)}
+                    disabled={isTestingConnection === config.id}
+                  >
+                    <TestTube className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => deleteAPIConfig(config.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             </CardHeader>
@@ -563,12 +559,10 @@ export default function AIModelsPage(): React.JSX.Element {
           </p>
         </div>
         <div className="flex gap-2">
-          <IconTooltip content="Add a new local AI model">
-            <Button onClick={() => setShowAddLocalModel(true)} className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Add Model
-            </Button>
-          </IconTooltip>
+          <Button onClick={() => setShowAddLocalModel(true)} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Add Model
+          </Button>
           {selectedModels.size > 0 && (
             <div className="flex gap-1">
               <Button
@@ -1177,4 +1171,4 @@ export default function AIModelsPage(): React.JSX.Element {
       </div>
     </TooltipProvider>
   );
-}
+} 

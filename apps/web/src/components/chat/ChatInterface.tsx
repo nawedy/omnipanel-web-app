@@ -286,6 +286,9 @@ What would you like to work on today?`,
       setIsRegenerating(originalMessageId);
     }
 
+    // Create assistant message ID outside try block so it's available in catch
+    const assistantMessageId = nanoid();
+
     try {
       // Build context-aware prompt
       const contextPrompt = buildContextPrompt();
@@ -341,7 +344,6 @@ What would you like to work on today?`,
         }));
 
       // Create assistant message placeholder for streaming
-      const assistantMessageId = nanoid();
       const streamingMeasureId = startMeasure('chat.streamResponse', {
         messageId: assistantMessageId,
         model: selectedModel || 'unknown',
@@ -492,24 +494,32 @@ What would you like to work on today?`,
         provider: modelProvider
       });
       
-      // Add error message to conversation
-      const errorMessage: ExtendedChatMessage = {
-        id: nanoid(),
-        content: 'Sorry, I encountered an error while processing your request. Please try again.',
-        role: 'assistant',
-        timestamp: new Date()
-      };
-      
+      // Update the streaming message to show error instead of adding a new message
       setConversations(prev => prev.map(conv => {
         if (conv.id === activeConversationId) {
           return {
             ...conv,
-            messages: [...conv.messages, errorMessage],
+            messages: conv.messages.map(msg => 
+              msg.id === assistantMessageId 
+                ? { 
+                    ...msg, 
+                    content: 'Sorry, I encountered an error while processing your request. Please try again.',
+                    isStreaming: false,
+                    metadata: {
+                      error: true,
+                      responseTime: Date.now() - (msg.timestamp?.getTime() || Date.now())
+                    }
+                  }
+                : msg
+            ),
             updatedAt: new Date()
           };
         }
         return conv;
       }));
+      
+      // Clean up streaming state
+      streamingManager.cancelStream(assistantMessageId);
     } finally {
       setIsLoading(false);
       setIsRegenerating(null);
@@ -760,7 +770,7 @@ What would you like to work on today?`,
                 <div className={`p-4 rounded-2xl ${
                   message.role === 'user'
                     ? 'bg-blue-600 text-white ml-auto'
-                    : 'bg-gray-800 text-gray-100'
+                    : 'bg-gray-800 text-white'
                 }`}>
                   <div className="prose prose-sm max-w-none">
                     {message.content.split('\n').map((line, i) => (

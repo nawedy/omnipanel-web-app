@@ -29,6 +29,9 @@ import { useTheme } from '@/components/ThemeProvider';
 import { SyncStatusIndicator, type SyncStatus } from '../sync/SyncStatusIndicator';
 import { NotificationsPanel } from '@/components/modals/NotificationsPanel';
 import { UserProfileModal } from '@/components/modals/UserProfileModal';
+import { ModelSelector } from './ModelSelector';
+import { useAIConfigStore } from '@/stores/aiConfigStore';
+import { useMemo } from 'react';
 
 interface WorkspaceNotification {
   id: string;
@@ -41,6 +44,7 @@ interface WorkspaceNotification {
 export function WorkspaceHeader() {
   const { theme, setTheme } = useTheme();
   const { toggleSidebar, currentProject, selectedModel, modelProvider, layout, toggleFileTree } = useWorkspaceStore();
+  const { selectedModel: aiSelectedModel, apiConfigs, availableModels } = useAIConfigStore();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -66,20 +70,33 @@ export function WorkspaceHeader() {
     }
   ]);
 
+  // Memoize the active configs to prevent infinite re-renders
+  const activeConfigs = useMemo(() => {
+    return apiConfigs.filter(c => c.isActive);
+  }, [apiConfigs]);
+
   // Initialize sync status after hydration
   useEffect(() => {
-    setSyncStatus({
-      isOnline: navigator.onLine,
-      isConnected: true,
-      isSyncing: false,
-      lastSync: new Date(),
-      pendingOperations: 0,
-      error: undefined,
-    });
+    const checkModelAvailability = () => {
+      const currentModel = availableModels.find(m => m.id === aiSelectedModel);
+      const hasActiveAPI = activeConfigs.length > 0;
+      const modelAvailable = currentModel?.isAvailable || false;
+      
+      return {
+        isOnline: navigator.onLine,
+        isConnected: hasActiveAPI && modelAvailable,
+        isSyncing: false,
+        lastSync: new Date(),
+        pendingOperations: 0,
+        error: hasActiveAPI ? (modelAvailable ? undefined : 'Selected model is not available') : 'No API keys configured',
+      };
+    };
+
+    setSyncStatus(checkModelAvailability());
 
     // Listen to online/offline events
     const handleOnline = () => {
-      setSyncStatus(prev => prev ? { ...prev, isOnline: true, isConnected: true, error: undefined } : null);
+      setSyncStatus(checkModelAvailability());
     };
 
     const handleOffline = () => {
@@ -93,7 +110,7 @@ export function WorkspaceHeader() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, []);
+  }, [aiSelectedModel, activeConfigs, availableModels]);
 
   // Handle global keyboard shortcuts
   useEffect(() => {
@@ -222,6 +239,15 @@ export function WorkspaceHeader() {
                 height={32}
                 className="object-contain rounded-lg"
                 priority
+                onError={(e) => {
+                  // Fallback to a simple colored div if logo fails to load
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const fallback = document.createElement('div');
+                  fallback.className = 'w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center';
+                  fallback.innerHTML = '<span class="text-white text-xs font-bold">OP</span>';
+                  target.parentNode?.appendChild(fallback);
+                }}
               />
             </div>
             <span className="font-semibold text-base hidden sm:block">OmniPanel</span>
@@ -268,15 +294,8 @@ export function WorkspaceHeader() {
             />
           )}
 
-          {/* Model Indicator */}
-          {selectedModel && (
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-accent/50 rounded-md">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              <span className="text-sm text-muted-foreground">
-                {modelProvider}/{selectedModel}
-              </span>
-            </div>
-          )}
+          {/* Model Selector - Dynamic model dropdown */}
+          <ModelSelector className="hidden sm:block" />
 
           {/* Notifications */}
           <button

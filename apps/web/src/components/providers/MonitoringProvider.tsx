@@ -5,6 +5,7 @@
 
 import React, { createContext, useContext, useCallback, ReactNode, useState, useEffect } from 'react';
 import { setupConsoleErrorInterceptor, teardownConsoleErrorInterceptor } from '@/components/errors/intercept-console-error';
+import { performanceMonitoringService, PerformanceReport } from '@/services/performanceMonitoring';
 
 export interface ErrorDetails {
   message: string;
@@ -25,27 +26,7 @@ export interface PerformanceMetric {
   metadata?: Record<string, any>;
 }
 
-export interface PerformanceReport {
-  vitals: {
-    fcp?: number;
-    lcp?: number;
-    fid?: number;
-    cls?: number;
-  };
-  summary: {
-    totalMetrics: number;
-    averageDuration: number;
-    slowestOperation?: {
-      name: string;
-      duration: number;
-    };
-    fastestOperation?: {
-      name: string;
-      duration: number;
-    };
-  };
-  metrics: PerformanceMetric[];
-}
+// PerformanceReport interface moved to performanceMonitoring service
 
 interface MonitoringContextType {
   // Error reporting
@@ -175,22 +156,17 @@ export function MonitoringProvider({ children }: MonitoringProviderProps) {
   }, []);
 
   const reportPerformance = useCallback((metric: PerformanceMetric) => {
-    // Safely log performance without triggering interceptor
-    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined' && window.console && window.console.debug) {
-      window.console.debug('[MonitoringProvider] Performance:', {
-        name: metric.name,
-        value: metric.value,
-        duration: metric.duration,
-        timestamp: metric.timestamp
-      });
-    }
+    // Use the real performance monitoring service
+    performanceMonitoringService.addMetric({
+      name: metric.name,
+      value: metric.value,
+      duration: metric.duration,
+      category: 'custom',
+      metadata: metric.metadata
+    });
     
-    setPerformanceMetrics(prev => [...prev, metric].slice(-100)); // Keep last 100 metrics
-    
-    // In production, send to analytics service
-    if (process.env.NODE_ENV === 'production') {
-      // Send to analytics service
-    }
+    // Also keep local copy for backwards compatibility
+    setPerformanceMetrics(prev => [...prev, metric].slice(-100));
   }, []);
 
   const startTimer = useCallback((name: string) => {
@@ -255,6 +231,27 @@ export function MonitoringProvider({ children }: MonitoringProviderProps) {
 
   const clearPerformanceMetrics = useCallback(() => {
     setPerformanceMetrics([]);
+    performanceMonitoringService.clearMetrics();
+  }, []);
+
+  // Generate performance report using real monitoring service
+  const [performanceReport, setPerformanceReport] = useState<PerformanceReport>(() => 
+    performanceMonitoringService.getReport()
+  );
+
+  // Update performance report periodically
+  useEffect(() => {
+    const updateReport = () => {
+      setPerformanceReport(performanceMonitoringService.getReport());
+    };
+
+    // Update immediately
+    updateReport();
+
+    // Update every 5 seconds
+    const interval = setInterval(updateReport, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Set up error interceptor on mount - temporarily disabled to prevent loops
@@ -290,45 +287,6 @@ export function MonitoringProvider({ children }: MonitoringProviderProps) {
       teardownConsoleErrorInterceptor();
     };
   }, [captureError, captureMessage]);
-
-  // Generate performance report
-  const performanceReport: PerformanceReport = {
-    vitals: {
-      fcp: performanceMetrics.find(m => m.name === 'FCP')?.value,
-      lcp: performanceMetrics.find(m => m.name === 'LCP')?.value,
-      fid: performanceMetrics.find(m => m.name === 'FID')?.value,
-      cls: performanceMetrics.find(m => m.name === 'CLS')?.value,
-    },
-    summary: {
-      totalMetrics: performanceMetrics.length,
-      averageDuration: performanceMetrics.length > 0 
-        ? performanceMetrics.reduce((sum, m) => sum + (m.duration || m.value), 0) / performanceMetrics.length 
-        : 0,
-      slowestOperation: performanceMetrics.length > 0 
-        ? (() => {
-            const slowest = performanceMetrics.reduce((slowest, current) => 
-              (current.duration || current.value) > (slowest.duration || slowest.value) ? current : slowest
-            );
-            return {
-              name: slowest.name,
-              duration: slowest.duration || slowest.value
-            };
-          })()
-        : undefined,
-      fastestOperation: performanceMetrics.length > 0 
-        ? (() => {
-            const fastest = performanceMetrics.reduce((fastest, current) => 
-              (current.duration || current.value) < (fastest.duration || fastest.value) ? current : fastest
-            );
-            return {
-              name: fastest.name,
-              duration: fastest.duration || fastest.value
-            };
-          })()
-        : undefined,
-    },
-    metrics: performanceMetrics
-  };
 
   const value: MonitoringContextType = {
     reportError,
