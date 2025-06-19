@@ -24,6 +24,9 @@ export interface PluginMetadata {
     omnipanel?: string;
     node?: string;
   };
+  main?: string;
+  category?: PluginCategory;
+  permissions?: PluginPermission[];
 }
 
 // Plugin Configuration
@@ -35,7 +38,7 @@ export interface PluginConfig {
 
 // Plugin Lifecycle
 export interface PluginLifecycle {
-  activate(): Promise<void> | void;
+  activate(api: PluginAPIInterface): Promise<void> | void;
   deactivate(): Promise<void> | void;
 }
 
@@ -61,7 +64,17 @@ export type PluginPermission =
   | 'notebook:read'
   | 'notebook:write'
   | 'workspace:read'
-  | 'workspace:write';
+  | 'workspace:write'
+  | 'file-system'
+  | 'network'
+  | 'workspace'
+  | 'chat'
+  | 'terminal'
+  | 'notebook'
+  | 'settings'
+  | 'clipboard'
+  | 'notifications'
+  | 'storage';
 
 // Plugin Contributions
 export interface PluginContributions {
@@ -153,6 +166,8 @@ export interface PluginContext {
   globalState: PluginStorage;
   workspaceState: PluginStorage;
   subscriptions: PluginDisposable[];
+  extensionUri?: string;
+  hasPermission(permission: PluginPermission): boolean;
 }
 
 // Plugin Storage
@@ -250,6 +265,7 @@ export interface FileSystemInterface {
   exists(path: string): Promise<boolean>;
   stat(path: string): Promise<FileStat>;
   watch(path: string, callback: (event: FileEvent) => void): PluginDisposable;
+  delete(path: string, options?: { recursive?: boolean }): Promise<void>;
 }
 
 export interface FileStat {
@@ -459,4 +475,7 @@ export interface PluginBuildResult {
   errors: string[];
   warnings: string[];
   stats?: any;
-} 
+}
+
+// Export alias for compatibility
+export type PluginManifest = PluginMetadata; 

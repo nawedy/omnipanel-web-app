@@ -5,7 +5,8 @@ import {
   PluginContext,
   PluginInstallOptions,
   PluginInstallResult,
-  PluginDisposable
+  PluginDisposable,
+  PluginPermission
 } from './types';
 import { PluginValidator, PluginEventEmitter } from './plugin';
 import { PluginAPI } from './api';
@@ -106,7 +107,7 @@ export class PluginRegistry {
       // Activate plugin in sandbox
       await this.sandbox.execute(async () => {
         await plugin.activate(context);
-      }, entry.manifest.permissions);
+      }, entry.manifest.permissions || []);
 
       // Store active plugin
       this.activePlugins.set(pluginId, plugin);
@@ -141,7 +142,7 @@ export class PluginRegistry {
       if (plugin.deactivate) {
         await this.sandbox.execute(async () => {
           await plugin.deactivate!();
-        }, entry.manifest.permissions);
+        }, entry.manifest.permissions || []);
       }
 
       // Remove from active plugins
@@ -359,14 +360,14 @@ export class PluginRegistry {
 
   private createPluginContext(entry: PluginRegistryEntry): PluginContext {
     return {
+      workspaceRoot: '/workspace',
       extensionPath: entry.path,
-      extensionUri: `file://${entry.path}`,
       globalState: new PluginStateManager(`global:${entry.manifest.id}`),
       workspaceState: new PluginStateManager(`workspace:${entry.manifest.id}`),
       subscriptions: [],
-      api: this.api,
-      logger: new PluginLogger(entry.manifest.id),
-      events: this.eventEmitter,
+      hasPermission: (permission: PluginPermission) => {
+        return entry.manifest.permissions?.includes(permission) || false;
+      }
     };
   }
 

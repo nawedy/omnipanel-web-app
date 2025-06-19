@@ -1,21 +1,16 @@
 // Core Plugin SDK exports
 export * from './types';
-export * from './plugin';
 export * from './api';
 export * from './registry';
 export * from './sandbox';
 
-// Core plugin creation function
-export { createPlugin } from './plugin';
-
-// API client for plugins
-export { PluginAPI } from './api';
-
-// Plugin registry
-export { PluginRegistry } from './registry';
-
-// Sandbox utilities
-export { PluginSandbox } from './sandbox';
+// Specific exports from plugin module to avoid conflicts
+export { 
+  createPlugin, 
+  BasePlugin, 
+  PluginValidator, 
+  PluginUtils 
+} from './plugin';
 
 // Simple placeholder exports for web app compatibility
 import React from 'react';

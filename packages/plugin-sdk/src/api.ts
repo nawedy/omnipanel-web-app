@@ -30,6 +30,52 @@ export class PluginAPI implements PluginAPIInterface {
     this.context = context;
     this.metadata = metadata;
     this.events = new PluginEventEmitter();
+    
+    // Initialize workspace API
+    this.workspace = {
+      root: this.context.workspaceRoot,
+      name: '',
+      files: [],
+
+      openFile: async (path: string): Promise<void> => {
+        return new Promise((resolve, reject) => {
+          this.events.emit('workspace:openFile', { path, resolve, reject });
+        });
+      },
+
+      closeFile: async (path: string): Promise<void> => {
+        return new Promise((resolve, reject) => {
+          this.events.emit('workspace:closeFile', { path, resolve, reject });
+        });
+      },
+
+      saveFile: async (path: string): Promise<void> => {
+        return new Promise((resolve, reject) => {
+          this.events.emit('workspace:saveFile', { path, resolve, reject });
+        });
+      },
+
+      onFileOpen: (callback: (path: string) => void): PluginDisposable => {
+        this.events.on('workspace:fileOpened', callback);
+        return {
+          dispose: () => this.events.removeListener('workspace:fileOpened', callback)
+        };
+      },
+
+      onFileClose: (callback: (path: string) => void): PluginDisposable => {
+        this.events.on('workspace:fileClosed', callback);
+        return {
+          dispose: () => this.events.removeListener('workspace:fileClosed', callback)
+        };
+      },
+
+      onFileChange: (callback: (path: string) => void): PluginDisposable => {
+        this.events.on('workspace:fileChanged', callback);
+        return {
+          dispose: () => this.events.removeListener('workspace:fileChanged', callback)
+        };
+      }
+    };
   }
 
   // UI API
@@ -170,6 +216,12 @@ export class PluginAPI implements PluginAPIInterface {
       return {
         dispose: () => this.events.emit('fs:unwatch', { path, callback })
       };
+    },
+
+    delete: async (path: string, options?: { recursive?: boolean }): Promise<void> => {
+      return new Promise((resolve, reject) => {
+        this.events.emit('fs:delete', { path, options, resolve, reject });
+      });
     }
   };
 
@@ -210,51 +262,8 @@ export class PluginAPI implements PluginAPIInterface {
     }
   };
 
-  // Workspace API
-  public workspace: WorkspaceInterface = {
-    root: this.context.workspaceRoot,
-    name: '',
-    files: [],
-
-    openFile: async (path: string): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        this.events.emit('workspace:openFile', { path, resolve, reject });
-      });
-    },
-
-    closeFile: async (path: string): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        this.events.emit('workspace:closeFile', { path, resolve, reject });
-      });
-    },
-
-    saveFile: async (path: string): Promise<void> => {
-      return new Promise((resolve, reject) => {
-        this.events.emit('workspace:saveFile', { path, resolve, reject });
-      });
-    },
-
-    onFileOpen: (callback: (path: string) => void): PluginDisposable => {
-      this.events.on('workspace:fileOpened', callback);
-      return {
-        dispose: () => this.events.removeListener('workspace:fileOpened', callback)
-      };
-    },
-
-    onFileClose: (callback: (path: string) => void): PluginDisposable => {
-      this.events.on('workspace:fileClosed', callback);
-      return {
-        dispose: () => this.events.removeListener('workspace:fileClosed', callback)
-      };
-    },
-
-    onFileChange: (callback: (path: string) => void): PluginDisposable => {
-      this.events.on('workspace:fileChanged', callback);
-      return {
-        dispose: () => this.events.removeListener('workspace:fileChanged', callback)
-      };
-    }
-  };
+  // Workspace API - initialized in constructor
+  public workspace!: WorkspaceInterface;
 
   // Utilities API
   public utils = {

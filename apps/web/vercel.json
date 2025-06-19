@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "cd ../.. && npm run build:packages && cd apps/web && npm run build",
+  "buildCommand": "cd ../.. && npm install && cd apps/web && node build-standalone.js",
   "outputDirectory": ".next",
   "installCommand": "cd ../.. && npm install",
   "framework": "nextjs",

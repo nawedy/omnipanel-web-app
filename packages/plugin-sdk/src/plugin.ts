@@ -1,17 +1,17 @@
-import { Plugin, PluginManifest, PluginContext } from './types';
+import { Plugin, PluginManifest, PluginContext, PluginAPIInterface, PluginMetadata } from './types';
 
 /**
  * Creates a plugin with the given manifest and activation function
  */
 export function createPlugin(
   manifest: PluginManifest,
-  activate: (context: PluginContext) => Promise<void> | void,
+  activate: (api: PluginAPIInterface) => Promise<void> | void,
   deactivate?: () => Promise<void> | void
 ): Plugin {
   return {
-    manifest,
+    metadata: manifest,
     activate,
-    deactivate,
+    deactivate: deactivate || (() => {}),
   };
 }
 
@@ -21,11 +21,11 @@ export function createPlugin(
 export function plugin(manifest: PluginManifest) {
   return function <T extends new (...args: any[]) => any>(constructor: T) {
     return class extends constructor implements Plugin {
-      manifest = manifest;
+      metadata = manifest;
       
-      async activate(context: PluginContext): Promise<void> {
+      async activate(api: PluginAPIInterface): Promise<void> {
         if (this.onActivate) {
-          return this.onActivate(context);
+          return this.onActivate(api.context);
         }
       }
       
@@ -42,11 +42,13 @@ export function plugin(manifest: PluginManifest) {
  * Base plugin class for inheritance
  */
 export abstract class BasePlugin implements Plugin {
-  abstract manifest: PluginManifest;
+  abstract metadata: PluginMetadata;
   
-  abstract activate(context: PluginContext): Promise<void> | void;
+  abstract activate(api: PluginAPIInterface): Promise<void> | void;
   
-  deactivate?(): Promise<void> | void;
+  deactivate(): Promise<void> | void {
+    // Default empty implementation
+  }
 }
 
 /**
