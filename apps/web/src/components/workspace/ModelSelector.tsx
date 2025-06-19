@@ -262,7 +262,7 @@ export function ModelSelector({ className = '' }: ModelSelectorProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto"
+            className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto min-w-[320px]"
           >
             <div className="p-2">
               <div className="flex items-center justify-between px-2 py-1 mb-1">
@@ -290,13 +290,16 @@ export function ModelSelector({ className = '' }: ModelSelectorProps) {
                 </div>
               )}
               
-              {availableModelsList.map((model) => {
+              {availableModelsList.map((model, index) => {
                 const discoveredModel = discoveredModels.find(m => m.id === model.id && m.provider === model.provider);
                 const isDiscovered = !!discoveredModel;
                 
+                // Create a unique key by combining provider, id, and index to avoid duplicates
+                const uniqueKey = `${model.provider}-${model.id}-${index}`;
+                
                 return (
                   <button
-                    key={`${model.provider}-${model.id}`}
+                    key={uniqueKey}
                     onClick={() => handleModelSelect(model)}
                     className="w-full flex items-center gap-3 px-2 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
                   >

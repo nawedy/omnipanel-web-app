@@ -26,7 +26,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { useTheme } from '@/components/ThemeProvider';
-import { SyncStatusIndicator, type SyncStatus } from '../sync/SyncStatusIndicator';
+
 import { NotificationsPanel } from '@/components/modals/NotificationsPanel';
 import { UserProfileModal } from '@/components/modals/UserProfileModal';
 import { ModelSelector } from './ModelSelector';
@@ -52,7 +52,7 @@ export function WorkspaceHeader() {
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [showNotificationsPanel, setShowNotificationsPanel] = useState(false);
   const [showUserProfileModal, setShowUserProfileModal] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
+
   const [notifications, setNotifications] = useState<WorkspaceNotification[]>([
     {
       id: '1',
@@ -95,63 +95,7 @@ export function WorkspaceHeader() {
     return providerConfig?.isValid !== false;
   }, [currentModel, localModels, activeConfigs]);
 
-  // Initialize sync status after hydration
-  useEffect(() => {
-    const checkModelAvailability = async () => {
-      const hasActiveAPI = activeConfigs.length > 0;
-      const hasLocalModels = localModels.length > 0;
-      const hasAvailableModels = availableModels.some(m => m.isAvailable);
-      const modelAvailable = isModelAvailable;
-      
-      let statusMessage = '';
-      
-      if (!hasAvailableModels && !hasLocalModels) {
-        statusMessage = 'No models available';
-      } else if (!hasActiveAPI && (!currentModel || (currentModel.provider !== 'local' && currentModel.provider !== 'ollama'))) {
-        statusMessage = 'No API keys configured';
-      } else if (!modelAvailable && currentModel) {
-        if (currentModel.provider === 'local' || currentModel.provider === 'ollama') {
-          statusMessage = 'Local model not loaded';
-        } else {
-          statusMessage = 'Selected model is not available';
-        }
-      }
-      
-      return {
-        isOnline: navigator.onLine,
-        isConnected: (hasActiveAPI && modelAvailable) || (hasLocalModels && modelAvailable),
-        isSyncing: false,
-        lastSync: new Date(),
-        pendingOperations: 0,
-        error: statusMessage || undefined,
-      };
-    };
 
-    const initializeStatus = async () => {
-      const status = await checkModelAvailability();
-      setSyncStatus(status);
-    };
-
-    initializeStatus();
-
-    // Listen to online/offline events
-    const handleOnline = async () => {
-      const status = await checkModelAvailability();
-      setSyncStatus(status);
-    };
-
-    const handleOffline = () => {
-      setSyncStatus(prev => prev ? { ...prev, isOnline: false, isConnected: false } : null);
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [selectedModel, activeConfigs, availableModels, isModelAvailable, currentModel]);
 
   // Handle global keyboard shortcuts
   useEffect(() => {
@@ -322,20 +266,7 @@ export function WorkspaceHeader() {
 
         {/* Right Section */}
         <div className="flex items-center gap-3 flex-shrink-0">
-          {/* Sync Status Indicator - only render after hydration */}
-          {syncStatus && (
-            <SyncStatusIndicator 
-              status={syncStatus}
-              onRetrySync={() => {
-                setSyncStatus(prev => prev ? { ...prev, isSyncing: true, error: undefined } : null);
-                setTimeout(() => {
-                  setSyncStatus(prev => prev ? { ...prev, isSyncing: false, lastSync: new Date() } : null);
-                }, 2000);
-              }}
-            />
-          )}
-
-          {/* Model Selector - Dynamic model dropdown */}
+          {/* Model Selector - Dynamic model dropdown with more space */}
           <ModelSelector className="hidden sm:block" />
 
           {/* Notifications */}
