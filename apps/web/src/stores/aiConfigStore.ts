@@ -733,7 +733,10 @@ export const useAIConfigStore = create<AIConfigState>()(
       // Local model sync methods
       syncLocalModels: async () => {
         try {
+          console.log('🔄 Starting syncLocalModels...');
           const ollamaModels = await localModelService.getOllamaModels();
+          console.log('📊 Found Ollama models:', ollamaModels.length);
+          
           const currentLocalModels = get().localModels;
           
           // Convert Ollama models to LocalModelConfig format
@@ -745,7 +748,7 @@ export const useAIConfigStore = create<AIConfigState>()(
               path: model.name,
               type: 'ollama' as const,
               size: model.size,
-              isLoaded: existing?.isLoaded || false,
+              isLoaded: true, // Ollama models that are returned are available and can be used
               loadTime: existing?.loadTime,
               memoryUsage: existing?.memoryUsage,
               parameters: {
@@ -769,6 +772,8 @@ export const useAIConfigStore = create<AIConfigState>()(
             capabilities: ['text-generation']
           }));
 
+          console.log('✅ Updating store with', newLocalModels.length, 'local models and', newAvailableModels.length, 'available models');
+
           set((state) => {
             const existingAvailableModels = state.availableModels.filter(m => m.provider !== 'ollama');
             return {
@@ -776,8 +781,10 @@ export const useAIConfigStore = create<AIConfigState>()(
               availableModels: [...existingAvailableModels, ...newAvailableModels]
             };
           });
+          
+          console.log('✅ syncLocalModels completed successfully');
         } catch (error) {
-          console.error('Failed to sync local models:', error);
+          console.error('❌ Failed to sync local models:', error);
         }
       },
 

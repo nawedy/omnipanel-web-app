@@ -83,10 +83,11 @@ export function WorkspaceHeader() {
   const isModelAvailable = useMemo(() => {
     if (!currentModel) return false;
     
-    // For local/Ollama models, check if they're loaded
+    // For local/Ollama models, check if they're loaded or available
     if (currentModel.provider === 'local' || currentModel.provider === 'ollama') {
-      const localModel = localModels.find(m => m.id === currentModel.id);
-      return localModel?.isLoaded || false;
+      const localModel = localModels.find(m => m.id === currentModel.id || m.name === currentModel.name);
+      // If the model is in availableModels and marked as available, or if it's loaded in localModels
+      return currentModel.isAvailable || localModel?.isLoaded || false;
     }
     
     // For cloud models, check if there's an active API config for the provider
@@ -98,13 +99,18 @@ export function WorkspaceHeader() {
   useEffect(() => {
     const checkModelAvailability = async () => {
       const hasActiveAPI = activeConfigs.length > 0;
+      const hasLocalModels = localModels.length > 0;
+      const hasAvailableModels = availableModels.some(m => m.isAvailable);
       const modelAvailable = isModelAvailable;
       
       let statusMessage = '';
-      if (!hasActiveAPI && (!currentModel || (currentModel.provider !== 'local' && currentModel.provider !== 'ollama'))) {
+      
+      if (!hasAvailableModels && !hasLocalModels) {
+        statusMessage = 'No models available';
+      } else if (!hasActiveAPI && (!currentModel || (currentModel.provider !== 'local' && currentModel.provider !== 'ollama'))) {
         statusMessage = 'No API keys configured';
-      } else if (!modelAvailable) {
-        if (currentModel?.provider === 'local' || currentModel?.provider === 'ollama') {
+      } else if (!modelAvailable && currentModel) {
+        if (currentModel.provider === 'local' || currentModel.provider === 'ollama') {
           statusMessage = 'Local model not loaded';
         } else {
           statusMessage = 'Selected model is not available';
@@ -113,7 +119,7 @@ export function WorkspaceHeader() {
       
       return {
         isOnline: navigator.onLine,
-        isConnected: hasActiveAPI && modelAvailable,
+        isConnected: (hasActiveAPI && modelAvailable) || (hasLocalModels && modelAvailable),
         isSyncing: false,
         lastSync: new Date(),
         pendingOperations: 0,

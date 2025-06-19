@@ -8,8 +8,23 @@ interface LocalModelSyncProviderProps {
 }
 
 export function LocalModelSyncProvider({ children }: LocalModelSyncProviderProps) {
-  const { syncLocalModels, refreshLocalModelStatus } = useAIConfigStore();
+  const { syncLocalModels, refreshLocalModelStatus, localModels, availableModels } = useAIConfigStore();
   const hasInitialized = useRef(false);
+
+  // Debug store state changes
+  useEffect(() => {
+    console.log('🔍 LocalModelSyncProvider: Store state changed');
+    console.log('  - Local models:', localModels.length);
+    console.log('  - Available models:', availableModels.length);
+    console.log('  - Ollama models:', availableModels.filter(m => m.provider === 'ollama').length);
+    
+    if (localModels.length > 0) {
+      console.log('  - Local models list:', localModels.map(m => m.name));
+    }
+    if (availableModels.filter(m => m.provider === 'ollama').length > 0) {
+      console.log('  - Ollama models list:', availableModels.filter(m => m.provider === 'ollama').map(m => m.name));
+    }
+  }, [localModels, availableModels]);
 
   useEffect(() => {
     // Initial sync on app startup
@@ -18,49 +33,45 @@ export function LocalModelSyncProvider({ children }: LocalModelSyncProviderProps
       
       const performInitialSync = async () => {
         try {
-          console.log('🔄 Syncing local models on startup...');
+          console.log('🔄 LocalModelSyncProvider: Starting initial sync...');
+          console.log('🔄 LocalModelSyncProvider: Current store state before sync:');
+          console.log('  - Local models before:', localModels.length);
+          console.log('  - Available models before:', availableModels.length);
+          
           await syncLocalModels();
-          console.log('✅ Local models synced successfully');
+          console.log('✅ LocalModelSyncProvider: Initial sync completed');
+          
+          // Small delay to let the store update
+          setTimeout(() => {
+            console.log('🔍 LocalModelSyncProvider: Store state after sync:');
+            console.log('  - Local models after:', localModels.length);
+            console.log('  - Available models after:', availableModels.length);
+          }, 500);
+          
         } catch (error) {
-          console.warn('⚠️ Failed to sync local models on startup:', error);
+          console.error('❌ LocalModelSyncProvider: Initial sync failed:', error);
         }
       };
 
-      // Delay initial sync to avoid blocking app startup
-      setTimeout(performInitialSync, 2000);
+      // Delay initial sync slightly to ensure stores are ready
+      const timeoutId = setTimeout(performInitialSync, 1000);
+
+      // Set up periodic refresh every 30 seconds
+      const intervalId = setInterval(async () => {
+        try {
+          console.log('🔄 LocalModelSyncProvider: Periodic sync...');
+          await syncLocalModels();
+        } catch (error) {
+          console.error('❌ LocalModelSyncProvider: Periodic sync failed:', error);
+        }
+      }, 30000);
+
+      return () => {
+        clearTimeout(timeoutId);
+        clearInterval(intervalId);
+      };
     }
-  }, [syncLocalModels]);
-
-  useEffect(() => {
-    // Set up periodic sync every 30 seconds
-    const syncInterval = setInterval(async () => {
-      try {
-        await syncLocalModels();
-      } catch (error) {
-        console.warn('Failed to sync local models:', error);
-      }
-    }, 30000);
-
-    return () => clearInterval(syncInterval);
-  }, [syncLocalModels]);
-
-  useEffect(() => {
-    // Set up periodic status refresh every 10 seconds
-    const statusInterval = setInterval(async () => {
-      const { localModels } = useAIConfigStore.getState();
-      
-      try {
-        // Refresh status for all local models
-        await Promise.all(
-          localModels.map(model => refreshLocalModelStatus(model.id))
-        );
-      } catch (error) {
-        console.warn('Failed to refresh local model status:', error);
-      }
-    }, 10000);
-
-    return () => clearInterval(statusInterval);
-  }, [refreshLocalModelStatus]);
+  }, [syncLocalModels, refreshLocalModelStatus, localModels, availableModels]);
 
   // Listen for Ollama service status changes
   useEffect(() => {

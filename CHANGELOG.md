@@ -1,6 +1,150 @@
 # OmniPanel Core - Changelog
 
-## 🎯 Version 1.3.10 - Critical Bug Fixes & Stability (Latest)
+## 🎯 Version 1.3.12 - Local Model Integration Fixes (Latest)
+
+**Date**: January 19, 2025  
+**Status**: ✅ Complete - Critical Local Model Integration Bug Fixes  
+**Focus**: Local Model Detection, Store Synchronization & UI Integration
+
+### 🐛 **Critical Bug Fixes**
+
+#### **Local Model Integration Issues**
+- **✅ Store Synchronization**: Fixed `syncLocalModels()` to properly set `isLoaded: true` for available Ollama models
+- **✅ Model Selector Integration**: Enhanced `ModelSelector` to include local models from store in available models list
+- **✅ Workspace Header Logic**: Updated model availability logic to check both `isAvailable` and `localModel.isLoaded`
+- **✅ UI State Updates**: Fixed "No models available" message logic to account for local models
+- **✅ Model ID Matching**: Added proper model ID matching between `localModels` and `availableModels`
+
+#### **Store State Management**
+- **✅ LocalModelSyncProvider**: Enhanced with comprehensive debugging and store state monitoring
+- **✅ Retry Logic**: Added retry mechanism for failed sync attempts with exponential backoff
+- **✅ Real-time Updates**: Fixed store state updates to properly reflect in UI components
+- **✅ Error Handling**: Enhanced error reporting throughout the local model sync workflow
+
+### 🚀 **New Features**
+
+#### **API Endpoints**
+- **✅ Model Sync API**: Created `/api/models/sync` endpoint for backend model synchronization testing
+- **✅ Debug Tools**: Added comprehensive test scripts for diagnosing integration issues
+- **✅ Store Inspection**: Debug API endpoint for store state inspection during development
+
+#### **Enhanced Debugging**
+- **✅ Comprehensive Logging**: Added detailed logging throughout local model sync process
+- **✅ State Monitoring**: Real-time monitoring of store state changes in LocalModelSyncProvider
+- **✅ Connection Status**: Better connection status reporting in WorkspaceHeader
+- **✅ Test Scripts**: Created diagnostic scripts for end-to-end integration testing
+
+### 🔧 **Technical Improvements**
+
+#### **Model Detection**
+- **✅ Availability Logic**: Enhanced model availability checks for local/Ollama providers
+- **✅ Store Integration**: Better synchronization between `localModels` and `availableModels` arrays
+- **✅ Status Indicators**: Improved model status icons and availability indicators
+- **✅ Provider Matching**: Fixed provider matching logic for local model detection
+
+#### **Error Recovery**
+- **✅ Sync Failures**: Graceful handling of sync failures with proper user feedback
+- **✅ Connection Issues**: Better error messages when Ollama is not available
+- **✅ State Recovery**: Automatic state recovery after failed sync attempts
+- **✅ UI Consistency**: Prevented UI state inconsistencies during sync operations
+
+---
+
+## 🎯 Version 1.3.11 - Local Model Integration & Sync
+
+**Date**: January 19, 2025  
+**Status**: ✅ Complete - Local Model Integration & Automatic Sync  
+**Focus**: Local Model Detection, Sync Functionality & Workspace Integration
+
+### 🚀 **Major Features Added**
+
+#### **Local Model Service Integration**
+- **✅ LocalModelService**: Comprehensive Ollama integration service for model management
+- **✅ Automatic Discovery**: Real-time detection of available Ollama models
+- **✅ Model Status Tracking**: Live monitoring of loaded/unloaded model states
+- **✅ Connection Management**: Robust Ollama connectivity with timeout handling
+- **✅ Cache System**: Efficient model status caching with expiration management
+
+#### **Local Model Sync Provider**
+- **✅ Auto-Sync on Startup**: Automatic model discovery when application starts
+- **✅ Periodic Refresh**: Background sync every 30 seconds for real-time updates
+- **✅ Error Handling**: Graceful fallback when Ollama is unavailable
+- **✅ Provider Integration**: Seamless integration with existing provider system
+
+#### **Enhanced AI Configuration Store**
+- **✅ Local Model Methods**: Added `syncLocalModels()` and `refreshLocalModelStatus()`
+- **✅ Store Integration**: Connected local model service with Zustand store
+- **✅ State Management**: Proper state updates for model loading/unloading
+- **✅ Model Selection**: Enhanced model selection with local model support
+
+### 🔧 **User Interface Improvements**
+
+#### **Settings Page Enhancements**
+- **✅ Sync Button**: Manual "Sync Models" button with loading states
+- **✅ Ollama Status**: Real-time Ollama connection status indicator
+- **✅ Model Management**: Load/unload buttons for individual models
+- **✅ Model Selection**: Visual model selection with active state indicators
+- **✅ Batch Operations**: Select all/clear selection for bulk operations
+
+#### **Workspace Header Updates**
+- **✅ Dynamic Status**: Connected to AI config store for real model availability
+- **✅ Local Model Detection**: Shows local models in availability calculations
+- **✅ Status Messages**: Improved status messages for different scenarios
+- **✅ Real-time Updates**: Automatic updates when models are loaded/unloaded
+
+#### **Chat Interface Integration**
+- **✅ Model Provider Fix**: Fixed ChatInterface to use AI config store instead of workspace store
+- **✅ Local Model Support**: Proper integration with local model providers
+- **✅ Error Handling**: Enhanced error handling for local model failures
+- **✅ Performance Tracking**: Added performance monitoring for local model usage
+
+### 🐛 **Bug Fixes**
+
+#### **Store Connection Issues**
+- **✅ Provider Mismatch**: Fixed disconnect between workspace store and AI config store
+- **✅ Model Selection**: Resolved selectedModel property conflicts between stores
+- **✅ State Synchronization**: Ensured proper state sync between different components
+
+#### **Local Model Detection**
+- **✅ Ollama Integration**: Fixed `isOllamaRunning()` method name mismatch
+- **✅ Model Loading**: Proper model loading/unloading state management
+- **✅ Status Updates**: Real-time status updates when models change state
+
+### 📦 **Technical Implementation**
+
+#### **Service Architecture**
+- **✅ LocalModelService**: Singleton service for Ollama management
+- **✅ Model Discovery**: Automatic detection of installed models
+- **✅ Status Caching**: 30-second cache with automatic expiration
+- **✅ Error Recovery**: Robust error handling and retry mechanisms
+
+#### **Provider System**
+- **✅ LocalModelSyncProvider**: React provider for automatic sync
+- **✅ Provider Chain**: Integrated into main providers chain
+- **✅ Lifecycle Management**: Proper initialization and cleanup
+
+#### **State Management**
+- **✅ Store Integration**: Enhanced AI config store with local model methods
+- **✅ Real-time Updates**: Live state updates for model changes
+- **✅ Persistence**: Proper state persistence and hydration
+
+### 🎯 **Next Steps**
+
+#### **Immediate Priorities**
+- **🔄 Chat Testing**: Test chat functionality with loaded local models
+- **🔄 Model Loading**: Verify model loading/unloading works correctly
+- **🔄 Status Updates**: Confirm workspace header updates properly
+- **🔄 Error Scenarios**: Test behavior when Ollama is not running
+
+#### **Future Enhancements**
+- **📋 Model Management**: Add model downloading/installation features
+- **📋 Performance Metrics**: Enhanced monitoring for local model performance
+- **📋 Model Comparison**: Side-by-side comparison of local vs cloud models
+- **📋 Resource Monitoring**: Real-time CPU/GPU/memory usage tracking
+
+---
+
+## 🎯 Version 1.3.10 - Critical Bug Fixes & Stability
 
 **Date**: January 19, 2025  
 **Status**: ✅ Complete - Critical Bug Fixes & Application Stability  

@@ -95,7 +95,7 @@ export function ModelSelector({ className = '' }: ModelSelectorProps) {
     }
   };
 
-  // Get available models (combination of static and discovered)
+  // Get available models (combination of static, local, and discovered)
   const getAvailableModels = () => {
     const staticModels = availableModels.filter(model => {
       // For cloud models, check if there's an active API config for the provider
@@ -109,8 +109,22 @@ export function ModelSelector({ className = '' }: ModelSelectorProps) {
       return true;
     });
 
-    // Combine static models with discovered models, avoiding duplicates
-    const allModels = [...staticModels];
+    // Add local models from the store
+    const localModelsList = localModels.map(localModel => ({
+      id: localModel.id,
+      name: localModel.name,
+      provider: 'ollama' as AIProvider,
+      category: 'local',
+      description: `Local Ollama model - ${localModel.details?.parameter_size || 'Unknown size'}`,
+      maxTokens: 4096,
+      contextWindow: 4096,
+      isAvailable: localModel.status === 'available',
+      type: 'chat',
+      isLocal: true,
+    }));
+
+    // Combine static models, local models, with discovered models, avoiding duplicates
+    const allModels = [...staticModels, ...localModelsList];
     
     discoveredModels.forEach(discoveredModel => {
       const exists = allModels.find(m => m.id === discoveredModel.id && m.provider === discoveredModel.provider);
