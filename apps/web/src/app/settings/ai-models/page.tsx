@@ -636,6 +636,17 @@ export default function AIModelsPage(): React.JSX.Element {
           </p>
         </div>
         <div className="flex gap-2">
+          <IconTooltip content="Sync with Ollama to discover available models">
+            <Button 
+              onClick={handleSyncLocalModels}
+              disabled={isSyncingModels}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isSyncingModels ? 'animate-spin' : ''}`} />
+              {isSyncingModels ? 'Syncing...' : 'Sync Models'}
+            </Button>
+          </IconTooltip>
           <IconTooltip content="Add a new local AI model">
             <Button onClick={() => setShowAddLocalModel(true)} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
