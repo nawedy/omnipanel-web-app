@@ -67,7 +67,7 @@ try {
       "@tailwindcss/typography": "^0.5.0",
       "@testing-library/react": "^16.1.0",
       "@testing-library/jest-dom": "^6.6.3",
-      "@heroicons/react": "^2.2.0",
+ 
       "eslint": "^9.19.0",
       "eslint-config-next": "^15.1.6",
       "prettier": "^3.5.3",

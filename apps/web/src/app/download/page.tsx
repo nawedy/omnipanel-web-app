@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  ArrowDownTrayIcon, 
-  DevicePhoneMobileIcon, 
-  ComputerDesktopIcon,
-  GlobeAltIcon,
-  CheckCircleIcon,
-  InformationCircleIcon
-} from '@heroicons/react/24/outline';
+  Download, 
+  Smartphone, 
+  Monitor,
+  Globe,
+  CheckCircle,
+  Info
+} from 'lucide-react';
 
 interface Platform {
   name: string;
@@ -46,7 +46,7 @@ export default function DownloadPage() {
   const platforms: Record<string, Platform> = {
     windows: {
       name: 'Windows',
-      icon: ComputerDesktopIcon,
+      icon: Monitor,
       primary: true,
       downloads: [
         { name: 'Installer (Recommended)', url: '/downloads/OmniPanel-Setup-1.0.0.exe', size: '120 MB', type: 'installer' },
@@ -55,7 +55,7 @@ export default function DownloadPage() {
     },
     mac: {
       name: 'macOS',
-      icon: ComputerDesktopIcon,
+      icon: Monitor,
       primary: true,
       downloads: [
         { name: 'Installer (Recommended)', url: '/downloads/OmniPanel-1.0.0.dmg', size: '130 MB', type: 'installer' },
@@ -64,7 +64,7 @@ export default function DownloadPage() {
     },
     linux: {
       name: 'Linux',
-      icon: ComputerDesktopIcon,
+      icon: Monitor,
       primary: true,
       downloads: [
         { name: 'AppImage (Universal)', url: '/downloads/OmniPanel-1.0.0.AppImage', size: '125 MB', type: 'package' },
@@ -74,7 +74,7 @@ export default function DownloadPage() {
     },
     android: {
       name: 'Android',
-      icon: DevicePhoneMobileIcon,
+      icon: Smartphone,
       primary: true,
       downloads: [
         { name: 'APK (Direct Install)', url: '/downloads/OmniPanel-1.0.0.apk', size: '45 MB', type: 'package' }
@@ -82,7 +82,7 @@ export default function DownloadPage() {
     },
     ios: {
       name: 'iOS',
-      icon: DevicePhoneMobileIcon,
+      icon: Smartphone,
       primary: true,
       downloads: [
         { name: 'TestFlight Beta', url: 'https://testflight.apple.com/join/omnipanel', size: '50 MB', type: 'package' }
@@ -90,7 +90,7 @@ export default function DownloadPage() {
     },
     web: {
       name: 'Web App',
-      icon: GlobeAltIcon,
+      icon: Globe,
       primary: false,
       downloads: [
         { name: 'Launch Web App', url: '/workspace', size: 'Online', type: 'package' },
@@ -158,7 +158,7 @@ export default function DownloadPage() {
           
           {detectedPlatform && (
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/20 border border-blue-500/30 rounded-lg">
-              <CheckCircleIcon className="w-5 h-5 text-blue-400" />
+              <CheckCircle className="w-5 h-5 text-blue-400" />
               <span className="text-blue-300">
                 Detected: {platforms[detectedPlatform]?.name}
               </span>
@@ -196,7 +196,7 @@ export default function DownloadPage() {
                   className="flex items-center justify-between p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <ArrowDownTrayIcon className="w-5 h-5 text-blue-400" />
+                    <Download className="w-5 h-5 text-blue-400" />
                     <div>
                       <span className="text-white font-medium">
                         {download.name}
@@ -216,7 +216,7 @@ export default function DownloadPage() {
             {/* Installation Guide */}
             <div className="bg-gray-700/30 rounded-lg p-4">
               <h3 className="text-white font-medium mb-3 flex items-center gap-2">
-                <InformationCircleIcon className="w-5 h-5 text-blue-400" />
+                <Info className="w-5 h-5 text-blue-400" />
                 Installation Guide
               </h3>
               <ol className="text-gray-300 text-sm space-y-1">
