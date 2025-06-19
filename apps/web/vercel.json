@@ -1,11 +1,12 @@
 {
   "version": 2,
-  "buildCommand": "cd ../.. && npm install && cd apps/web && node build-standalone.js",
+  "buildCommand": "node build-standalone.js",
   "outputDirectory": ".next",
-  "installCommand": "cd ../.. && npm install",
+  "installCommand": "cd ../.. && pnpm install",
   "framework": "nextjs",
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "STANDALONE_BUILD": "1"
   },
   "functions": {
     "app/api/**/*.ts": {

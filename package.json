@@ -8,10 +8,10 @@
     "build:clean": "tsc --build --clean",
     "build:force": "tsc --build --force",
     "build:watch": "tsc --build --watch",
-    "dev": "npm run build:packages && npm run dev:web",
+    "dev": "pnpm run build:packages && pnpm run dev:web",
     "type-check": "tsc --build --dry",
     "clean": "rm -rf packages/*/dist .next packages/*/.tsbuildinfo",
-    "clean:all": "npm run clean && rm -rf node_modules packages/*/node_modules",
+    "clean:all": "pnpm run clean && rm -rf node_modules packages/*/node_modules",
     "build:types": "tsc --build packages/types",
     "build:config": "tsc --build packages/config",
     "build:database": "tsc --build packages/database",
@@ -20,8 +20,8 @@
     "build:core": "tsc --build packages/core",
     "build:theme-engine": "tsc --build packages/theme-engine",
     "build:plugin-sdk": "tsc --build packages/plugin-sdk",
-    "build:packages": "npm run build:types && npm run build:config && npm run build:database && npm run build:ui && npm run build:llm-adapters && npm run build:core && npm run build:theme-engine && npm run build:plugin-sdk",
-    "build:web": "npm run build:packages && next build",
+    "build:packages": "pnpm run build:types && pnpm run build:config && pnpm run build:database && pnpm run build:ui && pnpm run build:llm-adapters && pnpm run build:core && pnpm run build:theme-engine && pnpm run build:plugin-sdk",
+    "build:web": "pnpm run build:packages && next build",
     "dev:web": "next dev --port 3003",
     "start": "next start --port 3003",
     "lint": "next lint",
@@ -41,16 +41,15 @@
     "test:processes": "node scripts/test-runner.js processes",
     "test:user-guides": "node scripts/test-runner.js documentation",
     "test:comprehensive": "node scripts/test-runner.js all",
-    "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
-    "validate:docs": "npm run test:user-guides",
-    "validate:features": "npm run test:flows && npm run test:processes",
-    "test:all:ci": "npm run lint && npm run type-check && npm run test:ci && npm run test:e2e",
-    "reinstall": "npm run clean:all && npm install",
-    "reset": "npm run clean && npm run build",
-    "setup": "npm install && npm run build:packages"
+    "test:all": "pnpm run test:unit && pnpm run test:integration && pnpm run test:e2e",
+    "validate:docs": "pnpm run test:user-guides",
+    "validate:features": "pnpm run test:flows && pnpm run test:processes",
+    "test:all:ci": "pnpm run lint && pnpm run type-check && pnpm run test:ci && pnpm run test:e2e",
+    "reinstall": "pnpm run clean:all && pnpm install",
+    "reset": "pnpm run clean && pnpm run build",
+    "setup": "pnpm install && pnpm run build:packages"
   },
   "dependencies": {
-
     "@types/node": "^22.13.10",
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
@@ -86,7 +85,7 @@
   },
   "engines": {
     "node": ">=22.0.0",
-    "npm": ">=8.0.0"
+    "pnpm": ">=8.0.0"
   },
   "workspaces": [
     "packages/*"
