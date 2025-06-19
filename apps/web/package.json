@@ -1,5 +1,5 @@
 {
-  "name": "omnipanel-web-standalone",
+  "name": "@omnipanel/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,6 +10,14 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@omnipanel/config": "workspace:*",
+    "@omnipanel/core": "workspace:*",
+    "@omnipanel/database": "workspace:*",
+    "@omnipanel/llm-adapters": "workspace:*",
+    "@omnipanel/plugin-sdk": "workspace:*",
+    "@omnipanel/theme-engine": "workspace:*",
+    "@omnipanel/types": "workspace:*",
+    "@omnipanel/ui": "workspace:*",
     "@headlessui/react": "^2.2.0",
     "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-avatar": "^1.1.10",
@@ -53,6 +61,7 @@
     "prettier-plugin-tailwindcss": "^0.6.9"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.0.0",
+    "pnpm": ">=8.0.0"
   }
 }

@@ -1,8 +1,20 @@
 {
   "version": 2,
+  "builds": [
+    {
+      "use": "@vercel/node",
+      "src": "apps/web/build-standalone.js"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "apps/web/$1"
+    }
+  ],
+  "installCommand": "pnpm install --no-frozen-lockfile",
   "buildCommand": "cd apps/web && node build-standalone.js",
   "outputDirectory": "apps/web/.next",
-  "installCommand": "pnpm install",
   "framework": "nextjs",
   "regions": ["iad1", "sfo1"],
   "env": {
