@@ -43,8 +43,8 @@ interface WorkspaceNotification {
 
 export function WorkspaceHeader() {
   const { theme, setTheme } = useTheme();
-  const { toggleSidebar, currentProject, selectedModel, modelProvider, layout, toggleFileTree } = useWorkspaceStore();
-  const { selectedModel: aiSelectedModel, apiConfigs, availableModels } = useAIConfigStore();
+  const { toggleSidebar, currentProject, layout, toggleFileTree } = useWorkspaceStore();
+  const { selectedModel, availableModels, apiConfigs, localModels } = useAIConfigStore();
   const pathname = usePathname();
   const router = useRouter();
 
@@ -70,17 +70,46 @@ export function WorkspaceHeader() {
     }
   ]);
 
+  // Get the current selected model and its provider
+  const currentModel = availableModels.find(model => model.id === selectedModel);
+  const modelProvider = currentModel?.provider;
+
   // Memoize the active configs to prevent infinite re-renders
   const activeConfigs = useMemo(() => {
     return apiConfigs.filter(c => c.isActive);
   }, [apiConfigs]);
 
+  // Check if the current model is available
+  const isModelAvailable = useMemo(() => {
+    if (!currentModel) return false;
+    
+    // For local/Ollama models, check if they're loaded
+    if (currentModel.provider === 'local' || currentModel.provider === 'ollama') {
+      const localModel = localModels.find(m => m.id === currentModel.id);
+      return localModel?.isLoaded || false;
+    }
+    
+    // For cloud models, check if there's an active API config for the provider
+    const providerConfig = activeConfigs.find(c => c.provider === currentModel.provider);
+    return providerConfig?.isValid !== false;
+  }, [currentModel, localModels, activeConfigs]);
+
   // Initialize sync status after hydration
   useEffect(() => {
-    const checkModelAvailability = () => {
-      const currentModel = availableModels.find(m => m.id === aiSelectedModel);
+    const checkModelAvailability = async () => {
       const hasActiveAPI = activeConfigs.length > 0;
-      const modelAvailable = currentModel?.isAvailable || false;
+      const modelAvailable = isModelAvailable;
+      
+      let statusMessage = '';
+      if (!hasActiveAPI && (!currentModel || (currentModel.provider !== 'local' && currentModel.provider !== 'ollama'))) {
+        statusMessage = 'No API keys configured';
+      } else if (!modelAvailable) {
+        if (currentModel?.provider === 'local' || currentModel?.provider === 'ollama') {
+          statusMessage = 'Local model not loaded';
+        } else {
+          statusMessage = 'Selected model is not available';
+        }
+      }
       
       return {
         isOnline: navigator.onLine,
@@ -88,15 +117,21 @@ export function WorkspaceHeader() {
         isSyncing: false,
         lastSync: new Date(),
         pendingOperations: 0,
-        error: hasActiveAPI ? (modelAvailable ? undefined : 'Selected model is not available') : 'No API keys configured',
+        error: statusMessage || undefined,
       };
     };
 
-    setSyncStatus(checkModelAvailability());
+    const initializeStatus = async () => {
+      const status = await checkModelAvailability();
+      setSyncStatus(status);
+    };
+
+    initializeStatus();
 
     // Listen to online/offline events
-    const handleOnline = () => {
-      setSyncStatus(checkModelAvailability());
+    const handleOnline = async () => {
+      const status = await checkModelAvailability();
+      setSyncStatus(status);
     };
 
     const handleOffline = () => {
@@ -110,7 +145,7 @@ export function WorkspaceHeader() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [aiSelectedModel, activeConfigs, availableModels]);
+  }, [selectedModel, activeConfigs, availableModels, isModelAvailable, currentModel]);
 
   // Handle global keyboard shortcuts
   useEffect(() => {
@@ -469,4 +504,4 @@ export function WorkspaceHeader() {
       )}
     </>
   );
-} 
+}

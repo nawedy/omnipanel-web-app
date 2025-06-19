@@ -67,6 +67,9 @@ export default function AIModelsPage(): React.JSX.Element {
     apiConfigs,
     localModels,
     modelPerformance,
+    availableModels,
+    selectedModel,
+    setSelectedModel,
     addAPIConfig,
     updateAPIConfig,
     deleteAPIConfig,
@@ -75,7 +78,9 @@ export default function AIModelsPage(): React.JSX.Element {
     deleteLocalModel,
     testAPIConnection,
     loadLocalModel,
-    unloadLocalModel
+    unloadLocalModel,
+    syncLocalModels,
+    refreshLocalModelStatus
   } = useAIConfigStore();
 
   const [activeTab, setActiveTab] = useState<'providers' | 'local' | 'performance' | 'settings'>('providers');
@@ -84,6 +89,9 @@ export default function AIModelsPage(): React.JSX.Element {
   const [isLoadingModel, setIsLoadingModel] = useState<string | null>(null);
   const [showAddProvider, setShowAddProvider] = useState(false);
   const [showAddLocalModel, setShowAddLocalModel] = useState(false);
+  const [isSyncingModels, setIsSyncingModels] = useState(false);
+  const [testingConnections, setTestingConnections] = useState<Set<string>>(new Set());
+  const [loadingModels, setLoadingModels] = useState<Set<string>>(new Set());
   
   // Local model settings
   const [localSettings, setLocalSettings] = useState<LocalModelSettings>({
@@ -144,7 +152,7 @@ export default function AIModelsPage(): React.JSX.Element {
   // Check Ollama availability on mount
   useEffect(() => {
     const checkOllama = async (): Promise<void> => {
-      const available = await localModelService.isOllamaAvailable();
+      const available = await localModelService.isOllamaRunning();
       setIsOllamaAvailable(available);
     };
     
@@ -152,7 +160,7 @@ export default function AIModelsPage(): React.JSX.Element {
   }, []);
 
   const handleTestConnection = async (configId: string): Promise<void> => {
-    setIsTestingConnection(configId);
+    setTestingConnections(prev => new Set(prev).add(configId));
     try {
       const result = await testAPIConnection(configId);
       if (result) {
@@ -164,7 +172,72 @@ export default function AIModelsPage(): React.JSX.Element {
       console.error('Connection test error:', error);
       alert(`Connection test failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      setIsTestingConnection(null);
+      setTestingConnections(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(configId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleSyncLocalModels = async (): Promise<void> => {
+    setIsSyncingModels(true);
+    try {
+      await syncLocalModels();
+      console.log('Local models synced successfully');
+    } catch (error) {
+      console.error('Failed to sync local models:', error);
+      alert('Failed to sync local models. Please check if Ollama is running.');
+    } finally {
+      setIsSyncingModels(false);
+    }
+  };
+
+  const handleLoadLocalModel = async (modelId: string): Promise<void> => {
+    setLoadingModels(prev => new Set(prev).add(modelId));
+    try {
+      const success = await loadLocalModel(modelId);
+      if (success) {
+        console.log(`Model ${modelId} loaded successfully`);
+      } else {
+        alert(`Failed to load model ${modelId}`);
+      }
+    } catch (error) {
+      console.error('Failed to load model:', error);
+      alert(`Failed to load model: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoadingModels(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(modelId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleUnloadLocalModel = async (modelId: string): Promise<void> => {
+    setLoadingModels(prev => new Set(prev).add(modelId));
+    try {
+      const success = await unloadLocalModel(modelId);
+      if (success) {
+        console.log(`Model ${modelId} unloaded successfully`);
+      } else {
+        alert(`Failed to unload model ${modelId}`);
+      }
+    } catch (error) {
+      console.error('Failed to unload model:', error);
+      alert(`Failed to unload model: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setLoadingModels(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(modelId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleDeleteAPIConfig = async (configId: string): Promise<void> => {
+    if (confirm('Are you sure you want to delete this API configuration?')) {
+      deleteAPIConfig(configId);
     }
   };
 

@@ -37,10 +37,6 @@ export interface WorkspaceState {
   tabs: Tab[];
   activeTabId: string | null;
   
-  // LLM State
-  selectedModel: string | null;
-  modelProvider: string | null;
-  
   // Layout
   layout: {
     showFileTree: boolean;
@@ -74,9 +70,6 @@ export interface WorkspaceActions {
   moveTab: (id: string, newIndex: number) => void;
   duplicateTab: (id: string) => void;
   
-  // LLM Actions
-  setSelectedModel: (model: string, provider: string) => void;
-  
   // Layout Actions
   toggleFileTree: () => void;
   toggleTerminal: () => void;
@@ -98,8 +91,6 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
       projects: [],
       tabs: [],
       activeTabId: null,
-      selectedModel: 'gpt-4o',
-      modelProvider: 'openai',
       layout: {
         showFileTree: true,
         showTerminal: false,
@@ -240,10 +231,6 @@ export const useWorkspaceStore = create<WorkspaceStore>()(
             activeTabId: newId,
           };
         }),
-
-      // LLM Actions
-      setSelectedModel: (model, provider) =>
-        set({ selectedModel: model, modelProvider: provider }),
 
       // Layout Actions
       toggleFileTree: () =>

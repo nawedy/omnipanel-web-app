@@ -1,15 +1,24 @@
 // apps/web/src/services/localModelService.ts
-// Local model management service for Ollama integration and local AI model support
+// Service for managing local AI models (Ollama, local LLMs, etc.)
 
 import { LocalModelConfig } from '@/stores/aiConfigStore';
 
-// Ollama Model Info
-interface OllamaModelInfo {
+export interface LocalModelStatus {
+  id: string;
   name: string;
-  modified_at: string;
+  isLoaded: boolean;
+  isAvailable: boolean;
+  loadTime?: number;
+  memoryUsage?: number;
+  error?: string;
+}
+
+export interface OllamaModel {
+  name: string;
   size: number;
   digest: string;
-  details: {
+  modified_at: string;
+  details?: {
     format: string;
     family: string;
     families: string[];
@@ -18,220 +27,80 @@ interface OllamaModelInfo {
   };
 }
 
-// Model Installation Progress
-interface ModelInstallProgress {
-  status: 'downloading' | 'verifying' | 'writing' | 'success' | 'error';
-  digest: string;
-  total: number;
-  completed: number;
-  percentage: number;
-}
+export class LocalModelService {
+  private static instance: LocalModelService;
+  private ollamaBaseUrl: string = 'http://localhost:11434';
+  private modelStatusCache = new Map<string, LocalModelStatus>();
+  private cacheExpiry = new Map<string, number>();
+  private readonly CACHE_DURATION = 30 * 1000; // 30 seconds
 
-// System Resources
-interface SystemResources {
-  totalMemory: number;
-  availableMemory: number;
-  cpuCores: number;
-  gpuMemory?: number;
-  diskSpace: number;
-}
-
-// Model Performance Metrics
-interface LocalModelPerformance {
-  modelId: string;
-  loadTime: number;
-  memoryUsage: number;
-  tokensPerSecond: number;
-  cpuUsage: number;
-  gpuUsage?: number;
-  temperature: number;
-  lastUsed: Date;
-}
-
-class LocalModelService {
-  private readonly OLLAMA_BASE_URL = 'http://localhost:11434';
-  private readonly OLLAMA_TIMEOUT = 30000; // 30 seconds for model operations
-  private modelPerformance: Map<string, LocalModelPerformance> = new Map();
+  static getInstance(): LocalModelService {
+    if (!LocalModelService.instance) {
+      LocalModelService.instance = new LocalModelService();
+    }
+    return LocalModelService.instance;
+  }
 
   /**
    * Check if Ollama is running and accessible
    */
-  async isOllamaAvailable(): Promise<boolean> {
+  async isOllamaRunning(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.OLLAMA_BASE_URL}/api/version`, {
-        signal: AbortSignal.timeout(5000)
+      const response = await fetch(`${this.ollamaBaseUrl}/api/version`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000), // 5 second timeout
       });
       return response.ok;
     } catch (error) {
+      console.log('Ollama not accessible:', error);
       return false;
     }
   }
 
   /**
-   * Get Ollama version information
+   * Get list of available Ollama models
    */
-  async getOllamaVersion(): Promise<{ version: string } | null> {
+  async getOllamaModels(): Promise<OllamaModel[]> {
     try {
-      const response = await fetch(`${this.OLLAMA_BASE_URL}/api/version`);
-      if (!response.ok) return null;
-      return await response.json();
-    } catch (error) {
-      return null;
-    }
-  }
+      if (!(await this.isOllamaRunning())) {
+        return [];
+      }
 
-  /**
-   * List all installed Ollama models
-   */
-  async listOllamaModels(): Promise<LocalModelConfig[]> {
-    try {
-      const response = await fetch(`${this.OLLAMA_BASE_URL}/api/tags`);
+      const response = await fetch(`${this.ollamaBaseUrl}/api/tags`);
       if (!response.ok) {
-        throw new Error(`Failed to fetch models: ${response.status}`);
+        throw new Error(`Ollama API error: ${response.status}`);
       }
 
       const data = await response.json();
-      return data.models?.map((model: OllamaModelInfo) => ({
-        id: `ollama-${model.name}`,
-        name: model.name,
-        path: model.name, // Ollama uses model names as paths
-        type: 'ollama' as const,
-        size: model.size,
-        isLoaded: false, // We'll check this separately
-        parameters: {
-          format: model.details?.format,
-          family: model.details?.family,
-          parameterSize: model.details?.parameter_size,
-          quantization: model.details?.quantization_level,
-          digest: model.digest,
-          modifiedAt: model.modified_at
-        }
-      })) || [];
+      return data.models || [];
     } catch (error) {
-      console.error('Failed to list Ollama models:', error);
+      console.error('Failed to get Ollama models:', error);
       return [];
     }
   }
 
   /**
-   * Pull/install a model from Ollama registry
+   * Load a specific Ollama model
    */
-  async pullOllamaModel(
-    modelName: string,
-    onProgress?: (progress: ModelInstallProgress) => void
-  ): Promise<boolean> {
+  async loadOllamaModel(modelName: string): Promise<boolean> {
     try {
-      const response = await fetch(`${this.OLLAMA_BASE_URL}/api/pull`, {
+      if (!(await this.isOllamaRunning())) {
+        throw new Error('Ollama is not running');
+      }
+
+      const startTime = Date.now();
+      
+      // Use the generate endpoint with an empty prompt to load the model
+      const response = await fetch(`${this.ollamaBaseUrl}/api/generate`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ name: modelName }),
-        signal: AbortSignal.timeout(this.OLLAMA_TIMEOUT)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to pull model: ${response.status}`);
-      }
-
-      // Handle streaming response for progress updates
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error('No response body');
-      }
-
-      const decoder = new TextDecoder();
-      let buffer = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          if (line.trim()) {
-            try {
-              const progress = JSON.parse(line);
-              if (onProgress && progress.status) {
-                onProgress({
-                  status: progress.status,
-                  digest: progress.digest || '',
-                  total: progress.total || 0,
-                  completed: progress.completed || 0,
-                  percentage: progress.total ? (progress.completed / progress.total) * 100 : 0
-                });
-              }
-            } catch (parseError) {
-              // Ignore JSON parse errors for non-JSON lines
-            }
-          }
-        }
-      }
-
-      return true;
-    } catch (error) {
-      console.error('Failed to pull Ollama model:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Delete an Ollama model
-   */
-  async deleteOllamaModel(modelName: string): Promise<boolean> {
-    try {
-      const response = await fetch(`${this.OLLAMA_BASE_URL}/api/delete`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ name: modelName })
-      });
-
-      return response.ok;
-    } catch (error) {
-      console.error('Failed to delete Ollama model:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Load a model into memory
-   */
-  async loadModel(modelConfig: LocalModelConfig): Promise<boolean> {
-    if (modelConfig.type === 'ollama') {
-      return await this.loadOllamaModel(modelConfig.name);
-    }
-    
-    // Handle other local model types here
-    return false;
-  }
-
-  /**
-   * Load an Ollama model into memory
-   */
-  private async loadOllamaModel(modelName: string): Promise<boolean> {
-    const startTime = Date.now();
-    
-    try {
-      // Generate a simple request to load the model
-      const response = await fetch(`${this.OLLAMA_BASE_URL}/api/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           model: modelName,
-          prompt: 'Hello',
+          prompt: '',
           stream: false,
-          options: {
-            num_predict: 1
-          }
         }),
-        signal: AbortSignal.timeout(this.OLLAMA_TIMEOUT)
       });
 
       if (!response.ok) {
@@ -240,228 +109,173 @@ class LocalModelService {
 
       const loadTime = Date.now() - startTime;
       
-      // Update performance metrics
-      this.modelPerformance.set(`ollama-${modelName}`, {
-        modelId: `ollama-${modelName}`,
+      // Update cache
+      this.modelStatusCache.set(modelName, {
+        id: modelName,
+        name: modelName,
+        isLoaded: true,
+        isAvailable: true,
         loadTime,
-        memoryUsage: 0, // We'll need to get this from system monitoring
-        tokensPerSecond: 0,
-        cpuUsage: 0,
-        temperature: 0.7,
-        lastUsed: new Date()
       });
 
+      console.log(`Model ${modelName} loaded successfully in ${loadTime}ms`);
       return true;
     } catch (error) {
-      console.error('Failed to load Ollama model:', error);
+      console.error(`Failed to load model ${modelName}:`, error);
+      
+      // Update cache with error
+      this.modelStatusCache.set(modelName, {
+        id: modelName,
+        name: modelName,
+        isLoaded: false,
+        isAvailable: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
       return false;
     }
   }
 
   /**
-   * Unload a model from memory
+   * Check if a specific model is loaded
    */
-  async unloadModel(modelConfig: LocalModelConfig): Promise<boolean> {
-    if (modelConfig.type === 'ollama') {
-      // Ollama doesn't have explicit unload, but we can clear our tracking
-      this.modelPerformance.delete(modelConfig.id);
-      return true;
-    }
+  async isModelLoaded(modelName: string): Promise<boolean> {
+    // Check cache first
+    const cached = this.modelStatusCache.get(modelName);
+    const cacheExpiry = this.cacheExpiry.get(modelName);
     
-    return false;
-  }
-
-  /**
-   * Test model performance
-   */
-  async testModelPerformance(modelConfig: LocalModelConfig): Promise<LocalModelPerformance | null> {
-    if (modelConfig.type !== 'ollama') {
-      return null;
+    if (cached && cacheExpiry && Date.now() < cacheExpiry) {
+      return cached.isLoaded;
     }
 
-    const startTime = Date.now();
-    const testPrompt = 'Count from 1 to 10.';
-    
     try {
-      const response = await fetch(`${this.OLLAMA_BASE_URL}/api/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: modelConfig.name,
-          prompt: testPrompt,
-          stream: false,
-          options: {
-            num_predict: 50,
-            temperature: 0.1
-          }
-        }),
-        signal: AbortSignal.timeout(this.OLLAMA_TIMEOUT)
-      });
-
-      if (!response.ok) {
-        throw new Error(`Performance test failed: ${response.status}`);
+      if (!(await this.isOllamaRunning())) {
+        return false;
       }
 
-      const result = await response.json();
-      const endTime = Date.now();
-      const responseTime = endTime - startTime;
+      // Try a simple generation request to check if model is loaded
+      const response = await fetch(`${this.ollamaBaseUrl}/api/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: modelName,
+          prompt: 'test',
+          stream: false,
+          options: {
+            num_predict: 1, // Generate only 1 token
+          },
+        }),
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+      });
+
+      const isLoaded = response.ok;
       
-      // Estimate tokens per second
-      const estimatedTokens = result.response?.split(' ').length || 0;
-      const tokensPerSecond = estimatedTokens > 0 ? (estimatedTokens / responseTime) * 1000 : 0;
+      // Update cache
+      this.modelStatusCache.set(modelName, {
+        id: modelName,
+        name: modelName,
+        isLoaded,
+        isAvailable: isLoaded,
+      });
+      
+      this.cacheExpiry.set(modelName, Date.now() + this.CACHE_DURATION);
 
-      const performance: LocalModelPerformance = {
-        modelId: modelConfig.id,
-        loadTime: responseTime,
-        memoryUsage: 0, // Would need system monitoring
-        tokensPerSecond,
-        cpuUsage: 0, // Would need system monitoring
-        temperature: 0.1,
-        lastUsed: new Date()
-      };
-
-      this.modelPerformance.set(modelConfig.id, performance);
-      return performance;
+      return isLoaded;
     } catch (error) {
-      console.error('Performance test failed:', error);
-      return null;
+      console.error(`Failed to check model status for ${modelName}:`, error);
+      
+      // Update cache with error
+      this.modelStatusCache.set(modelName, {
+        id: modelName,
+        name: modelName,
+        isLoaded: false,
+        isAvailable: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      return false;
     }
   }
 
   /**
-   * Get system resources
+   * Get status of all local models
    */
-  async getSystemResources(): Promise<SystemResources> {
-    // This would typically require a native module or system API
-    // For now, return estimated values
-    return {
-      totalMemory: 16 * 1024 * 1024 * 1024, // 16GB
-      availableMemory: 8 * 1024 * 1024 * 1024, // 8GB
-      cpuCores: navigator.hardwareConcurrency || 4,
-      diskSpace: 500 * 1024 * 1024 * 1024 // 500GB
-    };
-  }
+  async getAllModelStatuses(): Promise<LocalModelStatus[]> {
+    const ollamaModels = await this.getOllamaModels();
+    const statuses: LocalModelStatus[] = [];
 
-  /**
-   * Get model performance metrics
-   */
-  getModelPerformance(modelId: string): LocalModelPerformance | null {
-    return this.modelPerformance.get(modelId) || null;
-  }
-
-  /**
-   * Get all performance metrics
-   */
-  getAllPerformanceMetrics(): LocalModelPerformance[] {
-    return Array.from(this.modelPerformance.values());
-  }
-
-  /**
-   * Search available models in Ollama registry
-   */
-  async searchOllamaModels(query: string): Promise<string[]> {
-    // This would typically query the Ollama registry
-    // For now, return common model names that match the query
-    const commonModels = [
-      'llama2', 'llama2:7b', 'llama2:13b', 'llama2:70b',
-      'codellama', 'codellama:7b', 'codellama:13b', 'codellama:34b',
-      'mistral', 'mistral:7b', 'mistral:instruct',
-      'neural-chat', 'starling-lm', 'zephyr',
-      'phi', 'phi:2.7b', 'orca-mini', 'vicuna',
-      'wizardcoder', 'sqlcoder', 'magicoder'
-    ];
-
-    return commonModels.filter(model => 
-      model.toLowerCase().includes(query.toLowerCase())
-    );
-  }
-
-  /**
-   * Get model recommendations based on system resources
-   */
-  getModelRecommendations(resources: SystemResources): string[] {
-    const availableMemoryGB = resources.availableMemory / (1024 * 1024 * 1024);
-    
-    if (availableMemoryGB >= 32) {
-      return ['llama2:70b', 'codellama:34b', 'mistral:7b'];
-    } else if (availableMemoryGB >= 16) {
-      return ['llama2:13b', 'codellama:13b', 'mistral:7b'];
-    } else if (availableMemoryGB >= 8) {
-      return ['llama2:7b', 'codellama:7b', 'phi:2.7b'];
-    } else {
-      return ['phi', 'orca-mini', 'neural-chat'];
-    }
-  }
-
-  /**
-   * Estimate model memory requirements
-   */
-  estimateModelMemoryRequirement(modelName: string): number {
-    // Rough estimates in GB
-    const memoryEstimates: Record<string, number> = {
-      'llama2:70b': 40,
-      'llama2:13b': 8,
-      'llama2:7b': 4,
-      'codellama:34b': 20,
-      'codellama:13b': 8,
-      'codellama:7b': 4,
-      'mistral:7b': 4,
-      'phi:2.7b': 2,
-      'phi': 1.5,
-      'orca-mini': 2,
-      'neural-chat': 4
-    };
-
-    return memoryEstimates[modelName] || 4; // Default to 4GB
-  }
-
-  /**
-   * Check if model can run on current system
-   */
-  async canRunModel(modelName: string): Promise<{
-    canRun: boolean;
-    reason?: string;
-    recommendation?: string;
-  }> {
-    const resources = await this.getSystemResources();
-    const requiredMemory = this.estimateModelMemoryRequirement(modelName);
-    const availableMemoryGB = resources.availableMemory / (1024 * 1024 * 1024);
-
-    if (requiredMemory > availableMemoryGB) {
-      const recommendations = this.getModelRecommendations(resources);
-      return {
-        canRun: false,
-        reason: `Model requires ${requiredMemory}GB memory, but only ${availableMemoryGB.toFixed(1)}GB available`,
-        recommendation: `Try smaller models: ${recommendations.slice(0, 3).join(', ')}`
-      };
-    }
-
-    return { canRun: true };
-  }
-
-  /**
-   * Monitor model usage and update performance metrics
-   */
-  updateModelUsage(modelId: string, tokensGenerated: number, responseTime: number): void {
-    const existing = this.modelPerformance.get(modelId);
-    if (existing) {
-      const tokensPerSecond = (tokensGenerated / responseTime) * 1000;
-      this.modelPerformance.set(modelId, {
-        ...existing,
-        tokensPerSecond: (existing.tokensPerSecond + tokensPerSecond) / 2, // Moving average
-        lastUsed: new Date()
+    for (const model of ollamaModels) {
+      const isLoaded = await this.isModelLoaded(model.name);
+      statuses.push({
+        id: model.name,
+        name: model.name,
+        isLoaded,
+        isAvailable: true,
+        memoryUsage: model.size,
       });
     }
+
+    return statuses;
   }
 
   /**
-   * Clear performance metrics
+   * Unload a model (Ollama doesn't have direct unload, but we can clear cache)
    */
-  clearPerformanceMetrics(): void {
-    this.modelPerformance.clear();
+  async unloadModel(modelName: string): Promise<boolean> {
+    try {
+      // Clear from cache
+      this.modelStatusCache.delete(modelName);
+      this.cacheExpiry.delete(modelName);
+      
+      // Note: Ollama doesn't have a direct unload API
+      // Models are automatically unloaded after a period of inactivity
+      console.log(`Model ${modelName} marked as unloaded`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to unload model ${modelName}:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Get cached model status without making API calls
+   */
+  getCachedModelStatus(modelName: string): LocalModelStatus | null {
+    const cached = this.modelStatusCache.get(modelName);
+    const cacheExpiry = this.cacheExpiry.get(modelName);
+    
+    if (cached && cacheExpiry && Date.now() < cacheExpiry) {
+      return cached;
+    }
+    
+    return null;
+  }
+
+  /**
+   * Clear all caches
+   */
+  clearCache(): void {
+    this.modelStatusCache.clear();
+    this.cacheExpiry.clear();
+  }
+
+  /**
+   * Set custom Ollama base URL
+   */
+  setOllamaBaseUrl(url: string): void {
+    this.ollamaBaseUrl = url;
+    this.clearCache(); // Clear cache when URL changes
+  }
+
+  /**
+   * Get current Ollama base URL
+   */
+  getOllamaBaseUrl(): string {
+    return this.ollamaBaseUrl;
   }
 }
 
-export const localModelService = new LocalModelService(); 
+// Export singleton instance
+export const localModelService = LocalModelService.getInstance(); 

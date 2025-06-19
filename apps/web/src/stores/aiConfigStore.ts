@@ -5,6 +5,7 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { localModelService, LocalModelStatus } from '@/services/localModelService';
 
 // AI Model Types
 export interface AIModel {
@@ -125,6 +126,10 @@ interface AIConfigState {
   deleteAPIConfig: (configId: string) => void;
   deleteLocalModel: (modelId: string) => void;
   testAPIConnection: (configId: string) => Promise<boolean>;
+  
+  // Local model sync
+  syncLocalModels: () => Promise<void>;
+  refreshLocalModelStatus: (modelId: string) => Promise<void>;
 }
 
 // Available AI models with their capabilities
@@ -557,23 +562,24 @@ export const useAIConfigStore = create<AIConfigState>()(
       
       loadLocalModel: async (modelId) => {
         try {
-          // Implement local model loading logic
-          const startTime = Date.now();
+          const model = get().localModels.find(m => m.id === modelId);
+          if (!model) return false;
+
+          // Use the local model service to load the model
+          const success = await localModelService.loadOllamaModel(model.name);
           
-          // Placeholder for actual loading logic
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          if (success) {
+            const loadTime = Date.now();
+            set((state) => ({
+              localModels: state.localModels.map(m => 
+                m.id === modelId 
+                  ? { ...m, isLoaded: true, loadTime }
+                  : m
+              )
+            }));
+          }
           
-          const loadTime = Date.now() - startTime;
-          
-          set((state) => ({
-            localModels: state.localModels.map(m => 
-              m.id === modelId 
-                ? { ...m, isLoaded: true, loadTime }
-                : m
-            )
-          }));
-          
-          return true;
+          return success;
         } catch (error) {
           console.error('Failed to load local model:', error);
           return false;
@@ -582,16 +588,23 @@ export const useAIConfigStore = create<AIConfigState>()(
       
       unloadLocalModel: async (modelId) => {
         try {
-          // Implement local model unloading logic
-          set((state) => ({
-            localModels: state.localModels.map(m => 
-              m.id === modelId 
-                ? { ...m, isLoaded: false, memoryUsage: 0 }
-                : m
-            )
-          }));
+          const model = get().localModels.find(m => m.id === modelId);
+          if (!model) return false;
+
+          // Use the local model service to unload the model
+          const success = await localModelService.unloadModel(model.name);
           
-          return true;
+          if (success) {
+            set((state) => ({
+              localModels: state.localModels.map(m => 
+                m.id === modelId 
+                  ? { ...m, isLoaded: false, memoryUsage: 0 }
+                  : m
+              )
+            }));
+          }
+          
+          return success;
         } catch (error) {
           console.error('Failed to unload local model:', error);
           return false;
@@ -714,6 +727,76 @@ export const useAIConfigStore = create<AIConfigState>()(
         } catch (error) {
           console.error('Failed to test API connection:', error);
           return false;
+        }
+      },
+
+      // Local model sync methods
+      syncLocalModels: async () => {
+        try {
+          const ollamaModels = await localModelService.getOllamaModels();
+          const currentLocalModels = get().localModels;
+          
+          // Convert Ollama models to LocalModelConfig format
+          const newLocalModels: LocalModelConfig[] = ollamaModels.map(model => {
+            const existing = currentLocalModels.find(m => m.name === model.name);
+            return {
+              id: `ollama-${model.name}`,
+              name: model.name,
+              path: model.name,
+              type: 'ollama' as const,
+              size: model.size,
+              isLoaded: existing?.isLoaded || false,
+              loadTime: existing?.loadTime,
+              memoryUsage: existing?.memoryUsage,
+              parameters: {
+                digest: model.digest,
+                modified_at: model.modified_at,
+                details: model.details
+              }
+            };
+          });
+
+          // Also add the models to availableModels if they're not already there
+          const newAvailableModels = ollamaModels.map(model => ({
+            id: `ollama-${model.name}`,
+            name: model.name,
+            provider: 'ollama' as const,
+            maxTokens: 4096, // Default for Ollama models
+            isLocal: true,
+            isAvailable: true,
+            description: `Local Ollama model: ${model.name}`,
+            category: 'local',
+            capabilities: ['text-generation']
+          }));
+
+          set((state) => {
+            const existingAvailableModels = state.availableModels.filter(m => m.provider !== 'ollama');
+            return {
+              localModels: newLocalModels,
+              availableModels: [...existingAvailableModels, ...newAvailableModels]
+            };
+          });
+        } catch (error) {
+          console.error('Failed to sync local models:', error);
+        }
+      },
+
+      refreshLocalModelStatus: async (modelId) => {
+        try {
+          const model = get().localModels.find(m => m.id === modelId);
+          if (!model) return;
+
+          const isLoaded = await localModelService.isModelLoaded(model.name);
+          
+          set((state) => ({
+            localModels: state.localModels.map(m => 
+              m.id === modelId 
+                ? { ...m, isLoaded }
+                : m
+            )
+          }));
+        } catch (error) {
+          console.error('Failed to refresh local model status:', error);
         }
       }
     }),

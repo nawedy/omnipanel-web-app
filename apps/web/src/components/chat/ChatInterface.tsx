@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useWorkspaceStore } from '@/stores/workspace';
+import { useAIConfigStore } from '@/stores/aiConfigStore';
 import { LLMAdapterRegistry, ChatMessage, StreamingManager } from '@omnipanel/llm-adapters';
 import { nanoid } from '@omnipanel/core';
 import { useMonitoring } from '@/components/providers/MonitoringProvider';
@@ -83,7 +84,8 @@ interface ChatInterfaceProps {
 }
 
 export function ChatInterface({ sessionId, projectId, initialContext }: ChatInterfaceProps): React.JSX.Element {
-  const { selectedModel, modelProvider, currentProject } = useWorkspaceStore();
+  const { currentProject } = useWorkspaceStore();
+  const { selectedModel, availableModels, apiConfigs } = useAIConfigStore();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [input, setInput] = useState('');
@@ -98,6 +100,10 @@ export function ChatInterface({ sessionId, projectId, initialContext }: ChatInte
   
   // Get monitoring utilities
   const { captureError, captureMessage, measure, startMeasure, endMeasure } = useMonitoring();
+
+  // Get the current selected model and its provider
+  const currentModel = availableModels.find(model => model.id === selectedModel);
+  const modelProvider = currentModel?.provider || 'openai';
 
   // Get active conversation
   const activeConversation = conversations.find(c => c.id === activeConversationId);
@@ -205,7 +211,7 @@ What would you like to work on today?`,
       createdAt: new Date(),
       updatedAt: new Date(),
       context: {
-        projectId,
+        projectId: currentProject?.id,
         projectName: currentProject?.name,
         activeFiles: initialContext?.files
       }
@@ -216,7 +222,7 @@ What would you like to work on today?`,
     
     captureMessage('New conversation created', 'info', {
       conversationId: newConversation.id,
-      projectId,
+      projectId: currentProject?.id,
       contextEnabled
     });
   }, [selectedModel, modelProvider, projectId, currentProject, initialContext, contextEnabled]);
@@ -234,37 +240,34 @@ What would you like to work on today?`,
   }, []);
 
   const buildContextPrompt = useCallback(() => {
-    if (!contextEnabled || !activeConversation) return '';
-
+    if (!contextEnabled) return '';
+    
     const contextParts = [];
     
     // Project context
     if (currentProject) {
-      contextParts.push(`**Current Project**: ${currentProject.name}`);
+      contextParts.push(`Project: ${currentProject.name}`);
     }
-
+    
     // File context
-    if (initialContext?.files && initialContext.files.length > 0) {
-      contextParts.push(`**Active Files**: ${initialContext.files.join(', ')}`);
+    if (initialContext?.files?.length) {
+      contextParts.push(`Active Files: ${initialContext.files.join(', ')}`);
     }
-
+    
     // Selection context
     if (initialContext?.selection) {
-      contextParts.push(`**Selected Code**:\n\`\`\`\n${initialContext.selection}\n\`\`\``);
+      contextParts.push(`Selected Code:\n\`\`\`\n${initialContext.selection}\n\`\`\``);
     }
-
+    
     // Terminal context
-    if (initialContext?.terminal && initialContext.terminal.length > 0) {
-      const recentCommands = initialContext.terminal.slice(-5);
-      contextParts.push(`**Recent Terminal Commands**: ${recentCommands.join(', ')}`);
+    if (initialContext?.terminal?.length) {
+      contextParts.push(`Recent Terminal Commands:\n${initialContext.terminal.slice(-3).join('\n')}`);
     }
-
-    if (contextParts.length > 0) {
-      return `\n\n**Workspace Context**:\n${contextParts.join('\n')}\n\n`;
-    }
-
-    return '';
-  }, [contextEnabled, activeConversation, currentProject, initialContext]);
+    
+    if (contextParts.length === 0) return '';
+    
+    return `Context:\n${contextParts.join('\n')}\n\nUser Query: `;
+  }, [currentProject, initialContext, contextEnabled]);
 
   const sendMessage = async (messageContent: string, isRegeneration = false, originalMessageId?: string) => {
     if (!streamingManager || !activeConversationId) {
@@ -272,13 +275,13 @@ What would you like to work on today?`,
       return;
     }
 
-    const perfMeasureId = startMeasure('chat.sendMessage', {
-      messageLength: messageContent.length.toString(),
-      isRegeneration: isRegeneration.toString(),
-      model: selectedModel || 'unknown',
-      provider: modelProvider || 'unknown',
-      contextEnabled: contextEnabled.toString()
-    });
+          const perfMeasureId = startMeasure('chat.sendMessage', {
+        messageLength: messageContent.length.toString(),
+        isRegeneration: isRegeneration.toString(),
+        model: selectedModel || 'unknown',
+        provider: modelProvider || 'unknown',
+        contextEnabled: contextEnabled.toString()
+      });
 
     setIsLoading(true);
     
@@ -344,21 +347,21 @@ What would you like to work on today?`,
         }));
 
       // Create assistant message placeholder for streaming
-      const streamingMeasureId = startMeasure('chat.streamResponse', {
-        messageId: assistantMessageId,
-        model: selectedModel || 'unknown',
-        provider: modelProvider || 'unknown'
-      });
+              const streamingMeasureId = startMeasure('chat.streamResponse', {
+          messageId: assistantMessageId,
+          model: selectedModel || 'unknown',
+          provider: modelProvider || 'unknown'
+        });
 
-      const streamingMessage: ExtendedChatMessage = {
-        id: assistantMessageId,
-        content: '',
-        role: 'assistant',
-        timestamp: new Date(),
-        isStreaming: true,
-        model: selectedModel || undefined,
-        provider: modelProvider || undefined
-      };
+              const streamingMessage: ExtendedChatMessage = {
+          id: assistantMessageId,
+          content: '',
+          role: 'assistant',
+          timestamp: new Date(),
+          isStreaming: true,
+          model: selectedModel || undefined,
+          provider: modelProvider || undefined
+        };
 
       // Add streaming message to conversation
       setConversations(prev => prev.map(conv => {
@@ -372,23 +375,23 @@ What would you like to work on today?`,
         return conv;
       }));
       
-      captureMessage('Started streaming response', 'info', {
-        messageId: assistantMessageId,
-        model: selectedModel,
-        contextEnabled
-      });
-
-      // Get the LLM adapter for the selected model
-      const adapter = LLMAdapterRegistry.get(modelProvider || 'openai');
-      if (!adapter) {
-        const error = new Error(`No adapter available for provider: ${modelProvider}`);
-        captureError(error, {
-          component: 'ChatInterface',
-          operation: 'getAdapter',
-          provider: modelProvider
+              captureMessage('Started streaming response', 'info', {
+          messageId: assistantMessageId,
+          model: selectedModel,
+          contextEnabled
         });
-        throw error;
-      }
+
+        // Get the LLM adapter for the selected model
+        const adapter = LLMAdapterRegistry.get(modelProvider || 'openai');
+        if (!adapter) {
+          const error = new Error(`No adapter available for provider: ${modelProvider}`);
+          captureError(error, {
+            component: 'ChatInterface',
+            operation: 'getAdapter',
+            provider: modelProvider
+          });
+          throw error;
+        }
       
       // Start streaming session
       const streamController = streamingManager.startStream(assistantMessageId);
