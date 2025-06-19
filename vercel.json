@@ -1,45 +1,8 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "use": "@vercel/node",
-      "src": "apps/web/build-standalone.js"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "apps/web/$1"
-    }
-  ],
   "installCommand": "pnpm install --no-frozen-lockfile",
   "buildCommand": "cd apps/web && node build-standalone.js",
   "outputDirectory": "apps/web/.next",
   "framework": "nextjs",
-  "regions": ["iad1", "sfo1"],
-  "env": {
-    "NODE_ENV": "production",
-    "STANDALONE_BUILD": "1",
-    "NEXT_PUBLIC_APP_URL": "https://omnipanel.cipher-intelligence.com",
-    "NEXT_PUBLIC_API_URL": "https://api.omnipanel.cipher-intelligence.com"
-  },
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "origin-when-cross-origin"
-        }
-      ]
-    }
-  ]
+  "regions": ["iad1", "sfo1"]
 }
