@@ -8,26 +8,42 @@ import { useMonitoring } from '@/components/providers/MonitoringProvider';
 
 export function DatabaseStatusWidget() {
   const { isConnected, isLoading, error, testConnection } = useDatabase();
-  const { captureError, captureMessage, measure } = useMonitoring();
+  const { captureError, captureMessage, startTimer } = useMonitoring();
 
   // Test connection on mount
   useEffect(() => {
+    let isMounted = true;
+    
     if (!isConnected && !isLoading) {
       // Measure database connection performance
-      measure('database.testConnection', async () => {
-        try {
-          await testConnection();
-          captureMessage('Database connection test completed', 'info');
-        } catch (err) {
-          captureError(err instanceof Error ? err : new Error('Database connection failed'), {
-            component: 'DatabaseStatusWidget',
-            operation: 'testConnection',
-            source: 'database'
-          });
-        }
-      });
+      const endTimer = startTimer('database.testConnection');
+      
+      testConnection()
+        .then(() => {
+          if (isMounted) {
+            captureMessage('Database connection test completed', 'info');
+          }
+        })
+        .catch((err) => {
+          if (isMounted) {
+            captureError(err instanceof Error ? err : new Error('Database connection failed'), {
+              component: 'DatabaseStatusWidget',
+              operation: 'testConnection',
+              source: 'database'
+            });
+          }
+        })
+        .finally(() => {
+          if (isMounted) {
+            endTimer();
+          }
+        });
     }
-  }, [isConnected, isLoading, testConnection, measure, captureMessage, captureError]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [isConnected, isLoading, testConnection, startTimer, captureMessage, captureError]);
 
   return (
     <div className="bg-card border border-border rounded-lg overflow-hidden">
@@ -74,18 +90,22 @@ export function DatabaseStatusWidget() {
           <button 
             onClick={() => {
               // Measure manual connection test performance
-              measure('database.manualTestConnection', async () => {
-                try {
-                  await testConnection();
+              const endTimer = startTimer('database.manualTestConnection');
+              
+              testConnection()
+                .then(() => {
                   captureMessage('Manual database connection test completed', 'info');
-                } catch (err) {
+                })
+                .catch((err) => {
                   captureError(err instanceof Error ? err : new Error('Manual database connection failed'), {
                     component: 'DatabaseStatusWidget',
                     operation: 'manualTestConnection',
                     source: 'database'
                   });
-                }
-              });
+                })
+                .finally(() => {
+                  endTimer();
+                });
             }}
             disabled={isLoading}
             className="text-sm text-primary hover:text-primary/80 transition-colors disabled:opacity-50"

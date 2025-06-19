@@ -99,30 +99,33 @@ export function MonitoringProvider({ children }: MonitoringProviderProps) {
       setLastErrorTime(now);
     }
 
-    try {
-      setIsReporting(true);
-      
-      // Safely log error without triggering interceptor
-      if (typeof window !== 'undefined' && window.console && window.console.warn) {
-        window.console.warn('[MonitoringProvider] Error:', {
-          message: error.message,
-          component: error.component,
-          severity: error.severity,
-          timestamp: error.timestamp
-        });
+    // Use setTimeout to avoid state updates during render
+    setTimeout(() => {
+      try {
+        setIsReporting(true);
+        
+        // Safely log error without triggering interceptor
+        if (typeof window !== 'undefined' && window.console && window.console.warn) {
+          window.console.warn('[MonitoringProvider] Error:', {
+            message: error.message,
+            component: error.component,
+            severity: error.severity,
+            timestamp: error.timestamp
+          });
+        }
+        
+        setErrorHistory(prev => [...prev, error].slice(-100)); // Keep last 100 errors
+        
+        // In production, send to error tracking service
+        if (process.env.NODE_ENV === 'production') {
+          // Send to error tracking service (Sentry, LogRocket, etc.)
+        }
+      } catch (err) {
+        // Silently fail to prevent infinite loops
+      } finally {
+        setIsReporting(false);
       }
-      
-      setErrorHistory(prev => [...prev, error].slice(-100)); // Keep last 100 errors
-      
-      // In production, send to error tracking service
-      if (process.env.NODE_ENV === 'production') {
-        // Send to error tracking service (Sentry, LogRocket, etc.)
-      }
-    } catch (err) {
-      // Silently fail to prevent infinite loops
-    } finally {
-      setIsReporting(false);
-    }
+    }, 0);
   }, [isReporting, errorCount, lastErrorTime]);
 
   const captureError = useCallback((error: Error | string, metadata?: Record<string, any>) => {
