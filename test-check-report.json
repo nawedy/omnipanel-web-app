@@ -1,0 +1,139 @@
+{
+  "timestamp": "2025-06-18T23:02:11.739Z",
+  "options": {
+    "category": "all",
+    "skipBuild": true,
+    "checkOnly": true,
+    "verbose": false,
+    "help": false,
+    "parallel": false,
+    "timeout": 60000
+  },
+  "summary": {
+    "total": 10,
+    "passed": 0,
+    "failed": 0,
+    "notFound": 0,
+    "exists": 8,
+    "patterns": 2,
+    "byCategory": {
+      "flows": {
+        "passed": 0,
+        "failed": 0,
+        "notFound": 0,
+        "exists": 3,
+        "patterns": 0,
+        "total": 3
+      },
+      "processes": {
+        "passed": 0,
+        "failed": 0,
+        "notFound": 0,
+        "exists": 1,
+        "patterns": 0,
+        "total": 1
+      },
+      "documentation": {
+        "passed": 0,
+        "failed": 0,
+        "notFound": 0,
+        "exists": 1,
+        "patterns": 0,
+        "total": 1
+      },
+      "integration": {
+        "passed": 0,
+        "failed": 0,
+        "notFound": 0,
+        "exists": 3,
+        "patterns": 0,
+        "total": 3
+      },
+      "unit": {
+        "passed": 0,
+        "failed": 0,
+        "notFound": 0,
+        "exists": 0,
+        "patterns": 0,
+        "total": 2,
+        "pattern": null
+      }
+    }
+  },
+  "results": [
+    {
+      "test": "onboarding",
+      "status": "EXISTS",
+      "category": "flows",
+      "file": "tests/flows/onboarding.spec.ts",
+      "size": "6.0"
+    },
+    {
+      "test": "workspace-navigation",
+      "status": "EXISTS",
+      "category": "flows",
+      "file": "tests/flows/workspace-navigation.spec.ts",
+      "size": "10.5"
+    },
+    {
+      "test": "ai-chat",
+      "status": "EXISTS",
+      "category": "flows",
+      "file": "tests/flows/ai-chat.spec.ts",
+      "size": "11.7"
+    },
+    {
+      "test": "project-management",
+      "status": "EXISTS",
+      "category": "processes",
+      "file": "tests/processes/project-management.spec.ts",
+      "size": "13.9"
+    },
+    {
+      "test": "documentation-validation",
+      "status": "EXISTS",
+      "category": "documentation",
+      "file": "tests/user-guides/documentation-validation.spec.ts",
+      "size": "12.7"
+    },
+    {
+      "test": "ai-context",
+      "status": "EXISTS",
+      "category": "integration",
+      "file": "tests/integration/ai-context.test.ts",
+      "size": "9.4"
+    },
+    {
+      "test": "workspace-sync",
+      "status": "EXISTS",
+      "category": "integration",
+      "file": "tests/integration/workspace-sync.test.ts",
+      "size": "9.5"
+    },
+    {
+      "test": "settings-persistence",
+      "status": "EXISTS",
+      "category": "integration",
+      "file": "tests/integration/settings-persistence.test.ts",
+      "size": "10.6"
+    },
+    {
+      "test": "*.test.{ts,tsx}",
+      "status": "PATTERN",
+      "category": "unit",
+      "file": "apps/**/__tests__/**/*.test.{ts,tsx}"
+    },
+    {
+      "test": "*.test.{ts,tsx}",
+      "status": "PATTERN",
+      "category": "unit",
+      "file": "packages/**/__tests__/**/*.test.{ts,tsx}"
+    }
+  ],
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cwd": "/Users/drgn003/IMPORTANT-DO-NOT-MOVE/Launch-Ready/llm-workspace/OmniPanel-project/omnipanel-core"
+  }
+}

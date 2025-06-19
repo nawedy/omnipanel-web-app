@@ -1,23 +1,13 @@
-# 🚀 OmniPanel AI Workspace
+# 🚀 OmniPanel Web Application
 
-The ultimate AI-powered workspace that brings together chat, code, data science, and automation in a unified, extensible platform. Works seamlessly across web, desktop, and mobile with support for local and cloud LLMs.
+The standalone web application for OmniPanel AI Workspace - A powerful AI-powered workspace that brings together chat, code, data science, and automation in a unified platform.
 
-![OmniPanel Logo](assets/OmniPanel-logo.png)
+![OmniPanel Logo](public/omnipanel-logo.png)
 
 ## 🎯 Current Status: Version 1.3.0 - Production Ready
 
 **Latest Release**: Sprint 8 - Complete Workspace Enhancement & AI Integration ✅  
 **Build Status**: ✅ Passing | **TypeScript**: ✅ 100% Compliant | **Tests**: ✅ Comprehensive Coverage
-
-### 🆕 Recent Major Updates (v1.3.0)
-- **✅ Sprint 8**: Workspace sidebar overhaul, AI-powered research, professional avatars, enhanced drag system
-- **✅ Sprint 7**: Workspace layout fixes, professional resizable panels, production stability
-- **✅ Sprint 6**: Complete testing infrastructure, E2E tests, quality assurance
-- **✅ Sprint 5**: File management overhaul, UI polish, context-aware AI assistance
-- **✅ Sprint 4**: Enhanced file explorer, terminal integration, real-time monitoring
-- **✅ Sprint 3**: Chat system redesign, context-aware AI, conversation management
-- **✅ Sprint 2**: Settings system overhaul, advanced theming, keyboard shortcuts
-- **✅ Sprint 1**: TypeScript error resolution, service integration, 100% type safety
 
 ## ✨ Features
 
@@ -51,51 +41,43 @@ The ultimate AI-powered workspace that brings together chat, code, data science,
 - **Visualization**: Built-in charting and data visualization with context awareness
 - **AI-Powered Analysis**: Smart cell generation and intelligent data analysis
 
-### 🔌 **Extensibility**
-- **Plugin System**: Comprehensive SDK with marketplace integration
-- **Advanced Theme Engine**: 8 color schemes, custom fonts, export/import functionality
-- **Custom Components**: Extensible UI component system with TypeScript support
-- **API Access**: Full REST API and CLI tools for automation
-
-### ⚙️ **Settings & Configuration**
-- **Comprehensive Settings**: 8 major sections (General, Theme, Keyboard, Database, Performance, Plugins, Errors, Privacy)
-- **GDPR Compliance**: Complete privacy policy with data protection rights
-- **Internationalization**: 12 language options with timezone management
-- **Database Integration**: PostgreSQL, MySQL, SQLite, NeonDB with connection string support
-
 ## 🏗️ Architecture
 
-### Monorepo Structure
+### Standalone Structure
 ```
-omnipanel-core/
-├── packages/              # Shared packages
-│   ├── types/            # TypeScript definitions
-│   ├── config/           # Global configuration
-│   ├── database/         # Database models and utilities
-│   ├── ui/               # Shared UI components
-│   ├── llm-adapters/     # AI model connectors
-│   ├── core/             # Business logic and sync
-│   ├── plugin-sdk/       # Plugin development SDK
-│   └── theme-engine/     # Advanced theming system
-├── apps/                 # Applications
-│   ├── web/              # Next.js web application
-│   ├── desktop/          # Electron desktop app
-│   ├── mobile/           # React Native mobile app
-│   ├── docs/             # Documentation site
-│   ├── website/          # Marketing website
-│   └── marketplace/      # Plugin marketplace
-└── assets/               # Shared assets and branding
+omnipanel-web-app/
+├── src/                  # Web application source
+│   ├── app/             # Next.js app router
+│   ├── components/      # React components
+│   ├── lib/             # Utility libraries
+│   ├── hooks/           # Custom React hooks
+│   ├── store/           # Zustand state management
+│   ├── types/           # TypeScript definitions
+│   └── content/         # User guides and documentation
+├── packages/            # Shared packages
+│   ├── types/          # TypeScript definitions
+│   ├── config/         # Global configuration
+│   ├── database/       # Database models and utilities
+│   ├── ui/             # Shared UI components
+│   ├── llm-adapters/   # AI model connectors
+│   ├── core/           # Business logic and sync
+│   ├── plugin-sdk/     # Plugin development SDK
+│   └── theme-engine/   # Advanced theming system
+├── tests/              # Test suites
+│   ├── flows/          # User flow tests
+│   ├── processes/      # Process validation tests
+│   └── user-guides/    # Documentation verification tests
+└── public/             # Static assets
 ```
 
 ### Technology Stack
-- **Frontend**: Next.js, React, TypeScript, Tailwind CSS
-- **Desktop**: Electron with native APIs
-- **Mobile**: React Native with Expo
+- **Frontend**: Next.js 15, React 19, TypeScript 5.8
+- **Styling**: Tailwind CSS, Framer Motion
+- **State Management**: Zustand
 - **Backend**: NeonDB (PostgreSQL, Auth, Storage, Functions)
-- **State**: Zustand for client state management
 - **Real-time**: NeonDB real-time subscriptions
 - **Offline**: IndexedDB with automatic sync
-- **UI**: Framer Motion, Monaco Editor, xterm.js
+- **UI Components**: Custom component library with Monaco Editor, xterm.js
 
 ## 🚀 Quick Start
 
@@ -107,38 +89,160 @@ omnipanel-core/
 ### Installation
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/omnipanel-core.git
-cd omnipanel-core
+git clone https://github.com/nawedy/omnipanel-web-app.git
+cd omnipanel-web-app
 
 # Install dependencies
 npm install
 
-# Build all packages
-npm run build
+# Build shared packages
+npm run build:packages
 
-# Start development servers
-npm run dev:web      # Web app (localhost:3003)
-npm run dev:docs     # Documentation (localhost:3001)
-npm run dev:website  # Marketing site (localhost:3004)
+# Start development server
+npm run dev
 ```
 
-### Desktop App
+The application will be available at `http://localhost:3003`
+
+### Production Build
 ```bash
-# Build and run desktop app
-npm run dev:desktop
+# Build for production
+npm run build:web
 
-# Build for distribution
-npm run build:desktop
+# Start production server
+npm start
 ```
 
-### Mobile App
+## 📚 User Guides & Documentation
+
+### 🎯 **Getting Started**
+- **[Quick Start Guide](src/content/QUICK_REFERENCE.md)** - Essential setup and first steps
+- **[User Guide](src/content/USERS_GUIDE.md)** - Comprehensive usage instructions
+- **[Onboarding Checklist](src/content/ONBOARDING_CHECKLIST.md)** - Step-by-step setup verification
+
+### 🔧 **Configuration**
+- **Environment Setup**: Copy `env.example` to `.env.local` and configure
+- **AI Model Configuration**: Set up API keys for various AI providers
+- **Database Setup**: Configure NeonDB connection strings
+- **Theme Customization**: Use the built-in theme engine for custom styling
+
+### 🛠️ **Development**
+- **Package Development**: Each package in `packages/` is independently buildable
+- **Component Library**: Shared UI components in `packages/ui/`
+- **Type Definitions**: Comprehensive TypeScript types in `packages/types/`
+- **Plugin Development**: Use `packages/plugin-sdk/` for custom extensions
+
+## 🧪 Testing
+
+### Comprehensive Test Suite
+
+The application includes extensive testing to verify all documented flows and processes:
+
+#### Test Categories
+- **Unit Tests**: Component and function testing
+- **Integration Tests**: Service and API testing  
+- **E2E Tests**: Full user workflow testing
+- **Flow Tests**: User journey validation
+- **Process Tests**: Business logic verification
+- **User Guide Tests**: Documentation accuracy validation
+
+#### Running Tests
 ```bash
-# Start Expo development server
-npm run dev:mobile
+# Run all tests
+npm run test:all
 
-# Run on iOS simulator
-npm run mobile:ios
+# Run specific test suites
+npm run test:unit          # Unit tests
+npm run test:integration   # Integration tests
+npm run test:e2e          # End-to-end tests
+npm run test:flows        # User flow tests
+npm run test:processes    # Process validation tests
+npm run test:user-guides  # Documentation verification
 
-# Run on Android emulator
-npm run mobile:android
+# Watch mode for development
+npm run test:watch
+
+# Coverage reports
+npm run test:coverage
 ```
+
+#### Test Structure
+```
+tests/
+├── flows/              # User flow validation
+│   ├── onboarding.spec.ts
+│   ├── workspace-navigation.spec.ts
+│   ├── ai-chat.spec.ts
+│   ├── code-editor.spec.ts
+│   ├── terminal.spec.ts
+│   └── settings.spec.ts
+├── processes/          # Business process validation
+│   ├── project-management.spec.ts
+│   ├── file-operations.spec.ts
+│   ├── ai-integration.spec.ts
+│   └── data-sync.spec.ts
+└── user-guides/        # Documentation verification
+    ├── quick-reference.spec.ts
+    ├── users-guide.spec.ts
+    └── onboarding-checklist.spec.ts
+```
+
+## 🚢 Deployment
+
+### Vercel Deployment (Recommended)
+```bash
+# Install Vercel CLI
+npm i -g vercel
+
+# Deploy to Vercel
+vercel --prod
+```
+
+### Manual Deployment
+```bash
+# Build the application
+npm run build:web
+
+# The built application will be in .next/
+# Deploy the .next/ directory to your hosting provider
+```
+
+### Environment Variables
+Required environment variables for deployment:
+```bash
+# AI Provider API Keys
+OPENAI_API_KEY=your_openai_key
+ANTHROPIC_API_KEY=your_anthropic_key
+
+# Database Configuration
+NEON_DATABASE_URL=your_neon_connection_string
+
+# Application Configuration
+NEXT_PUBLIC_APP_URL=https://your-domain.com
+NEXTAUTH_SECRET=your_nextauth_secret
+```
+
+## 🤝 Community & Support
+
+### Getting Help
+- **📖 Documentation**: Comprehensive guides in `src/content/`
+- **🐛 GitHub Issues**: Bug reports and feature requests
+- **💬 Discussions**: Community discussions and Q&A
+
+### Contributing
+- **🔀 Pull Requests**: Code contributions and improvements
+- **📝 Documentation**: Help improve guides and examples
+- **🧪 Testing**: Add tests for new features and edge cases
+- **🐛 Bug Reports**: Issue identification and reproduction
+
+## 📄 License
+
+MIT License - see [LICENSE](LICENSE) for details.
+
+## 🔄 Version History
+
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history and release notes.
+
+---
+
+**OmniPanel Web App** - The future of AI-powered development workspaces. Built with ❤️ for developers, by developers.

@@ -99,6 +99,61 @@ export interface ContextSummary {
 type ContextSubscriber = (context: WorkspaceContext) => void;
 
 class ContextService {
+  updateWorkspaceContext(arg0: { 
+    sessionId: string; 
+    projectPath: string | undefined; 
+    activeFiles: Array<{ path: string; content: string; language: string; isActive: boolean; }>; 
+    openTabs: FileContext[]; 
+  }) {
+    // Update the workspace context with session information
+    if (arg0.projectPath) {
+      this.updateProject({
+        id: arg0.sessionId,
+        name: arg0.projectPath.split('/').pop() || 'Project',
+        rootPath: arg0.projectPath,
+        type: 'other'
+      });
+    }
+    
+    // Add active files to context
+    arg0.activeFiles.forEach(file => {
+      this.addFile({
+        path: file.path,
+        name: file.path.split('/').pop() || 'file',
+        type: 'file',
+        language: file.language,
+        content: file.content
+      });
+    });
+  }
+  
+  addFileContext(arg0: { filePath: string; fileContent: any; language: any; }) {
+    this.addFile({
+      path: arg0.filePath,
+      name: arg0.filePath.split('/').pop() || 'file',
+      type: 'file',
+      language: arg0.language,
+      content: arg0.fileContent
+    });
+  }
+  
+  removeFileContext(arg0: { path: string; }) {
+    this.removeFile(arg0.path);
+  }
+  
+  setActiveFile(filePath: string) {
+    // Move the file to the front of activeFiles to mark as current
+    const fileIndex = this.context.activeFiles.findIndex(f => f.path === filePath);
+    if (fileIndex > 0) {
+      const file = this.context.activeFiles.splice(fileIndex, 1)[0];
+      this.context.activeFiles.unshift(file);
+      this.notifyListeners();
+    }
+  }
+  
+  updateFileContext(filePath: string, content: string) {
+    this.updateFileContent(filePath, content);
+  }
   private context: WorkspaceContext;
   private subscribers: Set<ContextSubscriber> = new Set();
   private maxHistorySize = 100;

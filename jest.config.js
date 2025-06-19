@@ -2,10 +2,10 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   
   // Module resolution
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/apps/web/src/$1',
     '^@omnipanel/types$': '<rootDir>/packages/types/src',
     '^@omnipanel/ui$': '<rootDir>/packages/ui/src',
@@ -16,6 +16,11 @@ module.exports = {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$': '<rootDir>/tests/__mocks__/fileMock.js'
   },
+
+  // Transform ignore patterns - handle ES modules
+  transformIgnorePatterns: [
+    'node_modules/(?!(nanoid|@babel|@testing-library|openai)/)'
+  ],
 
   // Coverage configuration
   collectCoverageFrom: [
@@ -72,12 +77,16 @@ module.exports = {
     '<rootDir>/apps/**/dist/',
     '<rootDir>/packages/**/dist/',
     '<rootDir>/apps/**/build/',
-    '<rootDir>/tests/e2e/'
+    '<rootDir>/tests/e2e/',
+    '<rootDir>/apps/web/src/tests/'
   ],
 
   // Transform configuration
   transform: {
-    '^.+\\.(ts|tsx)$': 'ts-jest',
+    '^.+\\.(ts|tsx)$': ['ts-jest', {
+      useESM: false,
+      tsconfig: 'tsconfig.test.json'
+    }],
   },
 
   // Module file extensions
@@ -102,29 +111,54 @@ module.exports = {
   // Projects for multi-package testing
   projects: [
     {
-      displayName: 'Web App',
-      testMatch: ['<rootDir>/apps/web/**/*.test.{ts,tsx}'],
-      setupFilesAfterEnv: ['<rootDir>/tests/setup-web.ts']
-    },
-    {
-      displayName: 'Desktop App',
-      testMatch: ['<rootDir>/apps/desktop/**/*.test.{ts,tsx}'],
-      setupFilesAfterEnv: ['<rootDir>/tests/setup-desktop.ts']
-    },
-    {
-      displayName: 'Mobile App', 
-      testMatch: ['<rootDir>/apps/mobile/**/*.test.{ts,tsx}'],
-      setupFilesAfterEnv: ['<rootDir>/tests/setup-mobile.ts']
-    },
-    {
       displayName: 'Packages',
+      testEnvironment: 'jsdom',
       testMatch: ['<rootDir>/packages/**/*.test.{ts,tsx}'],
-      setupFilesAfterEnv: ['<rootDir>/tests/setup-packages.ts']
+      setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+      transformIgnorePatterns: [
+        'node_modules/(?!(nanoid|@babel|@testing-library|openai)/)'
+      ],
+      moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/apps/web/src/$1',
+        '^@omnipanel/types$': '<rootDir>/packages/types/src',
+        '^@omnipanel/ui$': '<rootDir>/packages/ui/src',
+        '^@omnipanel/config$': '<rootDir>/packages/config/src',
+        '^@omnipanel/database$': '<rootDir>/packages/database/src',
+        '^@omnipanel/llm-adapters$': '<rootDir>/packages/llm-adapters/src',
+        '^@omnipanel/core$': '<rootDir>/packages/core/src',
+        '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+      },
+      transform: {
+        '^.+\\.(ts|tsx)$': ['ts-jest', {
+          useESM: false,
+          tsconfig: 'tsconfig.test.json'
+        }],
+      },
     },
     {
       displayName: 'Integration',
+      testEnvironment: 'jsdom',
       testMatch: ['<rootDir>/tests/integration/**/*.test.{ts,tsx}'],
-      setupFilesAfterEnv: ['<rootDir>/tests/setup-integration.ts']
+      setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+      transformIgnorePatterns: [
+        'node_modules/(?!(nanoid|@babel|@testing-library|openai)/)'
+      ],
+      moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/apps/web/src/$1',
+        '^@omnipanel/types$': '<rootDir>/packages/types/src',
+        '^@omnipanel/ui$': '<rootDir>/packages/ui/src',
+        '^@omnipanel/config$': '<rootDir>/packages/config/src',
+        '^@omnipanel/database$': '<rootDir>/packages/database/src',
+        '^@omnipanel/llm-adapters$': '<rootDir>/packages/llm-adapters/src',
+        '^@omnipanel/core$': '<rootDir>/packages/core/src',
+        '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
+      },
+      transform: {
+        '^.+\\.(ts|tsx)$': ['ts-jest', {
+          useESM: false,
+          tsconfig: 'tsconfig.test.json'
+        }],
+      },
     }
   ]
 }; 

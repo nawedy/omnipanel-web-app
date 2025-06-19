@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ChatInterface } from '@/components/chat/ChatInterface';
 import { ContextProvider } from '@/providers/ContextProvider';
@@ -6,15 +6,15 @@ import { contextService } from '@/services/contextService';
 import { aiService } from '@/services/aiService';
 
 // Mock services
-vi.mock('@/services/contextService');
-vi.mock('@/services/aiService');
+jest.mock('@/services/contextService');
+jest.mock('@/services/aiService');
 
-const mockContextService = vi.mocked(contextService);
-const mockAiService = vi.mocked(aiService);
+const mockContextService = jest.mocked(contextService);
+const mockAiService = jest.mocked(aiService);
 
 describe('AI Context Integration', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     
     // Setup default mocks
     mockContextService.getWorkspaceContext.mockResolvedValue({
@@ -40,7 +40,7 @@ describe('AI Context Integration', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    jest.restoreAllMocks();
   });
 
   it('should provide workspace context to AI service', async () => {

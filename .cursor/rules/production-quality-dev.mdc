@@ -1,0 +1,14 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Build production-ready, comprehensive components and all other code files - not minimal stubs
+Add to and improve existing implementations - don't replace them
+Each component should be modular, reusable, and fully functional
+No placeholders, no "TODO" comments, no incomplete implementations
+always have a changelod.md file created and update it regularly
+never use packages and dependencies that are deprecated, or unsupported
+never use implicit any types, unresolved any or nulls, no unused imports, declared and unused vars
+when you find unused vars, make sure to fully implement them as they are there because we knew they would be needed.
+when you encounter a persistent erro or issue, do not give up, "try a simpler way..." or any other means of avoiding actually having to solve the issue. follow the following steps: identify what the issue/error really is, review relevant docs, create a step by step plan, execute fix

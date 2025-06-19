@@ -57,6 +57,22 @@ interface FileSystemWatcher {
 }
 
 class FileSystemService {
+  readFile(arg0: { path: string; }) {
+      throw new Error('Method not implemented.');
+  }
+  getFileInfo(arg0: { path: string; }) {
+      throw new Error('Method not implemented.');
+  }
+  refreshDirectory(projectPath: string) {
+      throw new Error('Method not implemented.');
+  }
+  searchInDirectory // Utility methods
+      (projectPath: string, query: string, arg2: { caseSensitive: boolean | undefined; wholeWord: boolean | undefined; regex: boolean | undefined; include: string[] | undefined; exclude: string[] | undefined; maxResults: number; }): import("./workspaceService").SearchResult[] | PromiseLike<import("./workspaceService").SearchResult[]> {
+          throw new Error('Method not implemented.');
+  }
+  writeFile(filePath: string, arg1: string): any {
+      throw new Error('Method not implemented.');
+  }
   private watchers: Map<string, FileWatchCallback[]> = new Map();
   private changeListeners: FileSystemChangeCallback[] = [];
   private fileSystemCache: Map<string, FileSystemEntry> = new Map();

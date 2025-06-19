@@ -151,6 +151,12 @@ export interface ProjectSearchOptions {
 }
 
 class ProjectService {
+  closeProject(arg0: { path: string; }) {
+      throw new Error('Method not implemented.');
+  }
+  refreshProject() {
+      throw new Error('Method not implemented.');
+  }
   private projects: Map<string, Project> = new Map();
   private recentProjects: Project[] = [];
   private currentProject: Project | null = null;

@@ -1028,7 +1028,7 @@ export default function AIModelsPage(): React.JSX.Element {
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={(value: string) => setActiveTab(value as 'providers' | 'local' | 'performance' | 'settings')} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="providers" className="flex items-center gap-2">
             <Cloud className="h-4 w-4" />

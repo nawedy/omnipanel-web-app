@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { motion, useInView } from 'motion/react';
+import { motion, useInView } from 'framer-motion';
 import { Check, Zap, Shield, Users, Star, Crown, Rocket, Lock } from 'lucide-react';
 import { BentoGrid, BentoCard } from '@/components/magicui/bento-grid';
 import { cn } from '@/lib/utils';

@@ -1,21 +1,21 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SettingsProvider } from '@/providers/SettingsProvider';
-import { SettingsModal } from '@/components/settings/SettingsModal';
-import { ThemeProvider } from '@/providers/ThemeProvider';
+import { SettingsModal } from '@/components/modals/SettingsModal';
+import { ThemeProvider } from '@/components/ThemeProvider';
 import { settingsService } from '@/services/settingsService';
 import { storageService } from '@/services/storageService';
 
 // Mock services
-vi.mock('@/services/settingsService');
-vi.mock('@/services/storageService');
+jest.mock('@/services/settingsService');
+jest.mock('@/services/storageService');
 
-const mockSettingsService = vi.mocked(settingsService);
-const mockStorageService = vi.mocked(storageService);
+const mockSettingsService = jest.mocked(settingsService);
+const mockStorageService = jest.mocked(storageService);
 
 describe('Settings Persistence', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    jest.clearAllMocks();
     
     // Setup default mocks
     mockSettingsService.getSettings.mockResolvedValue({
@@ -57,7 +57,7 @@ describe('Settings Persistence', () => {
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    jest.restoreAllMocks();
   });
 
   it('should load settings on application start', async () => {
@@ -235,8 +235,8 @@ describe('Settings Persistence', () => {
     fireEvent.click(screen.getByTestId('export-settings-button'));
 
     // Mock file download
-    const mockCreateObjectURL = vi.fn(() => 'blob:mock-url');
-    const mockRevokeObjectURL = vi.fn();
+    const mockCreateObjectURL = jest.fn(() => 'blob:mock-url');
+    const mockRevokeObjectURL = jest.fn();
     global.URL.createObjectURL = mockCreateObjectURL;
     global.URL.revokeObjectURL = mockRevokeObjectURL;
 

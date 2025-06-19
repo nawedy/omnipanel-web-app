@@ -14,31 +14,21 @@ import {
   Type, 
   Save, 
   Download,
-  Upload,
-  Settings,
   Bot,
   Copy,
-  MoreVertical,
-  FileDown,
   RefreshCw,
   Loader2,
   Check,
   X,
   Image as ImageIcon,
-  Table,
-  BarChart,
-  FileText,
-  BookOpen,
-  Sparkles,
-  Eye,
-  EyeOff
+  FileText
 } from 'lucide-react';
 import { Editor } from '@monaco-editor/react';
 import { useWorkspaceStore } from '@/stores/workspace';
 import { contextService } from '@/services/contextService';
 import { aiService } from '@/services/aiService';
 import { useMonitoring } from '@/components/providers/MonitoringProvider';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from '@/lib/uuid';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
