@@ -12,7 +12,7 @@
     "NEXT_PUBLIC_API_URL": "https://api.omnipanel.cipher-intelligence.com"
   },
   "functions": {
-    "apps/web/src/app/api/**/*.ts": {
+    "apps/web/src/app/api/**/route.ts": {
       "runtime": "@vercel/node@5.2.2"
     }
   },
