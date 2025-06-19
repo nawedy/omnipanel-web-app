@@ -11,11 +11,6 @@
     "NEXT_PUBLIC_APP_URL": "https://omnipanel.cipher-intelligence.com",
     "NEXT_PUBLIC_API_URL": "https://api.omnipanel.cipher-intelligence.com"
   },
-  "functions": {
-    "apps/web/src/app/api/**/route.ts": {
-      "runtime": "@vercel/node@5.2.2"
-    }
-  },
   "headers": [
     {
       "source": "/(.*)",
