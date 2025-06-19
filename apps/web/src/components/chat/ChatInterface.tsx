@@ -35,6 +35,7 @@ import { nanoid } from '@omnipanel/core';
 import { useMonitoring } from '@/components/providers/MonitoringProvider';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { configService } from '@/services/configService';
+import { ChatInput } from './ChatInput';
 
 // Enhanced chat message interface with context awareness
 interface ExtendedChatMessage extends ChatMessage {
@@ -629,28 +630,270 @@ What would you like to work on today?`,
   };
 
   return (
-    <div data-testid="chat-interface" className="p-4 flex flex-col h-full">
-      <h3 className="font-medium mb-4">Chat</h3>
-      <div className="flex-1 space-y-4 mb-4">
-        <div className="bg-blue-50 p-3 rounded-lg max-w-xs">
-          <div className="text-sm">Hello! How can I help you today?</div>
+    <div data-testid="chat-interface" className="flex flex-col h-full bg-gray-900 text-white">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 border-b border-gray-700">
+        <div className="flex items-center gap-3">
+          <Avatar className="w-8 h-8">
+            <AvatarImage src="/ai-avatar.png" alt="AI Assistant" />
+            <AvatarFallback>AI</AvatarFallback>
+          </Avatar>
+          <div>
+            <h3 className="font-semibold text-lg">AI Assistant</h3>
+            <p className="text-sm text-gray-400">
+              {activeConversation?.title || 'New Conversation'}
+            </p>
+          </div>
         </div>
-        <div className="bg-gray-50 p-3 rounded-lg max-w-xs ml-auto">
-          <div className="text-sm">I need help with my code</div>
+        
+        <div className="flex items-center gap-2">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowConversations(!showConversations)}
+            className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
+            title="Conversation History"
+          >
+            <Archive size={18} />
+          </motion.button>
+          
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={createNewConversation}
+            className="p-2 rounded-lg bg-gray-800 hover:bg-gray-700 transition-colors"
+            title="New Conversation"
+          >
+            <Plus size={18} />
+          </motion.button>
+          
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setContextEnabled(!contextEnabled)}
+            className={`p-2 rounded-lg transition-colors ${
+              contextEnabled 
+                ? 'bg-blue-600 hover:bg-blue-700' 
+                : 'bg-gray-800 hover:bg-gray-700'
+            }`}
+            title={`Context Mode: ${contextEnabled ? 'On' : 'Off'}`}
+          >
+            <Zap size={18} />
+          </motion.button>
         </div>
       </div>
-      <div className="flex">
-        <input 
-          data-testid="chat-input"
-          className="flex-1 border border-gray-300 rounded-l-lg px-3 py-2"
-          placeholder="Type your message..."
+
+      {/* Conversation History Sidebar */}
+      <AnimatePresence>
+        {showConversations && (
+          <motion.div
+            initial={{ x: -300, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -300, opacity: 0 }}
+            className="absolute left-0 top-0 h-full w-80 bg-gray-800 border-r border-gray-700 z-10 overflow-y-auto"
+          >
+            <div className="p-4">
+              <h4 className="font-semibold mb-4">Conversations</h4>
+              <div className="space-y-2">
+                {conversations.map((conversation) => (
+                  <motion.div
+                    key={conversation.id}
+                    whileHover={{ scale: 1.02 }}
+                    onClick={() => {
+                      setActiveConversationId(conversation.id);
+                      setShowConversations(false);
+                    }}
+                    className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                      conversation.id === activeConversationId
+                        ? 'bg-blue-600'
+                        : 'bg-gray-700 hover:bg-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{conversation.title}</p>
+                        <p className="text-sm text-gray-400">
+                          {formatDate(conversation.updatedAt)}
+                        </p>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteConversation(conversation.id);
+                        }}
+                        className="p-1 rounded hover:bg-gray-600 ml-2"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <AnimatePresence>
+          {messages.map((message, index) => (
+            <motion.div
+              key={message.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className={`flex gap-3 ${
+                message.role === 'user' ? 'justify-end' : 'justify-start'
+              }`}
+            >
+              {message.role === 'assistant' && (
+                <Avatar className="w-8 h-8 flex-shrink-0">
+                  <AvatarImage src="/ai-avatar.png" alt="AI Assistant" />
+                  <AvatarFallback>AI</AvatarFallback>
+                </Avatar>
+              )}
+              
+              <div className={`max-w-[70%] ${
+                message.role === 'user' ? 'order-1' : ''
+              }`}>
+                <div className={`p-4 rounded-2xl ${
+                  message.role === 'user'
+                    ? 'bg-blue-600 text-white ml-auto'
+                    : 'bg-gray-800 text-gray-100'
+                }`}>
+                  <div className="prose prose-sm max-w-none">
+                    {message.content.split('\n').map((line, i) => (
+                      <p key={i} className="mb-2 last:mb-0">
+                        {line}
+                      </p>
+                    ))}
+                  </div>
+                  
+                  {message.isStreaming && (
+                    <div className="flex items-center gap-2 mt-2 text-gray-400">
+                      <Loader2 size={14} className="animate-spin" />
+                      <span className="text-xs">Generating...</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
+                  <span>{formatTime(message.timestamp)}</span>
+                  
+                  {message.role === 'assistant' && (
+                    <>
+                      <button
+                        onClick={() => copyMessage(message.content)}
+                        className="p-1 rounded hover:bg-gray-700 transition-colors"
+                        title="Copy message"
+                      >
+                        <Copy size={12} />
+                      </button>
+                      
+                      <button
+                        onClick={() => regenerateResponse(message.id)}
+                        disabled={isLoading || isRegenerating === message.id}
+                        className="p-1 rounded hover:bg-gray-700 transition-colors disabled:opacity-50"
+                        title="Regenerate response"
+                      >
+                        {isRegenerating === message.id ? (
+                          <Loader2 size={12} className="animate-spin" />
+                        ) : (
+                          <RotateCcw size={12} />
+                        )}
+                      </button>
+                    </>
+                  )}
+                  
+                  {message.metadata?.responseTime && (
+                    <span className="text-xs">
+                      {message.metadata.responseTime}ms
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              {message.role === 'user' && (
+                <Avatar className="w-8 h-8 flex-shrink-0">
+                  <AvatarFallback>
+                    <User size={16} />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+        
+        {isLoading && !messages.find(m => m.isStreaming) && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex gap-3"
+          >
+            <Avatar className="w-8 h-8">
+              <AvatarImage src="/ai-avatar.png" alt="AI Assistant" />
+              <AvatarFallback>AI</AvatarFallback>
+            </Avatar>
+            <div className="bg-gray-800 p-4 rounded-2xl">
+              <div className="flex items-center gap-2">
+                <Loader2 size={16} className="animate-spin" />
+                <span className="text-sm text-gray-400">Thinking...</span>
+              </div>
+            </div>
+          </motion.div>
+        )}
+        
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Stop Generation Button */}
+      {isLoading && (
+        <div className="px-4 pb-2">
+          <motion.button
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            onClick={stopGeneration}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white font-medium transition-colors mx-auto"
+          >
+            <StopCircle size={16} />
+            Stop Generation
+          </motion.button>
+        </div>
+      )}
+
+      {/* Chat Input */}
+      <div className="p-4 border-t border-gray-700">
+        <ChatInput
+          value={input}
+          onChange={setInput}
+          onSend={handleSendMessage}
+          onKeyPress={handleKeyPress}
+          disabled={isLoading}
+          isLoading={isLoading}
+          onAttachFile={() => fileInputRef.current?.click()}
+          onAttachImage={() => fileInputRef.current?.click()}
+          onWebSearch={() => {
+            setInput(input + " [web search] ");
+            inputRef.current?.focus();
+          }}
         />
-        <button 
-          data-testid="send-button"
-          className="bg-blue-500 text-white px-4 py-2 rounded-r-lg hover:bg-blue-600"
-        >
-          Send
-        </button>
+        
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            // Handle file attachment
+            const files = Array.from(e.target.files || []);
+            if (files.length > 0) {
+              captureMessage(`${files.length} file(s) selected for attachment`, 'info');
+              // TODO: Implement file processing
+            }
+          }}
+        />
       </div>
     </div>
   );
