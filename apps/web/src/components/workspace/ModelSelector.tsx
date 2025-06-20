@@ -57,7 +57,7 @@ export function ModelSelector({ className = '' }: ModelSelectorProps) {
   const discoverModels = async () => {
     setIsDiscovering(true);
     try {
-      const configs: Partial<Record<AIProvider, any>> = {};
+      const configs: Record<string, any> = {};
       
       // Build discovery configs from active API configurations
       apiConfigs.forEach(config => {
@@ -115,10 +115,10 @@ export function ModelSelector({ className = '' }: ModelSelectorProps) {
       name: localModel.name,
       provider: 'ollama' as AIProvider,
       category: 'local',
-      description: `Local Ollama model - ${localModel.details?.parameter_size || 'Unknown size'}`,
+      description: `Local Ollama model - ${localModel.parameters?.details?.parameter_size || 'Unknown size'}`,
       maxTokens: 4096,
       contextWindow: 4096,
-      isAvailable: localModel.status === 'available',
+      isAvailable: localModel.isLoaded,
       type: 'chat',
       isLocal: true,
     }));
@@ -140,7 +140,10 @@ export function ModelSelector({ className = '' }: ModelSelectorProps) {
           contextWindow: discoveredModel.contextLength,
           isAvailable: discoveredModel.availability === 'available',
           capabilities: discoveredModel.capabilities,
-          pricing: discoveredModel.pricing,
+          pricing: discoveredModel.pricing ? {
+            input: discoveredModel.pricing.input || 0,
+            output: discoveredModel.pricing.output || 0
+          } : undefined,
           type: 'chat',
           isLocal: false,
         });
@@ -151,10 +154,10 @@ export function ModelSelector({ className = '' }: ModelSelectorProps) {
   };
 
   const availableModelsList = getAvailableModels();
-  const currentModel = selectedModel || availableModelsList[0];
+  const currentModel = availableModelsList.find(m => m.id === selectedModel) || availableModelsList[0];
 
   const handleModelSelect = async (model: any) => {
-    setSelectedModel(model);
+    setSelectedModel(model.id);
     setIsOpen(false);
   };
 
@@ -200,7 +203,7 @@ export function ModelSelector({ className = '' }: ModelSelectorProps) {
   };
 
   const getProviderBadgeColor = (provider: AIProvider) => {
-    const colors = {
+    const colors: Record<string, string> = {
       openai: 'text-green-700 bg-green-100 dark:text-green-300 dark:bg-green-900/30',
       anthropic: 'text-orange-700 bg-orange-100 dark:text-orange-300 dark:bg-orange-900/30',
       google: 'text-blue-700 bg-blue-100 dark:text-blue-300 dark:bg-blue-900/30',
@@ -209,6 +212,7 @@ export function ModelSelector({ className = '' }: ModelSelectorProps) {
       openrouter: 'text-purple-700 bg-purple-100 dark:text-purple-300 dark:bg-purple-900/30',
       ollama: 'text-indigo-700 bg-indigo-100 dark:text-indigo-300 dark:bg-indigo-900/30',
       local: 'text-gray-700 bg-gray-100 dark:text-gray-300 dark:bg-gray-900/30',
+      custom: 'text-gray-700 bg-gray-100 dark:text-gray-300 dark:bg-gray-900/30',
     };
     return colors[provider] || colors.local;
   };
@@ -347,7 +351,7 @@ export function ModelSelector({ className = '' }: ModelSelectorProps) {
                       </div>
                     </div>
                     
-                    {selectedModel?.id === model.id && (
+                    {selectedModel === model.id && (
                       <CheckCircle className="w-4 h-4 text-blue-500 flex-shrink-0" />
                     )}
                   </button>

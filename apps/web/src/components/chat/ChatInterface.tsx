@@ -85,7 +85,7 @@ interface ChatInterfaceProps {
 
 export function ChatInterface({ sessionId, projectId, initialContext }: ChatInterfaceProps): React.JSX.Element {
   const { currentProject } = useWorkspaceStore();
-  const { selectedModel, availableModels, apiConfigs } = useAIConfigStore();
+  const { selectedModel, availableModels, apiConfigs, localModels, setSelectedModel } = useAIConfigStore();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [input, setInput] = useState('');
@@ -101,9 +101,31 @@ export function ChatInterface({ sessionId, projectId, initialContext }: ChatInte
   // Get monitoring utilities
   const { captureError, captureMessage, measure, startMeasure, endMeasure } = useMonitoring();
 
+  // Auto-select first available model if none is selected
+  useEffect(() => {
+    if (!selectedModel && localModels.length > 0) {
+      // Auto-select first local model if available
+      const firstLocalModel = localModels[0];
+      if (firstLocalModel && firstLocalModel.isLoaded) {
+        console.log('Auto-selecting first available local model:', firstLocalModel.id);
+        setSelectedModel(firstLocalModel.id);
+      }
+    } else if (!selectedModel && availableModels.length > 0) {
+      // Auto-select first available model
+      const firstAvailableModel = availableModels.find(m => m.isAvailable);
+      if (firstAvailableModel) {
+        console.log('Auto-selecting first available model:', firstAvailableModel.id);
+        setSelectedModel(firstAvailableModel.id);
+      }
+    }
+  }, [selectedModel, localModels, availableModels, setSelectedModel]);
+
   // Get the current selected model and its provider
-  const currentModel = availableModels.find(model => model.id === selectedModel);
-  const modelProvider = currentModel?.provider || 'openai';
+  const currentModel = availableModels.find(model => model.id === selectedModel) || 
+                       localModels.find(model => model.id === selectedModel);
+  const modelProvider = currentModel ? 
+    ('provider' in currentModel ? currentModel.provider : 'ollama') : 
+    'ollama';
 
   // Get active conversation
   const activeConversation = conversations.find(c => c.id === activeConversationId);
@@ -392,15 +414,54 @@ What would you like to work on today?`,
           });
           throw error;
         }
+
+        // Prepare model options based on provider
+        const modelOptions: any = {
+          temperature: 0.7,
+          max_tokens: 4096
+        };
+
+        // For Ollama and other local models, we need to pass the model name
+        if (modelProvider === 'ollama' && currentModel) {
+          // For Ollama models, use the model name directly
+          // The model ID should be the actual Ollama model name (e.g., "llama3.2:1b")
+          const modelName = currentModel.name || currentModel.id;
+          modelOptions.model = modelName;
+        } else if (currentModel) {
+          // For other providers, use the model ID as is
+          modelOptions.model = currentModel.id;
+        }
+
+        // Validate we have everything we need
+        if (!selectedModel) {
+          throw new Error('No model selected. Please select a model from the dropdown.');
+        }
+        
+        if (!currentModel) {
+          throw new Error(`Selected model "${selectedModel}" not found in available models.`);
+        }
+        
+        if (modelProvider === 'ollama' && !modelOptions.model) {
+          throw new Error('Ollama model name is required but not provided.');
+        }
+
+        console.log('Chat request details:', {
+          provider: modelProvider,
+          selectedModel,
+          currentModel: {
+            id: currentModel.id,
+            name: currentModel.name,
+            provider: 'provider' in currentModel ? currentModel.provider : 'ollama'
+          },
+          modelOptions,
+          messageCount: messageHistory.length
+        });
       
       // Start streaming session
       const streamController = streamingManager.startStream(assistantMessageId);
       
       // Start streaming the response
-      const streamGenerator = adapter.streamChat(messageHistory, {
-        temperature: 0.7,
-        max_tokens: 4096
-      });
+      const streamGenerator = adapter.streamChat(messageHistory, modelOptions);
       
       let fullResponse = '';
       const startTime = Date.now();
@@ -490,12 +551,35 @@ What would you like to work on today?`,
       streamingManager.cancelStream(assistantMessageId);
       
     } catch (error) {
+      console.error('Chat error details:', {
+        error,
+        provider: modelProvider,
+        selectedModel,
+        currentModel,
+        conversationId: activeConversationId
+      });
+
       captureError(error instanceof Error ? error : new Error('Chat error'), {
         component: 'ChatInterface',
         operation: 'sendMessage',
         model: selectedModel,
         provider: modelProvider
       });
+      
+      // Create a more informative error message
+      let errorMessage = 'Sorry, I encountered an error while processing your request. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('No adapter available')) {
+          errorMessage = `Model provider "${modelProvider}" is not available. Please select a different model.`;
+        } else if (error.message.includes('Network error') || error.message.includes('fetch')) {
+          errorMessage = `Cannot connect to the model service. Please check if ${modelProvider === 'ollama' ? 'Ollama is running' : 'your internet connection is working'}.`;
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'The request timed out. Please try again with a shorter message.';
+        } else if (error.message.includes('model')) {
+          errorMessage = `Model "${selectedModel}" is not available. Please select a different model.`;
+        }
+      }
       
       // Update the streaming message to show error instead of adding a new message
       setConversations(prev => prev.map(conv => {
@@ -506,10 +590,12 @@ What would you like to work on today?`,
               msg.id === assistantMessageId 
                 ? { 
                     ...msg, 
-                    content: 'Sorry, I encountered an error while processing your request. Please try again.',
+                    content: errorMessage,
                     isStreaming: false,
                     metadata: {
                       error: true,
+                      errorType: error instanceof Error ? error.name : 'Unknown',
+                      errorMessage: error instanceof Error ? error.message : String(error),
                       responseTime: Date.now() - (msg.timestamp?.getTime() || Date.now())
                     }
                   }
@@ -540,7 +626,9 @@ What would you like to work on today?`,
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    // Send message on Enter (without Shift)
+    // Shift+Enter creates a new line
+    if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
       handleSendMessage();
     }
@@ -652,8 +740,8 @@ What would you like to work on today?`,
             <AvatarFallback>AI</AvatarFallback>
           </Avatar>
           <div>
-            <h3 className="font-semibold text-lg">AI Assistant</h3>
-            <p className="text-sm text-gray-400">
+            <h3 className="font-semibold text-lg text-white">AI Assistant</h3>
+            <p className="text-sm text-gray-300">
               {activeConversation?.title || 'New Conversation'}
             </p>
           </div>
@@ -706,7 +794,7 @@ What would you like to work on today?`,
             className="absolute left-0 top-0 h-full w-80 bg-gray-800 border-r border-gray-700 z-10 overflow-y-auto"
           >
             <div className="p-4">
-              <h4 className="font-semibold mb-4">Conversations</h4>
+              <h4 className="font-semibold mb-4 text-white">Conversations</h4>
               <div className="space-y-2">
                 {conversations.map((conversation) => (
                   <motion.div
@@ -724,8 +812,8 @@ What would you like to work on today?`,
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{conversation.title}</p>
-                        <p className="text-sm text-gray-400">
+                        <p className="font-medium truncate text-white">{conversation.title}</p>
+                        <p className="text-sm text-gray-300">
                           {formatDate(conversation.updatedAt)}
                         </p>
                       </div>
@@ -775,24 +863,24 @@ What would you like to work on today?`,
                     ? 'bg-blue-600 text-white ml-auto'
                     : 'bg-gray-800 text-white'
                 }`}>
-                  <div className="prose prose-sm max-w-none">
+                  <div className="prose prose-sm max-w-none text-white prose-invert">
                     {message.content.split('\n').map((line, i) => (
-                      <p key={i} className="mb-2 last:mb-0">
+                      <p key={i} className="mb-2 last:mb-0 text-white !text-white">
                         {line}
                       </p>
                     ))}
                   </div>
                   
                   {message.isStreaming && (
-                    <div className="flex items-center gap-2 mt-2 text-gray-400">
+                    <div className="flex items-center gap-2 mt-2 text-white">
                       <Loader2 size={14} className="animate-spin" />
-                      <span className="text-xs">Generating...</span>
+                      <span className="text-xs text-white">Generating...</span>
                     </div>
                   )}
                 </div>
                 
-                <div className="flex items-center gap-2 mt-2 text-xs text-gray-400">
-                  <span>{formatTime(message.timestamp)}</span>
+                <div className="flex items-center gap-2 mt-2 text-xs text-gray-300">
+                  <span className="text-white">{formatTime(message.timestamp)}</span>
                   
                   {message.role === 'assistant' && (
                     <>
@@ -820,7 +908,7 @@ What would you like to work on today?`,
                   )}
                   
                   {message.metadata?.responseTime && (
-                    <span className="text-xs">
+                    <span className="text-xs text-white">
                       {message.metadata.responseTime}ms
                     </span>
                   )}
@@ -850,8 +938,8 @@ What would you like to work on today?`,
             </Avatar>
             <div className="bg-gray-800 p-4 rounded-2xl">
               <div className="flex items-center gap-2">
-                <Loader2 size={16} className="animate-spin" />
-                <span className="text-sm text-gray-400">Thinking...</span>
+                <Loader2 size={16} className="animate-spin text-white" />
+                <span className="text-sm text-white">Thinking...</span>
               </div>
             </div>
           </motion.div>

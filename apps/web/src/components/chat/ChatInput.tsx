@@ -28,7 +28,7 @@ export function ChatInput({
   onAttachFile,
   onAttachImage,
   onWebSearch,
-  placeholder = "Imagine Something...✦˚"
+  placeholder = "Imagine Something...✦˚ (Press Enter to send, Shift+Enter for new line)"
 }: ChatInputProps): React.JSX.Element {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -233,13 +233,13 @@ const StyledWrapper = styled.div`
     }
 
     &::placeholder {
-      color: #f3f6fd;
-      opacity: 0.7;
+      color: #ffffff;
+      opacity: 0.8;
       transition: all 0.3s ease;
     }
     
     &:focus::placeholder {
-      opacity: 0.5;
+      opacity: 0.6;
     }
 
     &:disabled {
